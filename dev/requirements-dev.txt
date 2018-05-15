@@ -1,0 +1,4 @@
+# devs
+flake8
+coverage
+pytest

@@ -1,0 +1,11 @@
+[run]
+source =
+    openapi
+
+[html]
+directory = build/coverage/html
+
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError

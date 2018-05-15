@@ -1,0 +1,33 @@
+# asyncio stack
+uvloop
+aiohttp
+aiodns
+httptools
+cchardet
+simplejson
+#
+# database
+asyncpg
+sqlalchemy
+sqlalchemy_utils
+alembic
+psycopg2-binary
+#
+# tools
+click
+python-dateutil
+python-dotenv
+pytz
+pyyaml
+pyjwt
+#
+# required for python 3.6
+dataclasses
+#
+# testing and linting
+mypy
+pytest
+pytest-cov
+pytest-aiohttp
+flake8
+pyswagger

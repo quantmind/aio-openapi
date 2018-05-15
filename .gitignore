@@ -1,0 +1,23 @@
+# python
+__pycache__
+*.pyc
+*.pyd
+*.so
+*.o
+*.def
+.coverage
+.pytest_cache
+.mypy_cache
+venv
+build
+
+# ides
+.vscode/.ropeproject
+.idea
+
+# Mac
+.DS_Store
+
+# files
+.env
+*.log
