@@ -1,6 +1,5 @@
 [run]
-source =
-    openapi
+source = openapi
 omit = openapi/reload.py
 
 [html]
