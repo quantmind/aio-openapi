@@ -70,7 +70,7 @@ def number_field(required=False, min_value=None,
 
 
 def decimal_field(required=False, min_value=None,
-                 max_value=None, precision=None):
+                  max_value=None, precision=None):
     return data_field(
         required=required,
         validator=DecimalValidator(min_value, max_value, precision)

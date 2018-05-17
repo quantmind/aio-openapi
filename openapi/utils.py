@@ -1,19 +1,19 @@
 import os
 
-
+LOCAL = 'local'
 DEV = 'dev'
 PRODUCTION = 'production'
 NO_DEBUG = {'0', 'false', 'no'}
 
 
 def get_env():
-    return os.environ.get('OPENAPI_DEBUG') or PRODUCTION
+    return os.environ.get('PYTHON_ENV') or PRODUCTION
 
 
 def get_debug_flag():
-    val = os.environ.get('OPENAPI_DEBUG')
+    val = os.environ.get('DEBUG')
     if not val:
-        return get_env() == DEV
+        return get_env() == LOCAL
     return val.lower() not in NO_DEBUG
 
 

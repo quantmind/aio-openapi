@@ -1,4 +1,8 @@
 # devs
 flake8
 coverage
+mypy
 pytest
+pytest-cov
+pytest-aiohttp
+pyswagger

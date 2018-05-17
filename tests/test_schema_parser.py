@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from openapi.spec import SchemaParser
-from ..spec.exceptions import InvalidTypeException
+from openapi.spec.exceptions import InvalidTypeException
 
 
 def test_get_schema_ref():

@@ -1,6 +1,7 @@
 import pytest
 
 from click.testing import CliRunner
+
 from openapi.rest import rest
 from openapi import db
 
