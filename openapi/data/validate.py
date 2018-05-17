@@ -1,5 +1,5 @@
 from typing import Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from .fields import VALIDATOR, REQUIRED, ValidationError
 
@@ -45,4 +45,5 @@ def validate(schema, data):
         validate = getattr(schema, 'validate', None)
         if validate:
             validate(cleaned, errors)
-    return ValidatedData(data=cleaned, errors=errors)
+    cleaned_schema = schema(**cleaned)
+    return ValidatedData(data=asdict(cleaned_schema), errors=errors)

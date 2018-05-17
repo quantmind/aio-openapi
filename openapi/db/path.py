@@ -28,7 +28,17 @@ class SqlApiPath(ApiPath):
     async def get_list(self):
         """Get a list of models
         """
-        query = self.get_query()
+        querystring = dict(self.request.query)
+        limit = querystring.pop('limit', None)
+        page = int(querystring.pop('page', 1))
+        query = self.get_query().filter_by(**querystring)
+
+        # pagination
+        if limit is not None:
+            limit = int(limit)
+            query = query.offset((page - 1) * limit)
+            query = query.limit(limit)
+
         sql, args = self.compile_query(query.statement)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
@@ -72,6 +82,19 @@ class SqlApiPath(ApiPath):
         if not values:
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
+
+    async def delete_one(self):
+        """delete a single model
+        """
+        query_id = self.request.match_info['id']
+        table = self.request.app['metadata'].tables[self.table]
+        delete = table.delete().where(table.c.id == query_id)
+        sql, args = self.compile_query(delete.returning(*table.columns))
+        async with self.db.acquire() as db:
+            values = await db.fetch(sql, *args)
+        if not values:
+            raise web.HTTPNotFound()
+        return None
 
     # UTILITIES
 
