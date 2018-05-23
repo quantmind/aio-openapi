@@ -1,7 +1,7 @@
 from typing import Dict
 from dataclasses import dataclass, asdict
 
-from .fields import VALIDATOR, REQUIRED, ValidationError
+from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError
 
 
 @dataclass
@@ -19,18 +19,16 @@ def validate(schema, data):
         try:
             validator = field.metadata.get(VALIDATOR)
             required = field.metadata.get(REQUIRED)
-            value = data.get(field.name)
+            default = field.metadata.get(DEFAULT)
+            value = data.get(field.name, default)
 
-            # missing value
-            if value is None:
-                if required:
-                    raise ValidationError(field.name, 'required')
-                continue
+            if value is None and required:
+                raise ValidationError(field.name, 'required')
 
             if validator:
                 value = validator(field, value, data)
 
-            if not isinstance(value, field.type):
+            if value and not isinstance(value, field.type):
                 try:
                     value = field.type(value)
                 except (TypeError, ValueError):
@@ -45,5 +43,5 @@ def validate(schema, data):
         validate = getattr(schema, 'validate', None)
         if validate:
             validate(cleaned, errors)
-    cleaned_schema = schema(**cleaned)
-    return ValidatedData(data=asdict(cleaned_schema), errors=errors)
+
+    return ValidatedData(data=cleaned, errors=errors)

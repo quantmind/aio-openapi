@@ -29,8 +29,3 @@ openapi/spec/operation.py
 openapi/spec/path.py
 openapi/spec/spec.py
 openapi/spec/utils.py
-openapi/tests/__init__.py
-openapi/tests/test_cli.py
-openapi/tests/test_db.py
-openapi/tests/test_schema_parser.py
-openapi/tests/test_spec.py

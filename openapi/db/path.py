@@ -25,13 +25,15 @@ class SqlApiPath(ApiPath):
         """
         return self.request.app['db']
 
-    async def get_list(self):
+    async def get_list(self, query=None):
         """Get a list of models
         """
         querystring = dict(self.request.query)
+        querystring.update(query or {})
         limit = querystring.pop('limit', None)
         page = int(querystring.pop('page', 1))
-        query = self.get_query().filter_by(**querystring)
+        cleaned_query = self.cleaned('query_schema', querystring)
+        query = self.get_query().filter_by(**cleaned_query)
 
         # pagination
         if limit is not None:
@@ -55,6 +57,25 @@ class SqlApiPath(ApiPath):
             async with db.transaction():
                 values = await db.fetch(statement, *args)
         data = ((c.name, v) for c, v in zip(table.columns, values[0]))
+        return self.dump('response_schema', data)
+
+    async def create_list(self, bodies=None):
+        """Create multiple models
+        """
+        meta = self.request.app['metadata']
+        table = meta.tables[self.table]
+        bodies = bodies or await self.json_data()
+        data = []
+        async with self.db.acquire() as db:
+            async with db.transaction():
+                for body in bodies:
+                    cleaned_body = self.cleaned('body_schema', body)
+                    statement, args = self.get_insert(cleaned_body)
+                    values = await db.fetch(statement, *args)
+                    data.append(
+                        (c.name, v) for c, v in zip(table.columns, values[0])
+                    )
+
         return self.dump('response_schema', data)
 
     async def get_one(self):
@@ -94,6 +115,16 @@ class SqlApiPath(ApiPath):
             values = await db.fetch(sql, *args)
         if not values:
             raise web.HTTPNotFound()
+        return None
+
+    async def delete_list(self, field, value):
+        """delete multiple models
+        """
+        table = self.request.app['metadata'].tables[self.table]
+        delete = table.delete().where(table.c[field] == value)
+        sql, args = self.compile_query(delete.returning(*table.columns))
+        async with self.db.acquire() as db:
+            await db.fetch(sql, *args)
         return None
 
     # UTILITIES

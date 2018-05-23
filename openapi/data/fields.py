@@ -50,6 +50,12 @@ def data_field(
     return f
 
 
+def bool_field(**kwargs):
+    if 'validator' not in kwargs:
+        kwargs['validator'] = lambda f, v, d: str(v).lower() == 'true'
+    return data_field(**kwargs)
+
+
 def uuid_field(required=False):
     """A UUID field with validation
     """
@@ -148,6 +154,8 @@ class EnumValidator(Validator):
         self.EnumClass = EnumClass
 
     def __call__(self, field, value, data):
+        if value is None:
+            return
         try:
             e = getattr(self.EnumClass, value)
             if isinstance(e, self.EnumClass):
