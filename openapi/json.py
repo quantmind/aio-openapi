@@ -14,6 +14,10 @@ def encoder(obj):
 
 
 loads = partial(simplejson.loads, use_decimal=True)
-dumps = partial(simplejson.dumps, use_decimal=True, default=encoder, iterable_as_array=True)
+dumps = partial(simplejson.dumps,
+                use_decimal=True,
+                default=encoder,
+                iterable_as_array=True
+                )
 
 __all__ = ['loads', 'dumps']

@@ -61,8 +61,11 @@ class SqlApiPath(ApiPath):
         """
         query_id = self.request.match_info['id']
         data = self.cleaned('body_schema', await self.json_data())
-        update = self.db_table.update().where(self.db_table.c.id == query_id).values(**data)
-        sql, args = self.compile_query(update.returning(*self.db_table.columns))
+        update = (self.db_table.update()
+                  .where(self.db_table.c.id == query_id)
+                  .values(**data)
+                  .returning(*self.db_table.columns))
+        sql, args = self.compile_query(update)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
@@ -72,7 +75,9 @@ class SqlApiPath(ApiPath):
     # UTILITIES
 
     def get_insert(self, record):
-        exp = self.db_table.insert().values(**record).returning(*self.db_table.columns)
+        exp = (self.db_table.insert()
+               .values(**record)
+               .returning(*self.db_table.columns))
         return self.compile_query(exp)
 
     def compile_query(self, query, inline=False):
