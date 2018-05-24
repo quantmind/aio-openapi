@@ -78,11 +78,11 @@ class SqlApiPath(ApiPath):
 
         return self.dump('response_schema', data)
 
-    async def get_one(self):
+    async def get_one(self, match_query=None):
         """Get a single model
         """
-        query_id = self.request.match_info['id']
-        query = self.get_query().filter_by(id=query_id)
+        match_query = match_query or {'id': self.request.match_info['id']}
+        query = self.get_query().filter_by(**match_query)
         sql, args = self.compile_query(query.statement)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
@@ -90,13 +90,17 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
 
-    async def update_one(self):
+    async def update_one(self, data=None, match_query=None):
         """Update a single model
         """
-        query_id = self.request.match_info['id']
+        match_query = match_query or {'id': self.request.match_info['id']}
         table = self.request.app['metadata'].tables[self.table]
-        data = self.cleaned('body_schema', await self.json_data())
-        update = table.update().where(table.c.id == query_id).values(**data)
+        data = self.cleaned('body_schema', data or await self.json_data())
+        update = table.update()
+        for field, value in match_query.items():
+            update = update.where(table.c[field] == value)
+        update = update.values(**data)
+
         sql, args = self.compile_query(update.returning(*table.columns))
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
@@ -124,7 +128,8 @@ class SqlApiPath(ApiPath):
         delete = table.delete().where(table.c[field] == value)
         sql, args = self.compile_query(delete.returning(*table.columns))
         async with self.db.acquire() as db:
-            await db.fetch(sql, *args)
+            async with db.transaction():
+                await db.fetch(sql, *args)
         return None
 
     # UTILITIES

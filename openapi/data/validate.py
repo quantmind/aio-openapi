@@ -17,13 +17,15 @@ def validate(schema, data):
     cleaned = {}
     for field in schema.__dataclass_fields__.values():
         try:
-            validator = field.metadata.get(VALIDATOR)
             required = field.metadata.get(REQUIRED)
+            if field.name not in data and DEFAULT not in field.metadata:
+                if required:
+                    raise ValidationError(field.name, 'required')
+                continue
+
+            validator = field.metadata.get(VALIDATOR)
             default = field.metadata.get(DEFAULT)
             value = data.get(field.name, default)
-
-            if value is None and required:
-                raise ValidationError(field.name, 'required')
 
             if validator:
                 value = validator(field, value, data)
