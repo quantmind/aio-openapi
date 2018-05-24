@@ -1,5 +1,5 @@
 from typing import Dict
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError
 
