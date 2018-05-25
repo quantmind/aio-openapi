@@ -1,7 +1,6 @@
 from aiohttp import web
-from sqlalchemy.dialects import postgresql
 
-from .compile import execute_defaults
+from .compile import compile_query
 from ..spec.path import ApiPath
 
 
@@ -11,8 +10,6 @@ class SqlApiPath(ApiPath):
 
     table = None
     # sql table name
-    dialect = postgresql.dialect()
-    # sql dialect
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,7 +25,7 @@ class SqlApiPath(ApiPath):
         """Get a list of models
         """
         query = self.db_table.select()
-        sql, args = self.compile_query(query)
+        sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         return self.dump('response_schema', values)
@@ -49,7 +46,7 @@ class SqlApiPath(ApiPath):
         """
         query_id = self.request.match_info['id']
         query = self.db_table.select().where(self.db_table.c.id == query_id)
-        sql, args = self.compile_query(query)
+        sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
@@ -65,7 +62,7 @@ class SqlApiPath(ApiPath):
                   .where(self.db_table.c.id == query_id)
                   .values(**data)
                   .returning(*self.db_table.columns))
-        sql, args = self.compile_query(update)
+        sql, args = compile_query(update)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
@@ -78,24 +75,4 @@ class SqlApiPath(ApiPath):
         exp = (self.db_table.insert()
                .values(**record)
                .returning(*self.db_table.columns))
-        return self.compile_query(exp)
-
-    def compile_query(self, query, inline=False):
-        execute_defaults(query)
-        compiled = query.compile(dialect=self.dialect)
-        compiled_params = sorted(compiled.params.items())
-        #
-        mapping = {
-            key: '$' + str(i)
-            for i, (key, _) in enumerate(compiled_params, start=1)
-        }
-        new_query = compiled.string % mapping
-        processors = compiled._bind_processors
-        new_params = [
-            processors[key](val) if key in processors else val
-            for key, val in compiled_params
-        ]
-        if inline:
-            return new_query
-
-        return new_query, new_params
+        return compile_query(exp)
