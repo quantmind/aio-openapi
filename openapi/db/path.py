@@ -1,13 +1,9 @@
 from aiohttp import web
 
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.dialects import postgresql
+from sqlalchemy.sql import and_
 
-from .compile import execute_defaults
+from .compile import compile_query
 from ..spec.path import ApiPath
-
-
-Session = sessionmaker()
 
 
 class SqlApiPath(ApiPath):
@@ -15,9 +11,8 @@ class SqlApiPath(ApiPath):
     """
 
     table = None
+    filters = {}
     # sql table name
-    dialect = postgresql.dialect()
-    # sql dialect
 
     @property
     def db(self):
@@ -25,15 +20,19 @@ class SqlApiPath(ApiPath):
         """
         return self.request.app['db']
 
+    @property
+    def db_table(self):
+        return self.request.app['metadata'].tables[self.table]
+      
     async def get_list(self, query=None):
         """Get a list of models
         """
-        querystring = dict(self.request.query)
-        querystring.update(query or {})
-        limit = querystring.pop('limit', None)
-        page = int(querystring.pop('page', 1))
-        cleaned_query = self.cleaned('query_schema', querystring)
-        query = self.get_query().filter_by(**cleaned_query)
+        params = dict(self.request.query)
+        params.update(query or ())
+        limit = params.pop('limit', None)
+        page = int(params.pop('page', 1))
+        params = self.cleaned('query_schema', params)
+        query = self.get_query(self.db_table.select(), params)
 
         # pagination
         if limit is not None:
@@ -41,7 +40,7 @@ class SqlApiPath(ApiPath):
             query = query.offset((page - 1) * limit)
             query = query.limit(limit)
 
-        sql, args = self.compile_query(query.statement)
+        sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         return self.dump('response_schema', values)
@@ -49,14 +48,12 @@ class SqlApiPath(ApiPath):
     async def create_one(self):
         """Create a model
         """
-        meta = self.request.app['metadata']
-        table = meta.tables[self.table]
         data = self.cleaned('body_schema', await self.json_data())
         statement, args = self.get_insert(data)
         async with self.db.acquire() as db:
             async with db.transaction():
                 values = await db.fetch(statement, *args)
-        data = ((c.name, v) for c, v in zip(table.columns, values[0]))
+        data = ((c.name, v) for c, v in zip(self.db_table.columns, values[0]))
         return self.dump('response_schema', data)
 
     async def create_list(self, bodies=None):
@@ -81,9 +78,9 @@ class SqlApiPath(ApiPath):
     async def get_one(self, match_query=None):
         """Get a single model
         """
-        match_query = match_query or {'id': self.request.match_info['id']}
-        query = self.get_query().filter_by(**match_query)
-        sql, args = self.compile_query(query.statement)
+        filters = self.cleaned('path_schema', self.request.match_info)
+        query = self.get_query(self.db_table.select(), filters)
+        sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
@@ -93,15 +90,12 @@ class SqlApiPath(ApiPath):
     async def update_one(self, data=None, match_query=None):
         """Update a single model
         """
-        match_query = match_query or {'id': self.request.match_info['id']}
-        table = self.request.app['metadata'].tables[self.table]
-        data = self.cleaned('body_schema', data or await self.json_data())
-        update = table.update()
-        for field, value in match_query.items():
-            update = update.where(table.c[field] == value)
-        update = update.values(**data)
-
-        sql, args = self.compile_query(update.returning(*table.columns))
+        data = self.cleaned('body_schema', await self.json_data())
+        filters = self.cleaned('path_schema', self.request.match_info)
+        update = self.get_query(
+                self.db_table.update(), filters
+            ).values(**data).returning(*self.db_table.columns)
+        sql, args = compile_query(update)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
@@ -134,34 +128,86 @@ class SqlApiPath(ApiPath):
 
     # UTILITIES
 
-    def get_query(self):
-        meta = self.request.app['metadata']
-        table = meta.tables[self.table]
-        session = Session()
-        return session.query(table)
-
     def get_insert(self, record):
-        meta = self.request.app['metadata']
-        table = meta.tables[self.table]
-        exp = table.insert().values(**record).returning(*table.columns)
-        return self.compile_query(exp)
+        exp = (self.db_table.insert()
+               .values(**record)
+               .returning(*self.db_table.columns))
+        return compile_query(exp)
 
-    def compile_query(self, query, inline=False):
-        execute_defaults(query)
-        compiled = query.compile(dialect=self.dialect)
-        compiled_params = sorted(compiled.params.items())
-        #
-        mapping = {
-            key: '$' + str(i)
-            for i, (key, _) in enumerate(compiled_params, start=1)
-        }
-        new_query = compiled.string % mapping
-        processors = compiled._bind_processors
-        new_params = [
-            processors[key](val) if key in processors else val
-            for key, val in compiled_params
-        ]
-        if inline:
-            return new_query
+    def get_query(self, query, params=None):
+        filters = []
+        columns = self.db_table.c
+        params = params or {}
+        for key, value in params.items():
+            bits = key.split(':')
+            field = bits[0]
+            op = bits[1] if len(bits) == 2 else 'eq'
+            if field in self.filters:
+                result = self.filters[field](self, op, value)
+            else:
+                field = getattr(columns, field)
+                result = self.filter_field(field, op, value)
+            if result is not None:
+                if not isinstance(result, (list, tuple)):
+                    result = (result,)
+                filters.extend(result)
+        if filters:
+            filters = and_(*filters) if len(result) > 1 else filters[0]
+            query = query.where(filters)
+        return query
 
-        return new_query, new_params
+    def filter_field(self, field, op, value):
+        """
+        Applies a filter on a field.
+
+        Notes on 'ne' op:
+
+        Example data: [None, 'john', 'roger']
+        ne:john would return only roger (i.e. nulls excluded)
+        ne:     would return john and roger
+
+        Notes on  'search' op:
+
+        For some reason, SQLAlchemy uses to_tsquery rather than
+        plainto_tsquery for the match operator
+
+        to_tsquery uses operators (&, |, ! etc.) while
+        plainto_tsquery tokenises the input string and uses AND between
+        tokens, hence plainto_tsquery is what we want here
+
+        For other database back ends, the behaviour of the match
+        operator is completely different - see:
+        http://docs.sqlalchemy.org/en/rel_1_0/core/sqlelement.html
+
+        :param field: field name
+        :param op: 'eq', 'ne', 'gt', 'lt', 'ge', 'le' or 'search'
+        :param value: comparison value, string or list/tuple
+        :return:
+        """
+        multiple = isinstance(value, (list, tuple))
+
+        if value == '':
+            value = None
+
+        if multiple and op in ('eq', 'ne'):
+            if op == 'eq':
+                return field.in_(value)
+            elif op == 'ne':
+                return ~field.in_(value)
+        else:
+            if multiple:
+                assert len(value) > 0
+                value = value[0]
+
+            if op == 'eq':
+                return field == value
+            elif op == 'ne':
+                return field != value
+            elif op == 'gt':
+                return field > value
+            elif op == 'ge':
+                return field >= value
+            elif op == 'lt':
+                return field < value
+            elif op == 'le':
+                return field <= value
