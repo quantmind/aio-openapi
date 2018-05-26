@@ -101,3 +101,5 @@ async def tests_get_update(cli):
     # now delete it
     response = await cli.delete('/tasks/2')
     assert response.status == 204
+    response = await cli.get('/tasks/2')
+    await jsonBody(response, 404)
