@@ -8,6 +8,7 @@ from ..data.validate import validate
 class ApiPath(web.View):
     """An OpenAPI path
     """
+    path_schema = None
 
     # UTILITIES
 
@@ -16,7 +17,9 @@ class ApiPath(web.View):
         """
         Schema = getattr(self.request['operation'], name, None)
         if Schema is None:
-            raise web.HTTPNotImplemented
+            Schema = getattr(self, name, None)
+            if Schema is None:
+                raise web.HTTPNotImplemented
         schema = validate(Schema, data)
         if schema.errors:
             app = self.request.app

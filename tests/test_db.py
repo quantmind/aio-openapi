@@ -1,5 +1,6 @@
 import os
 import asyncio
+from datetime import datetime
 
 import pytest
 
@@ -68,8 +69,35 @@ async def tests_get_list(cli):
     assert len(data) == 0
 
 
+async def test_get_404(cli):
+    response = await cli.get('/tasks/101')
+    await jsonBody(response, 404)
+
+
 async def tests_create(cli):
     response = await cli.post('/tasks', json=dict(title='test 1'))
-    data = await jsonBody(response)
+    data = await jsonBody(response, 201)
     assert data['id'] == 1
     assert data['title'] == 'test 1'
+
+
+async def tests_get_update(cli):
+    response = await cli.post('/tasks', json=dict(title='test 2'))
+    data = await jsonBody(response, 201)
+    assert data['id'] == 2
+    assert data['title'] == 'test 2'
+    #
+    # now get it
+    response = await cli.get('/tasks/2')
+    await jsonBody(response, 200)
+    #
+    # now update
+    response = await cli.patch(
+        '/tasks/2', json=dict(done=datetime.now().isoformat())
+    )
+    data = await jsonBody(response, 200)
+    assert data['id'] == 2
+    #
+    # now delete it
+    # response = await cli.delete('/tasks/1')
+    # assert response.status == 204

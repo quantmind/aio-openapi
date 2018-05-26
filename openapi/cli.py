@@ -8,6 +8,7 @@ import dotenv
 import uvloop
 
 from .utils import get_debug_flag
+from . import spec
 
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -46,6 +47,7 @@ class OpenApiClient(click.Group):
             app['cli'] = self
             app['spec'] = self.spec
             app['cwd'] = os.getcwd()
+            spec.setup_app(app)
             if self.setup_app:
                 self.setup_app(app)
             self._web = app

@@ -13,9 +13,21 @@ class TaskAdd:
 
 @dataclass
 class Task(TaskAdd):
+    id: int = data_field(required=True)
     done: datetime = date_time_field()
 
 
 @dataclass
 class TaskQuery:
     done: bool = data_field()
+
+
+@dataclass
+class TaskUpdate(TaskAdd):
+    title: str
+    done: datetime = date_time_field()
+
+
+@dataclass
+class TaskPathSchema:
+    id: int = data_field(required=True)

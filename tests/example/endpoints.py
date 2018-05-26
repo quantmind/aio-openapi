@@ -2,7 +2,7 @@ from aiohttp import web
 
 from openapi.db.path import SqlApiPath
 from openapi.spec import op
-from .models import Task, TaskAdd, TaskQuery
+from .models import Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate
 
 
 routes = web.RouteTableDef()
@@ -41,3 +41,50 @@ class TasksPath(SqlApiPath):
         """
         data = await self.create_one()
         return web.json_response(data, status=201)
+
+
+@routes.view('/tasks/{id}')
+class TaskPath(SqlApiPath):
+    """
+    ---
+    summary: Create and query tasks
+    tags:
+        - task
+    """
+    table = 'tasks'
+    path_schema = TaskPathSchema
+
+    @op(response_schema=Task)
+    async def get(self):
+        """
+        ---
+        summary: get an existing Task by ID
+        responses:
+            200:
+                description: the task
+        """
+        data = await self.get_one()
+        return self.json_response(data)
+
+    @op(response_schema=Task, body_schema=TaskUpdate)
+    async def patch(self):
+        """
+        ---
+        summary: update an existing Task by ID
+        responses:
+            200:
+                description: the updated task
+        """
+        data = await self.update_one()
+        return self.json_response(data)
+
+    @op()
+    async def delete(self):
+        """
+        ---
+        summary: Delete an existing task
+        responses:
+            204:
+                description: Task successfully deleted
+        """
+        return await self.delete_one()

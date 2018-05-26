@@ -2,8 +2,9 @@ import re
 from decimal import Decimal
 from uuid import uuid4, UUID
 from datetime import datetime
-
 from dataclasses import field
+
+from dateutil.parser import parse as parse_date
 
 from ..utils import compact_dict
 
@@ -104,7 +105,7 @@ class Validator:
     dump = None
 
     def __call__(self, field, value, data):
-        raise ValidationError
+        raise ValidationError(field.name, 'inavlid')
 
 
 class ListValidator(Validator):
@@ -173,6 +174,18 @@ class DateTimeValidator(Validator):
     def dump(self, value):
         if isinstance(value, datetime):
             return value.isoformat()
+        return value
+
+    def __call__(self, field, value, data):
+        if isinstance(value, str):
+            try:
+                value = parse_date(value)
+            except ValueError:
+                pass
+        if not isinstance(value, datetime):
+            raise ValidationError(
+                field.name, '%s not valid format' % value
+            )
         return value
 
 
