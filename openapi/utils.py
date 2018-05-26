@@ -22,7 +22,7 @@ def compact(**kwargs):
 
 
 def compact_dict(kwargs):
-    return {k: v for k, v in kwargs.items() if v}
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def iter_items(data):

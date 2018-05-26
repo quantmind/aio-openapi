@@ -23,11 +23,23 @@ class SqlApiPath(ApiPath):
     @property
     def db_table(self):
         return self.request.app['metadata'].tables[self.table]
-
-    async def get_list(self):
+      
+    async def get_list(self, query=None):
         """Get a list of models
         """
-        query = self.db_table.select()
+        params = dict(self.request.query)
+        params.update(query or ())
+        limit = params.pop('limit', None)
+        page = int(params.pop('page', 1))
+        params = self.cleaned('query_schema', params)
+        query = self.get_query(self.db_table.select(), params)
+
+        # pagination
+        if limit is not None:
+            limit = int(limit)
+            query = query.offset((page - 1) * limit)
+            query = query.limit(limit)
+
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
@@ -44,7 +56,26 @@ class SqlApiPath(ApiPath):
         data = ((c.name, v) for c, v in zip(self.db_table.columns, values[0]))
         return self.dump('response_schema', data)
 
-    async def get_one(self):
+    async def create_list(self, bodies=None):
+        """Create multiple models
+        """
+        meta = self.request.app['metadata']
+        table = meta.tables[self.table]
+        bodies = bodies or await self.json_data()
+        data = []
+        async with self.db.acquire() as db:
+            async with db.transaction():
+                for body in bodies:
+                    cleaned_body = self.cleaned('body_schema', body)
+                    statement, args = self.get_insert(cleaned_body)
+                    values = await db.fetch(statement, *args)
+                    data.append(
+                        (c.name, v) for c, v in zip(table.columns, values[0])
+                    )
+
+        return self.dump('response_schema', data)
+
+    async def get_one(self, match_query=None):
         """Get a single model
         """
         filters = self.cleaned('path_schema', self.request.match_info)
@@ -56,7 +87,7 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
 
-    async def update_one(self):
+    async def update_one(self, data=None, match_query=None):
         """Update a single model
         """
         data = self.cleaned('body_schema', await self.json_data())
@@ -70,6 +101,30 @@ class SqlApiPath(ApiPath):
         if not values:
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
+
+    async def delete_one(self):
+        """delete a single model
+        """
+        query_id = self.request.match_info['id']
+        table = self.request.app['metadata'].tables[self.table]
+        delete = table.delete().where(table.c.id == query_id)
+        sql, args = self.compile_query(delete.returning(*table.columns))
+        async with self.db.acquire() as db:
+            values = await db.fetch(sql, *args)
+        if not values:
+            raise web.HTTPNotFound()
+        return None
+
+    async def delete_list(self, field, value):
+        """delete multiple models
+        """
+        table = self.request.app['metadata'].tables[self.table]
+        delete = table.delete().where(table.c[field] == value)
+        sql, args = self.compile_query(delete.returning(*table.columns))
+        async with self.db.acquire() as db:
+            async with db.transaction():
+                await db.fetch(sql, *args)
+        return None
 
     # UTILITIES
 
