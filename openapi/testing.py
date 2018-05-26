@@ -1,6 +1,5 @@
 """Testing utilities
 """
-
 from openapi.json import loads, dumps
 
 

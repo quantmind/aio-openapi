@@ -11,15 +11,15 @@ class SqlApiPath(ApiPath):
     table = None
     # sql table name
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.db_table = self.request.app['metadata'].tables[self.table]
-
     @property
     def db(self):
         """Database connection pool
         """
         return self.request.app['db']
+
+    @property
+    def db_table(self):
+        return self.request.app['metadata'].tables[self.table]
 
     async def get_list(self):
         """Get a list of models
