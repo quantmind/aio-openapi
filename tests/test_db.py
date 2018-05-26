@@ -99,5 +99,5 @@ async def tests_get_update(cli):
     assert data['id'] == 2
     #
     # now delete it
-    # response = await cli.delete('/tasks/1')
-    # assert response.status == 204
+    response = await cli.delete('/tasks/2')
+    assert response.status == 204

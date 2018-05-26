@@ -87,4 +87,5 @@ class TaskPath(SqlApiPath):
             204:
                 description: Task successfully deleted
         """
-        return await self.delete_one()
+        await self.delete_one()
+        return web.Response(status=204)

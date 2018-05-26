@@ -23,7 +23,7 @@ class SqlApiPath(ApiPath):
     @property
     def db_table(self):
         return self.request.app['metadata'].tables[self.table]
-      
+
     async def get_list(self, query=None):
         """Get a list of models
         """
@@ -105,26 +105,23 @@ class SqlApiPath(ApiPath):
     async def delete_one(self):
         """delete a single model
         """
-        query_id = self.request.match_info['id']
-        table = self.request.app['metadata'].tables[self.table]
-        delete = table.delete().where(table.c.id == query_id)
-        sql, args = self.compile_query(delete.returning(*table.columns))
+        filters = self.cleaned('path_schema', self.request.match_info)
+        delete = self.get_query(self.db_table.delete(), filters)
+        sql, args = compile_query(delete.returning(*self.db_table.columns))
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
             raise web.HTTPNotFound()
-        return None
 
     async def delete_list(self, field, value):
         """delete multiple models
         """
         table = self.request.app['metadata'].tables[self.table]
         delete = table.delete().where(table.c[field] == value)
-        sql, args = self.compile_query(delete.returning(*table.columns))
+        sql, args = compile_query(delete.returning(*table.columns))
         async with self.db.acquire() as db:
             async with db.transaction():
                 await db.fetch(sql, *args)
-        return None
 
     # UTILITIES
 
