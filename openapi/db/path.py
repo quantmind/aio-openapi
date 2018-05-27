@@ -11,7 +11,6 @@ class SqlApiPath(ApiPath):
     """
 
     table = None
-    filters = {}
     # sql table name
 
     @property
@@ -113,12 +112,11 @@ class SqlApiPath(ApiPath):
         if not values:
             raise web.HTTPNotFound()
 
-    async def delete_list(self, field, value):
+    async def delete_list(self, query):
         """delete multiple models
         """
-        table = self.request.app['metadata'].tables[self.table]
-        delete = table.delete().where(table.c[field] == value)
-        sql, args = compile_query(delete.returning(*table.columns))
+        delete = self.get_query(self.db_table.delete(), query)
+        sql, args = compile_query(delete)
         async with self.db.acquire() as db:
             async with db.transaction():
                 await db.fetch(sql, *args)
@@ -139,11 +137,12 @@ class SqlApiPath(ApiPath):
             bits = key.split(':')
             field = bits[0]
             op = bits[1] if len(bits) == 2 else 'eq'
-            if field in self.filters:
-                result = self.filters[field](self, op, value)
+            filter_field = getattr(self, f'filter_{field}', None)
+            if filter_field:
+                result = filter_field(op, value)
             else:
                 field = getattr(columns, field)
-                result = self.filter_field(field, op, value)
+                result = self.default_filter_field(field, op, value)
             if result is not None:
                 if not isinstance(result, (list, tuple)):
                     result = (result,)
@@ -153,7 +152,7 @@ class SqlApiPath(ApiPath):
             query = query.where(filters)
         return query
 
-    def filter_field(self, field, op, value):
+    def default_filter_field(self, field, op, value):
         """
         Applies a filter on a field.
 

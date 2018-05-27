@@ -114,3 +114,26 @@ async def tests_get_update(cli):
     assert response.status == 204
     response = await cli.get('/tasks/2')
     await jsonBody(response, 404)
+
+
+async def tests_delete_list(cli):
+    response = await cli.delete('/tasks')
+    assert response.status == 204
+    await cli.post('/tasks', json=dict(title='bla'))
+    await cli.post('/tasks', json=dict(title='foo'))
+    response = await cli.get('/tasks')
+    data = await jsonBody(response)
+    assert len(data) == 2
+    response = await cli.patch(
+        f'/tasks/{data[0]["id"]}', json=dict(done=datetime.now().isoformat())
+    )
+    response = await cli.get('/tasks', params={'done': 'true'})
+    data = await jsonBody(response)
+    assert len(data) == 1
+    assert data[0]['done']
+    response = await cli.delete('/tasks', params={'done': 'true'})
+    assert response.status == 204
+    response = await cli.get('/tasks')
+    data = await jsonBody(response)
+    assert len(data) == 1
+    assert 'done' not in data[0]

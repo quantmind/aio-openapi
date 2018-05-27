@@ -1,5 +1,7 @@
 from aiohttp import web
 
+from sqlalchemy.sql.expression import null
+
 from openapi.db.path import SqlApiPath
 from openapi.spec import op
 from .models import Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate
@@ -17,6 +19,10 @@ class TasksPath(SqlApiPath):
         - task
     """
     table = 'tasks'
+
+    def filter_done(self, op, value):
+        done = self.db_table.c.done
+        return done != null() if value else done == null()
 
     @op(query_schema=TaskQuery, response_schema=[Task])
     async def get(self):
@@ -41,6 +47,18 @@ class TasksPath(SqlApiPath):
         """
         data = await self.create_one()
         return web.json_response(data, status=201)
+
+    @op()
+    async def delete(self):
+        """
+        ---
+        summary: Delete a group of tasks
+        responses:
+            204:
+                description: Tasks successfully deleted
+        """
+        await self.delete_list(dict(self.request.query))
+        return web.Response(status=204)
 
 
 @routes.view('/tasks/{id}')
