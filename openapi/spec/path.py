@@ -24,6 +24,8 @@ class ApiPath(web.View):
         #     Schema = Schema[0]
         schema = validate(Schema, data, strict)
         if schema.errors:
+            if name == 'path_schema':
+                raise web.HTTPNotFound()
             app = self.request.app
             errors = app['exc_schema'].from_errors(schema.errors)
             raise web.HTTPUnprocessableEntity(**self.api_response_data(errors))

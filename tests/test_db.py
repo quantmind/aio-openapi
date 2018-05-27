@@ -72,7 +72,11 @@ async def tests_get_list(cli):
 async def test_get_404(cli):
     response = await cli.get('/tasks/101')
     await jsonBody(response, 404)
+    response = await cli.get('/tasks/bla')
+    await jsonBody(response, 404)
     response = await cli.patch('/tasks/101', json=dict(title='ciao'))
+    await jsonBody(response, 404)
+    response = await cli.patch('/tasks/bla', json=dict(title='ciao'))
     await jsonBody(response, 404)
 
 
