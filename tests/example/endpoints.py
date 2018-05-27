@@ -48,7 +48,7 @@ class TasksPath(SqlApiPath):
         data = await self.create_one()
         return web.json_response(data, status=201)
 
-    @op()
+    @op(query_schema=TaskQuery)
     async def delete(self):
         """
         ---

@@ -26,11 +26,9 @@ class SqlApiPath(ApiPath):
     async def get_list(self, query=None):
         """Get a list of models
         """
-        params = dict(self.request.query)
-        params.update(query or ())
+        params = self.get_filters(query)
         limit = params.pop('limit', None)
         page = int(params.pop('page', 1))
-        params = self.cleaned('query_schema', params)
         query = self.get_query(self.db_table.select(), params)
 
         # pagination
@@ -44,10 +42,11 @@ class SqlApiPath(ApiPath):
             values = await db.fetch(sql, *args)
         return self.dump('response_schema', values)
 
-    async def create_one(self):
+    async def create_one(self, data=None):
         """Create a model
         """
-        data = self.cleaned('body_schema', await self.json_data())
+        if data is None:
+            data = self.insert_data(await self.json_data())
         statement, args = self.get_insert(data)
         async with self.db.acquire() as db:
             async with db.transaction():
@@ -55,26 +54,28 @@ class SqlApiPath(ApiPath):
         data = ((c.name, v) for c, v in zip(self.db_table.columns, values[0]))
         return self.dump('response_schema', data)
 
-    async def create_list(self, bodies=None):
+    async def create_list(self, data=None):
         """Create multiple models
         """
-        meta = self.request.app['metadata']
-        table = meta.tables[self.table]
-        bodies = bodies or await self.json_data()
-        data = []
+        if data is None:
+            data = await self.json_data()
+        if not isinstance(data, list):
+            raise web.HTTPBadRequest(
+                **self.api_response_data({'message': 'Invalid JSON payload'})
+            )
+        data = [self.insert_data(d) for d in data]
+        cols = self.db_table.columns
         async with self.db.acquire() as db:
             async with db.transaction():
-                for body in bodies:
-                    cleaned_body = self.cleaned('body_schema', body)
-                    statement, args = self.get_insert(cleaned_body)
-                    values = await db.fetch(statement, *args)
-                    data.append(
-                        (c.name, v) for c, v in zip(table.columns, values[0])
-                    )
+                statement, args = self.get_insert(data)
+                values = await db.fetch(statement, *args)
+        result = [
+            ((c.name, v) for c, v in zip(cols, value))
+            for value in values
+        ]
+        return self.dump('response_schema', result)
 
-        return self.dump('response_schema', data)
-
-    async def get_one(self, match_query=None):
+    async def get_one(self):
         """Get a single model
         """
         filters = self.cleaned('path_schema', self.request.match_info)
@@ -86,10 +87,11 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
 
-    async def update_one(self, data=None, match_query=None):
+    async def update_one(self, data=None):
         """Update a single model
         """
-        data = self.cleaned('body_schema', await self.json_data(), False)
+        if data is None:
+            data = self.cleaned('body_schema', await self.json_data(), False)
         filters = self.cleaned('path_schema', self.request.match_info)
         update = self.get_query(
                 self.db_table.update(), filters
@@ -112,10 +114,11 @@ class SqlApiPath(ApiPath):
         if not values:
             raise web.HTTPNotFound()
 
-    async def delete_list(self, query):
+    async def delete_list(self, query=None):
         """delete multiple models
         """
-        delete = self.get_query(self.db_table.delete(), query)
+        filters = self.get_filters(query)
+        delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete)
         async with self.db.acquire() as db:
             async with db.transaction():
@@ -123,10 +126,10 @@ class SqlApiPath(ApiPath):
 
     # UTILITIES
 
-    def get_insert(self, record):
-        exp = (self.db_table.insert()
-               .values(**record)
-               .returning(*self.db_table.columns))
+    def get_insert(self, records):
+        if isinstance(records, dict):
+            records = [records]
+        exp = self.db_table.insert(records).returning(*self.db_table.columns)
         return compile_query(exp)
 
     def get_query(self, query, params=None):
@@ -148,7 +151,7 @@ class SqlApiPath(ApiPath):
                     result = (result,)
                 filters.extend(result)
         if filters:
-            filters = and_(*filters) if len(result) > 1 else filters[0]
+            filters = and_(*filters) if len(filters) > 1 else filters[0]
             query = query.where(filters)
         return query
 

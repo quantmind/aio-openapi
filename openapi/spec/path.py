@@ -12,6 +12,25 @@ class ApiPath(web.View):
 
     # UTILITIES
 
+    def insert_data(self, data, strict=True):
+        data = self.cleaned('body_schema', data)
+        if self.path_schema:
+            path = self.cleaned('path_schema', self.request.match_info)
+            data.update(path)
+        return data
+
+    def get_filters(self, query=None):
+        if query is None:
+            query = dict(self.request.query)
+        try:
+            params = self.cleaned('query_schema', query)
+        except web.HTTPNotImplemented:
+            params = {}
+        if self.path_schema:
+            path = self.cleaned('path_schema', self.request.match_info)
+            params.update(path)
+        return params
+
     def cleaned(self, name, data, strict=True):
         """Clean data for a given schema name
         """
@@ -20,8 +39,8 @@ class ApiPath(web.View):
             Schema = getattr(self, name, None)
             if Schema is None:
                 raise web.HTTPNotImplemented
-        # if isinstance(Schema, list):
-        #     Schema = Schema[0]
+        if isinstance(Schema, list):
+            Schema = Schema[0]
         schema = validate(Schema, data, strict)
         if schema.errors:
             if name == 'path_schema':
