@@ -4,6 +4,11 @@
 
 [![codecov](https://codecov.io/gh/lendingblock/aio-openapi/branch/master/graph/badge.svg)](https://codecov.io/gh/lendingblock/aio-openapi)
 
+## Installation
+```
+pip install aio-openapi
+```
+
 ## Development
 
 Clone the repository and create a virtual environment `venv`.

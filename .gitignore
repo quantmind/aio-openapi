@@ -11,6 +11,7 @@ __pycache__
 .mypy_cache
 venv
 build
+dist
 
 # ides
 .vscode/.ropeproject

@@ -1,0 +1,6 @@
+include MANIFEST.in
+include readme.md
+graft dev
+graft tests
+graft openapi
+global-exclude *.pyc
