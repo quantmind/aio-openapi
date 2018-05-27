@@ -10,7 +10,7 @@ class ValidatedData:
     errors: Dict
 
 
-def validate(schema, data):
+def validate(schema, data, strict=True):
     """Validate a dictionary of data with a given dataclass
     """
     errors = {}
@@ -19,7 +19,7 @@ def validate(schema, data):
         try:
             required = field.metadata.get(REQUIRED)
             if field.name not in data and DEFAULT not in field.metadata:
-                if required:
+                if required and strict:
                     raise ValidationError(field.name, 'required')
                 continue
 

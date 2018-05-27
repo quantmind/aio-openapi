@@ -90,7 +90,7 @@ class SqlApiPath(ApiPath):
     async def update_one(self, data=None, match_query=None):
         """Update a single model
         """
-        data = self.cleaned('body_schema', await self.json_data())
+        data = self.cleaned('body_schema', await self.json_data(), False)
         filters = self.cleaned('path_schema', self.request.match_info)
         update = self.get_query(
                 self.db_table.update(), filters

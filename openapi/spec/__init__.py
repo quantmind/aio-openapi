@@ -1,3 +1,5 @@
+import os
+
 from aiohttp import web
 
 from .operation import op
@@ -10,11 +12,14 @@ __all__ = [
     'op', 'ApiPath', 'OpenApi', 'OpenApiSpec', 'SchemaParser', 'setup_app'
 ]
 
+SPEC_ROUTE = os.environ.get('SPEC_ROUTE', '/spec')
+
 
 def setup_app(app):
     app['exc_schema'] = Error
-    app.add_routes(
-        [
-            web.get('/spec', spec_root)
-        ]
-    )
+    if SPEC_ROUTE:
+        app.add_routes(
+            [
+                web.get('/spec', spec_root)
+            ]
+        )

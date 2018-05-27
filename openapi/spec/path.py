@@ -12,7 +12,7 @@ class ApiPath(web.View):
 
     # UTILITIES
 
-    def cleaned(self, name, data):
+    def cleaned(self, name, data, strict=True):
         """Clean data for a given schema name
         """
         Schema = getattr(self.request['operation'], name, None)
@@ -22,7 +22,7 @@ class ApiPath(web.View):
                 raise web.HTTPNotImplemented
         # if isinstance(Schema, list):
         #     Schema = Schema[0]
-        schema = validate(Schema, data)
+        schema = validate(Schema, data, strict)
         if schema.errors:
             app = self.request.app
             errors = app['exc_schema'].from_errors(schema.errors)

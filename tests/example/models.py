@@ -24,7 +24,6 @@ class TaskQuery:
 
 @dataclass
 class TaskUpdate(TaskAdd):
-    title: str
     done: datetime = date_time_field()
 
 
