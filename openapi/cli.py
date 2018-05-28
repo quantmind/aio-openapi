@@ -12,6 +12,8 @@ from . import spec
 
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+HOST = os.environ.get('MICRO_SERVICE_HOST', '0.0.0.0')
+PORT = os.environ.get('MICRO_SERVICE_PORT', 8080)
 
 
 class OpenApiClient(click.Group):
@@ -100,10 +102,10 @@ class OpenApiClient(click.Group):
 
 
 @click.command('serve', short_help='Start aiohttp server.')
-@click.option('--host', '-h', default='127.0.0.1',
-              help='The interface to bind to.')
-@click.option('--port', '-p', default=8080,
-              help='The port to bind to.')
+@click.option('--host', '-h', default=HOST,
+              help=f'The interface to bind to (default to {HOST})')
+@click.option('--port', '-p', default=PORT,
+              help=f'The port to bind to (default to {PORT}.')
 @click.option('--reload/--no-reload', default=None,
               help='Enable or disable the reloader. By default the reloader '
               'is active if debug is enabled.')

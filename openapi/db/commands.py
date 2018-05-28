@@ -62,3 +62,12 @@ def upgrade(ctx, revision):
     """Upgrade to a later version
     """
     return migration(ctx).upgrade(revision)
+
+
+@db.command()
+@click.option('--revision', default='heads')
+@click.pass_context
+def show(ctx, revision):
+    """Show revision ID and creation date
+    """
+    return migration(ctx).show(revision)
