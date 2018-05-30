@@ -4,7 +4,7 @@ import yaml
 
 
 def compact(**kwargs):
-    return {k: v for k, v in kwargs.items() if v}
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 # from django.contrib.admindocs.utils

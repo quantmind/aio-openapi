@@ -53,7 +53,7 @@ def data_field(
 
 def bool_field(**kwargs):
     if 'validator' not in kwargs:
-        kwargs['validator'] = lambda f, v, d: str(v).lower() == 'true'
+        kwargs['validator'] = BoolValidator()
     return data_field(**kwargs)
 
 
@@ -100,7 +100,7 @@ def date_time_field(required=False):
 # VALIDATORS
 
 
-def email_validator(field, value, data):
+def email_validator(field, value):
     value = str(value)
     if not email_pattern.match(value):
         raise ValidationError(field.name, '%s not a valid email' % value)
@@ -110,7 +110,7 @@ def email_validator(field, value, data):
 class Validator:
     dump = None
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         raise ValidationError(field.name, 'inavlid')
 
 
@@ -119,9 +119,9 @@ class ListValidator(Validator):
     def __init__(self, validators):
         self.validators = validators
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         for validator in self.validators:
-            value = validator(field, value, data)
+            value = validator(field, value)
         return value
 
     def dump(self, value):
@@ -134,7 +134,7 @@ class ListValidator(Validator):
 
 class UUIDValidator(Validator):
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         try:
             if not isinstance(value, UUID):
                 value = UUID(str(value))
@@ -154,7 +154,7 @@ class EnumValidator(Validator):
     def __init__(self, EnumClass):
         self.EnumClass = EnumClass
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         if value is None:
             return
         try:
@@ -171,7 +171,7 @@ class Choice(Validator):
     def __init__(self, choices):
         self.choices = choices
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         if value not in self.choices:
             raise ValidationError(field.name, '%s not valid' % value)
         return value
@@ -184,7 +184,7 @@ class DateTimeValidator(Validator):
             return value.isoformat()
         return value
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         if isinstance(value, str):
             try:
                 value = parse_date(value)
@@ -204,15 +204,15 @@ class NumberValidator(Validator):
         self.max_value = max_value
         self.precision = precision if precision is not None else 10
 
-    def __call__(self, field, value, data):
+    def __call__(self, field, value):
         try:
             value = round(value, self.precision)
         except (ValueError, TypeError):
             raise ValidationError(field.name, '%s not valid number' % value)
-        if self.min_value is not None and value <= self.min_value:
+        if self.min_value is not None and value < self.min_value:
             raise ValidationError(field.name, '%s less than %s'
                                   % (value, self.min_value))
-        if self.max_value is not None and value >= self.max_value:
+        if self.max_value is not None and value > self.max_value:
             raise ValidationError(field.name, '%s greater than %s'
                                   % (value, self.max_value))
         return value
@@ -222,9 +222,21 @@ class NumberValidator(Validator):
 
 
 class DecimalValidator(NumberValidator):
-    def __call__(self, field, value, precision):
+    def __call__(self, field, value):
         try:
             value = Decimal(value)
         except TypeError:
             raise ValidationError(field.name, '%s not valid Decimal' % value)
-        return super().__call__(field, value, precision)
+        return super().__call__(field, value)
+
+
+class BoolValidator(Validator):
+
+    def __call__(self, field, value):
+        value = str(value).lower()
+        if value not in ('true', 'false'):
+            raise ValidationError(field.name, '%s not valid' % value)
+        return value == 'true'
+
+    def dump(self, value):
+        return str(value).lower()

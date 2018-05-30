@@ -28,7 +28,7 @@ def validate(schema, data, strict=True):
             value = data.get(field.name, default)
 
             if validator:
-                value = validator(field, value, data)
+                value = validator(field, value)
 
             if value and not isinstance(value, field.type):
                 try:

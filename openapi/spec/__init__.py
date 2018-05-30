@@ -20,6 +20,6 @@ def setup_app(app):
     if SPEC_ROUTE:
         app.add_routes(
             [
-                web.get('/spec', spec_root)
+                web.get(SPEC_ROUTE, spec_root)
             ]
         )
