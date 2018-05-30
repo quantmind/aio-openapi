@@ -1,5 +1,14 @@
-from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import pypostgresql
 from sqlalchemy.sql.dml import Insert as InsertObject, Update as UpdateObject
+
+dialect = pypostgresql.dialect(paramstyle='pyformat')
+
+dialect.implicit_returning = True
+dialect.supports_native_enum = True
+dialect.supports_smallserial = True  # 9.2+
+dialect._backslash_escapes = False
+dialect.supports_sane_multi_rowcount = True  # psycopg 2.0.9+
+dialect._has_native_hstore = True
 
 
 def _execute_defaults(query):
@@ -30,7 +39,7 @@ def _execute_default_attr(query, param, attr_name):
                 param[col.name] = attr.arg({})
 
 
-def compile_query(query, dialect=postgresql.dialect(), inline=False):
+def compile_query(query, inline=False):
     _execute_defaults(query)
     compiled = query.compile(dialect=dialect)
     compiled_params = sorted(compiled.params.items())
