@@ -86,3 +86,13 @@ async def tests_delete_list(cli):
     data = await jsonBody(response)
     assert len(data) == 1
     assert 'done' not in data[0]
+
+
+async def tests_create_list(cli):
+    tasks = [dict(title='foo'), dict(title='bar')]
+    response = await cli.post('/bulk/tasks', json=tasks)
+    data = await jsonBody(response, status=201)
+    titles = list(map(lambda t: t['title'], data))
+    assert len(titles) == 2
+    assert 'foo' in titles
+    assert 'bar' in titles

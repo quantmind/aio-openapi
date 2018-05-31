@@ -256,6 +256,9 @@ class OpenApiSpec:
         if body_schema is None:
             return
 
+        if type(body_schema) == list:
+            body_schema = body_schema[0]
+
         return {
             'description': method_doc.get('body', {}).get('summary', ''),
             'content': {
