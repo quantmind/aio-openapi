@@ -21,12 +21,12 @@ class FakeValidator(Validator):
     def dump(self, value):
         return str(value)
 
-    def __call__(self, field, value):
+    def __call__(self, field, value, data=None):
         return value
 
 
 class FakeValidatorError(Validator):
-    def __call__(self, field, value):
+    def __call__(self, field, value, data=None):
         raise ValidationError(field, 'invalid')
 
 
