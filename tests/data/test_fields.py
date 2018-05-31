@@ -5,9 +5,9 @@ from uuid import uuid4
 
 from openapi.data.fields import (
     ValidationError, data_field, bool_field, uuid_field, number_field,
-    decimal_field, email_field, enum_field, date_time_field,  # ListValidator,
+    decimal_field, email_field, enum_field, date_time_field,  ListValidator,
     UUIDValidator, EnumValidator, Choice, DateTimeValidator, NumberValidator,
-    DecimalValidator, email_validator, BoolValidator
+    DecimalValidator, email_validator, BoolValidator, Validator
 )
 
 
@@ -17,8 +17,36 @@ class FakeEnum(Enum):
     VALUE_C = 3
 
 
-def test_ListValidator():
-    pass
+class FakeValidator(Validator):
+    def dump(self, value):
+        return str(value)
+
+    def __call__(self, field, value):
+        return value
+
+
+class FakeValidatorError(Validator):
+    def __call__(self, field, value):
+        raise ValidationError(field, 'invalid')
+
+
+def test_ListValidator_call_valid():
+    value = [1, 'string']
+    field = data_field()
+    validator1 = FakeValidator()
+    validator2 = FakeValidator()
+    validator = ListValidator((validator1, validator2))
+    assert validator(field, value) == [1, 'string']
+
+
+def test_ListValidator_call_invalid():
+    value = [1, 'string']
+    field = data_field()
+    validator1 = FakeValidator()
+    validator2 = FakeValidatorError()
+    validator = ListValidator((validator1, validator2))
+    with pytest.raises(ValidationError):
+        validator(field, value)
 
 
 def test_UUIDValidator_call_valid():
@@ -46,7 +74,6 @@ def test_UUIDValidator_dump():
 def test_EnumValidator_call_valid():
     field = enum_field(FakeEnum)
     validator = EnumValidator(FakeEnum)
-    assert validator(field, None) is None
     assert validator(field, 'VALUE_A') == 'VALUE_A'
 
 
@@ -191,7 +218,7 @@ def test_BoolValidator_invalid():
 
 def test_BoolValidator_dump():
     validator = BoolValidator()
-    assert validator.dump(True) == 'true'
-    assert validator.dump(False) == 'false'
-    assert validator.dump('TrUe') == 'true'
-    assert validator.dump('fAlSe') == 'false'
+    assert validator.dump(True) is True
+    assert validator.dump(False) is False
+    assert validator.dump('TrUe') is True
+    assert validator.dump('fAlSe') is False

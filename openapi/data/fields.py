@@ -111,7 +111,7 @@ class Validator:
     dump = None
 
     def __call__(self, field, value):
-        raise ValidationError(field.name, 'inavlid')
+        raise ValidationError(field.name, 'invalid')
 
 
 class ListValidator(Validator):
@@ -155,8 +155,6 @@ class EnumValidator(Validator):
         self.EnumClass = EnumClass
 
     def __call__(self, field, value):
-        if value is None:
-            return
         try:
             e = getattr(self.EnumClass, value)
             if isinstance(e, self.EnumClass):
@@ -239,4 +237,4 @@ class BoolValidator(Validator):
         return value == 'true'
 
     def dump(self, value):
-        return str(value).lower()
+        return str(value).lower() == 'true'
