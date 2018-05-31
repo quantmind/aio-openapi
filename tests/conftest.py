@@ -19,6 +19,16 @@ def setup_app(app):
     example.setup_app(app)
 
 
+@pytest.fixture(scope='session')
+def test_app():
+    if not os.environ.get('DATASTORE'):
+        os.environ['DATASTORE'] = DEFAULT_DB
+    cli = rest(setup_app=setup_app)
+    cli.load_dotenv()
+    app = cli.web()
+    return app
+
+
 @pytest.fixture(autouse=True)
 def loop():
     """Return an instance of the event loop."""
