@@ -75,10 +75,13 @@ class SqlApiPath(ApiPath):
         ]
         return self.dump('response_schema', result)
 
-    async def get_one(self, query=None, dump_schema='response_schema'):
+    async def get_one(
+        self, query=None, query_schema='query_schema',
+        dump_schema='response_schema'
+    ):
         """Get a single model
         """
-        filters = self.get_filters(query)
+        filters = self.get_filters(query, query_schema=query_schema)
         query = self.get_query(self.db_table.select(), filters)
         sql, args = compile_query(query)
         async with self.db.acquire() as db:

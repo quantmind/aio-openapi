@@ -63,7 +63,6 @@ def uuid_field(required=False):
     return data_field(
         required=required,
         validator=UUIDValidator(),
-        default=uuid4,
         format='uuid'
     )
 
