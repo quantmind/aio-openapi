@@ -1,6 +1,6 @@
 import re
 from decimal import Decimal
-from uuid import uuid4, UUID
+from uuid import UUID
 from datetime import datetime
 from dataclasses import field
 
