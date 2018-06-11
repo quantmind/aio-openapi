@@ -18,9 +18,37 @@ jobs:
       - run:
           name: upload coverage
           command: bash <(curl -s https://codecov.io/bash)
+  deploy-release:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: install-dev
+          command: sudo ./dev/install-dev.sh
+      - run:
+          name: validate version
+          command: agilekit git validate
+      - run:
+          name: install
+          command: sudo python setup.py install sdist bdist_wheel
+      - run:
+          name: upload release
+          command: twine upload dist/* --username lsbardel --password $PYPI_PASSWORD
+      - run:
+          name: create tag
+          command: agilekit git release --yes
 
 workflows:
   version: 2
   build-deploy:
     jobs:
       - tests
+      - deploy-release:
+          requires:
+            - tests
+          filters:
+            branches:
+              only: deploy
+            tags:
+              ignore: /.*/
