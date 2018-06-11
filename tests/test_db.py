@@ -28,7 +28,7 @@ def setup_app(app):
 @pytest.fixture(scope='session')
 def loop():
     """Return an instance of the event loop."""
-    loop = asyncio.new_event_loop()
+    loop = asyncio.get_event_loop()
     yield loop
     loop.close()
 
