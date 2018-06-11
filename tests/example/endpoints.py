@@ -107,3 +107,25 @@ class TaskPath(SqlApiPath):
         """
         await self.delete_one()
         return web.Response(status=204)
+
+
+@routes.view('/bulk/tasks')
+class TaskBulkPath(SqlApiPath):
+    """
+    summary: Bulk manage tasks
+    tags:
+        - task
+    """
+    table = 'tasks'
+
+    @op(body_schema=[TaskAdd], response_schema=[Task])
+    async def post(self):
+        """
+        ---
+        summary: bulk create tasks
+        responses:
+            201:
+                description: created tasks
+        """
+        data = await self.create_list()
+        return self.json_response(data, status=201)
