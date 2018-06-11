@@ -75,17 +75,20 @@ class SqlApiPath(ApiPath):
         ]
         return self.dump('response_schema', result)
 
-    async def get_one(self):
+    async def get_one(
+        self, query=None, query_schema='query_schema',
+        dump_schema='response_schema'
+    ):
         """Get a single model
         """
-        filters = self.cleaned('path_schema', self.request.match_info)
+        filters = self.get_filters(query, query_schema=query_schema)
         query = self.get_query(self.db_table.select(), filters)
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         if not values:
             raise web.HTTPNotFound()
-        return self.dump('response_schema', values[0])
+        return self.dump(dump_schema, values[0])
 
     async def update_one(self, data=None):
         """Update a single model

@@ -1,6 +1,6 @@
 import re
 from decimal import Decimal
-from uuid import uuid4, UUID
+from uuid import UUID
 from datetime import datetime
 from dataclasses import field
 
@@ -63,7 +63,6 @@ def uuid_field(required=False):
     return data_field(
         required=required,
         validator=UUIDValidator(),
-        default=uuid4,
         format='uuid'
     )
 
