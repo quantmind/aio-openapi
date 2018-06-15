@@ -56,11 +56,11 @@ class OpenApiClient(click.Group):
         return self._web
 
     def get_command(self, ctx, name):
-        ctx.app = self.web()
+        ctx.obj = dict(app=self.web())
         return super().get_command(ctx, name)
 
     def list_commands(self, ctx):
-        ctx.app = self.web()
+        ctx.obj = dict(app=self.web())
         return super().list_commands(ctx)
 
     def main(self, *args, **kwargs):
@@ -113,7 +113,7 @@ class OpenApiClient(click.Group):
 def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
-    app = ctx.parent.app
+    app = ctx.obj['app']
     if reload is None and app.debug:
         reload = True
 
