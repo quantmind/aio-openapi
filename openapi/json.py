@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from functools import partial
 from uuid import UUID
 
@@ -10,6 +11,8 @@ def encoder(obj):
         return obj.hex
     if isinstance(obj, datetime):
         return obj.isoformat()
+    if isinstance(obj, Enum):
+        return obj.name
     raise TypeError
 
 
