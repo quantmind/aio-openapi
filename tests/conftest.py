@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shutil
 
 import pytest
 from aiohttp import test_utils
@@ -20,6 +21,13 @@ def setup_app(app):
 
 
 @pytest.fixture(scope='session')
+def test_cli():
+    if not os.environ.get('DATASTORE'):
+        os.environ['DATASTORE'] = DEFAULT_DB
+    return rest(setup_app=setup_app)
+
+
+@pytest.fixture(scope='session')
 def test_app():
     if not os.environ.get('DATASTORE'):
         os.environ['DATASTORE'] = DEFAULT_DB
@@ -27,6 +35,13 @@ def test_app():
     cli.load_dotenv()
     app = cli.web()
     return app
+
+
+@pytest.fixture(autouse=True)
+def clean_migrations():
+    """Return an instance of the event loop."""
+    if os.path.isdir('migrations'):
+        shutil.rmtree('migrations')
 
 
 @pytest.fixture(autouse=True)

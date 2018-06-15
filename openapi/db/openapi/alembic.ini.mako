@@ -1,4 +1,3 @@
-# Lux configuration.
 
 [alembic]
 # path to migration scripts

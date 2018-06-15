@@ -1,11 +1,6 @@
 [run]
 source = openapi
-omit =
-    openapi/reload.py
-    openapi/db/migrations.py
-    openapi/testing.py
-    openapi/db/commands.py
-    openapi/cli.py
+omit = openapi/reload.py
 
 [html]
 directory = build/coverage/html
