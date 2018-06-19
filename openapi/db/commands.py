@@ -1,4 +1,8 @@
+from copy import copy
+
 import click
+
+from sqlalchemy_utils import database_exists, drop_database, create_database
 
 from .migrations import Migration
 
@@ -71,3 +75,24 @@ def show(ctx, revision):
     """Show revision ID and creation date
     """
     return migration(ctx).show(revision)
+
+
+@db.command()
+@click.argument('dbname', nargs=1)
+@click.option('--force', default=False, is_flag=True,
+              help='Force removal of an existing database')
+@click.pass_context
+def create(ctx, dbname, force):
+    """Creates a new database
+    """
+    store = ctx.parent.parent.app['store']
+    url = copy(store.url)
+    url.database = dbname
+    store = str(url)
+    if database_exists(store):
+        if force:
+            drop_database(store)
+        else:
+            return click.echo(f'database {dbname} already available')
+    create_database(store)
+    click.echo(f'database {dbname} created')
