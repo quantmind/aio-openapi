@@ -2,10 +2,7 @@
 source = openapi
 omit =
     openapi/reload.py
-    openapi/db/migrations.py
-    openapi/testing.py
-    openapi/db/commands.py
-    openapi/cli.py
+    openapi/db/openapi
 
 [html]
 directory = build/coverage/html

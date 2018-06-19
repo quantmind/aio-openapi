@@ -8,7 +8,7 @@ from .migrations import Migration
 
 
 def migration(ctx):
-    return Migration(ctx.parent.parent.app)
+    return Migration(ctx.obj['app'])
 
 
 @click.group()

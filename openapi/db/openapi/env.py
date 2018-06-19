@@ -1,4 +1,3 @@
-from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
@@ -8,29 +7,31 @@ import re
 USE_TWOPHASE = False
 
 # this is the Alembic Config object, which provides
-# access to the values within.
+# access to the values within the .ini file in use.
 config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-cfg_file = config.get_section_option('logging', 'path', '')
-if len(cfg_file) > 0:
-    fileConfig(open(cfg_file, 'r'))
+fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
 # gather section names referring to different
-# databases.
+# databases.  These are named "engine1", "engine2"
+# in the sample .ini file.
 db_names = config.get_main_option('databases')
 
-# your model's MetaData will be try to obtain below
-# for 'autogenerate' support. You can remove this code
-# and import necessary metadata manually.
+# add your model's MetaData objects here
+# for 'autogenerate' support.  These must be set
+# up to hold just those tables targeting a
+# particular database. table.tometadata() may be
+# helpful here in case a "copy" of
+# a MetaData is needed.
 # from myapp import mymodel
 # target_metadata = {
-#       'engine1':mymodel.metadata,
-#       'engine2':mymodel.metadata,
+#       'engine1':mymodel.metadata1,
+#       'engine2':mymodel.metadata2
 # }
-target_metadata = {name: meta for name, meta in config.metadata.items()}
+target_metadata = {}
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -106,8 +107,7 @@ def run_migrations_online():
                 connection=rec['connection'],
                 upgrade_token="%s_upgrades" % name,
                 downgrade_token="%s_downgrades" % name,
-                target_metadata=target_metadata.get(name),
-                compare_type=True
+                target_metadata=target_metadata.get(name)
             )
             context.run_migrations(engine_name=name)
 
