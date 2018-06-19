@@ -12,6 +12,15 @@ def test_db(cli):
     assert result.output.startswith('Usage: root db [OPTIONS]')
 
 
+def test_createdb(cli):
+    runner = CliRunner()
+    result = runner.invoke(cli.app['cli'], ['db', 'create', 'testing-aio-db'])
+    assert result.exit_code == 0
+    result = runner.invoke(
+        cli.app['cli'], ['db', 'create', 'testing-aio-db', '--force'])
+    assert result.exit_code == 0
+
+
 async def tests_get_list(cli):
     response = await cli.get('/tasks')
     data = await jsonBody(response)
