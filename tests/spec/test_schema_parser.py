@@ -1,9 +1,10 @@
-import pytest
 from unittest.mock import patch
 from typing import List
 from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
+
+import pytest
 
 from openapi.spec import SchemaParser
 from openapi.spec.exceptions import InvalidTypeException

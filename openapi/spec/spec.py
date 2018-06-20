@@ -15,7 +15,6 @@ from ..data.fields import FORMAT, REQUIRED
 from ..utils import compact
 
 OPENAPI = '3.0.1'
-SWAGGER = '2.0'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
 SCHEMA_BASE_REF = '#/components/schemas/'
 
@@ -35,7 +34,6 @@ class License:
 
 @dataclass
 class OpenApi:
-    basePath: str = '/'
     title: str = 'Open API'
     description: str = ''
     version: str = '0.1.0'
@@ -148,7 +146,6 @@ class OpenApiSpec:
         self.default_responses = default_responses or {}
         self.doc = dict(
             openapi=OPENAPI,
-            swagger=SWAGGER,
             info=info,
             paths=OrderedDict()
         )

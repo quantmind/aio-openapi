@@ -7,7 +7,7 @@ import click
 import dotenv
 import uvloop
 
-from .utils import get_debug_flag
+from .utils import get_debug_flag, getLogger
 from . import spec
 
 
@@ -18,11 +18,12 @@ PORT = os.environ.get('MICRO_SERVICE_PORT', 8080)
 
 class OpenApiClient(click.Group):
 
-    def __init__(self, spec, setup_app=None, **extra):
+    def __init__(self, spec, setup_app=None, base_path=None, **extra):
         params = list(extra.pop('params', None) or ())
         self.spec = spec
         self.debug = get_debug_flag()
         self.setup_app = setup_app
+        self.base_path = base_path
         params.extend(
             (
                 click.Option(
@@ -56,11 +57,11 @@ class OpenApiClient(click.Group):
         return self._web
 
     def get_command(self, ctx, name):
-        ctx.app = self.web()
+        ctx.obj = dict(app=self.web())
         return super().get_command(ctx, name)
 
     def list_commands(self, ctx):
-        ctx.app = self.web()
+        ctx.obj = dict(app=self.web())
         return super().list_commands(ctx)
 
     def main(self, *args, **kwargs):
@@ -113,11 +114,18 @@ class OpenApiClient(click.Group):
 def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
-    app = ctx.parent.app
+    app = ctx.obj['app']
+    cli = app['cli']
     if reload is None and app.debug:
         reload = True
 
-    def inner():
-        web.run_app(app, host=host, port=port)
+    access_log = getLogger()
 
-    inner()
+    if cli.base_path:
+        base = web.Application(
+            debug=get_debug_flag()
+        )
+        base.add_subapp(cli.base_path, app)
+        app = base
+
+    web.run_app(app, host=host, port=port, access_log=access_log)

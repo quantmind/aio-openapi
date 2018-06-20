@@ -4,11 +4,11 @@ from .spec import OpenApi
 from .cli import OpenApiClient
 
 
-def rest(setup_app=None, **kwargs):
+def rest(setup_app=None, base_path=None, **kwargs):
     """Create the OpenApi application server
     """
     spec = OpenApi(**kwargs)
-    return OpenApiClient(spec, setup_app=setup_app)
+    return OpenApiClient(spec, base_path=base_path, setup_app=setup_app)
 
 
 @dataclass
