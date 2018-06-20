@@ -50,9 +50,13 @@ class ApiPath(web.View):
             raise web.HTTPUnprocessableEntity(**self.api_response_data(errors))
         return schema.data
 
-    def dump(self, name, data):
-        """call clean for now"""
-        Schema = getattr(self.request['operation'], name, None)
+    def dump(self, schema, data):
+        """Dump data using a given schema
+        """
+        if isinstance(schema, str):
+            Schema = getattr(self.request['operation'], schema, None)
+        else:
+            Schema = schema
         if Schema is None:
             raise web.HTTPNotImplemented
         if isinstance(Schema, list):
