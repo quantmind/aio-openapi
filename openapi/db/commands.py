@@ -8,7 +8,7 @@ from .migrations import Migration
 
 
 def migration(ctx):
-    return Migration(ctx.parent.parent.app)
+    return Migration(ctx.obj['app'])
 
 
 @click.group()
@@ -85,7 +85,7 @@ def show(ctx, revision):
 def create(ctx, dbname, force):
     """Creates a new database
     """
-    store = ctx.parent.parent.app['store']
+    store = ctx.obj['app']['store']
     url = copy(store.url)
     url.database = dbname
     store = str(url)

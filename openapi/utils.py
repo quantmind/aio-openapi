@@ -1,4 +1,5 @@
 import os
+import logging
 
 LOCAL = 'local'
 DEV = 'dev'
@@ -30,3 +31,13 @@ def iter_items(data):
     if hasattr(items, '__call__'):
         return items()
     return iter(data)
+
+
+def getLogger():
+    level = (os.environ.get('LOG_LEVEL') or 'info').upper()
+    if level != 'NONE':
+        name = os.environ.get('APP_NAME') or 'openapi'
+        logger = logging.getLogger(name)
+        logger.setLevel(getattr(logging, level))
+        logger.addHandler(logging.StreamHandler())
+        return logger

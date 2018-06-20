@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shutil
 
 import pytest
 from aiohttp import test_utils
@@ -27,6 +28,13 @@ def test_app():
     cli.load_dotenv()
     app = cli.web()
     return app
+
+
+@pytest.fixture(autouse=True)
+def clean_migrations():
+    """Return an instance of the event loop."""
+    if os.path.isdir('migrations'):
+        shutil.rmtree('migrations')
 
 
 @pytest.fixture(autouse=True)
