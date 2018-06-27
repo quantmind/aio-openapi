@@ -81,7 +81,7 @@ class SqlApiPath(ApiPath):
     ):
         """Get a single model
         """
-        table = table or self.db_table
+        table = table if table is not None else self.db_table
         filters = self.get_filters(query, query_schema=query_schema)
         query = self.get_query(table.select(), filters)
         sql, args = compile_query(query)
