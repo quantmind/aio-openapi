@@ -11,7 +11,7 @@ from dataclasses import dataclass, asdict, is_dataclass
 from .exceptions import InvalidTypeException
 from .path import ApiPath
 from .utils import load_yaml_from_docstring
-from ..data.fields import FORMAT, REQUIRED
+from ..data.fields import FORMAT, REQUIRED, OPS
 from ..utils import compact
 
 OPENAPI = '3.0.1'
@@ -76,7 +76,9 @@ class SchemaParser:
             json_property = self._field2json(field)
             if not json_property:
                 continue
-            properties[field.name] = json_property
+            ops = field.metadata.get(OPS, ())
+            for name in [field.name] + [f'{field.name}:{op}' for op in ops]:
+                properties[name] = json_property
 
         return {
             'type': 'object',
