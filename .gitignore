@@ -16,6 +16,7 @@ dist
 # ides
 .vscode/.ropeproject
 .idea
+*.swp
 
 # Mac
 .DS_Store
