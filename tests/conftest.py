@@ -68,3 +68,8 @@ async def cli(loop, db_engine):
     await client.start_server()
     yield client
     await client.close()
+
+
+@pytest.fixture
+def clean_db(db_engine):
+    db_engine.execute('truncate table tasks')
