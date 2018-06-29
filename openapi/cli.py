@@ -56,6 +56,16 @@ class OpenApiClient(click.Group):
             self._web = app
         return self._web
 
+    def get_serve_app(self):
+        app = self.web()
+        if self.base_path:
+            base = web.Application(
+                debug=get_debug_flag()
+            )
+            base.add_subapp(self.base_path, app)
+            app = base
+        return app
+
     def get_command(self, ctx, name):
         ctx.obj = dict(app=self.web())
         return super().get_command(ctx, name)
@@ -88,19 +98,6 @@ class OpenApiClient(click.Group):
         }, color=ctx.color)
         ctx.exit()
 
-    def _load_plugin_commands(self):
-        if self._loaded_plugin_commands:
-            return
-        try:
-            import pkg_resources
-        except ImportError:
-            self._loaded_plugin_commands = True
-            return
-
-        for ep in pkg_resources.iter_entry_points('openapi.commands'):
-            self.add_command(ep.load(), ep.name)
-        self._loaded_plugin_commands = True
-
 
 @click.command('serve', short_help='Start aiohttp server.')
 @click.option('--host', '-h', default=HOST,
@@ -114,18 +111,8 @@ class OpenApiClient(click.Group):
 def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
-    app = ctx.obj['app']
-    cli = app['cli']
+    app = ctx.obj['app']['cli'].get_serve_app()
     if reload is None and app.debug:
         reload = True
-
     access_log = getLogger()
-
-    if cli.base_path:
-        base = web.Application(
-            debug=get_debug_flag()
-        )
-        base.add_subapp(cli.base_path, app)
-        app = base
-
     web.run_app(app, host=host, port=port, access_log=access_log)

@@ -40,6 +40,7 @@ meta = dict(
     url='https://github.com/lendingblock/aio-openapi',
     python_requires='>=3.6.0',
     install_requires=requirements('dev/requirements.txt'),
+    include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',

@@ -188,7 +188,7 @@ class OpenApiSpec:
             route_info = route.get_info()
             path = route_info.get('path', route_info.get('formatter', None))
             handler = route.handler
-            if issubclass(handler, ApiPath):
+            if issubclass(handler, ApiPath) and not handler.private:
                 paths[path] = self._build_path_object(handler, app)
 
     def _build_path_object(self, handler, path_obj):
