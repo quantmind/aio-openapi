@@ -76,11 +76,13 @@ class ApiPath(web.View):
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
 
-    def api_response_data(self, data):
+    @classmethod
+    def api_response_data(cls, data):
         return dict(
             body=dumps(data),
             content_type='application/json'
         )
 
-    def json_response(self, data, **kwargs):
+    @classmethod
+    def json_response(cls, data, **kwargs):
         return web.json_response(data, **kwargs, dumps=dumps)
