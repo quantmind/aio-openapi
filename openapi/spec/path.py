@@ -20,10 +20,10 @@ class ApiPath(web.View):
         return data
 
     def get_filters(self, query=None, query_schema='query_schema'):
-        if query is None:
-            query = dict(self.request.query)
+        combined = dict(self.request.query)
+        combined.update(query or {})
         try:
-            params = self.cleaned(query_schema, query)
+            params = self.cleaned(query_schema, combined)
         except web.HTTPNotImplemented:
             params = {}
         if self.path_schema:

@@ -1,14 +1,16 @@
 from datetime import datetime
+
 from dataclasses import dataclass
 
 from openapi.data.fields import (
-    data_field, date_time_field
+    data_field, date_time_field, decimal_field
 )
 
 
 @dataclass
 class TaskAdd:
     title: str = data_field(required=True)
+    severity: int = decimal_field()
 
 
 @dataclass
@@ -20,6 +22,7 @@ class Task(TaskAdd):
 @dataclass
 class TaskQuery:
     done: bool = data_field()
+    severity: int = decimal_field()
 
 
 @dataclass

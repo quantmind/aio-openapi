@@ -14,8 +14,9 @@ email_pattern = re.compile("^[a-zA-Z0-9-_]+@[a-zA-Z0-9]+\.[a-z]{1,3}$")
 DEFAULT = 'default'
 REQUIRED = 'required'
 VALIDATOR = 'OPENAPI_VALIDATOR'
-DUMP = 'dump',
+DUMP = 'dump'
 FORMAT = 'format'
+OPS = 'ops'
 
 
 class ValidationError(ValueError):
@@ -26,7 +27,8 @@ class ValidationError(ValueError):
 
 
 def data_field(
-        required=False, validator=None, default=None, dump=None, format=None):
+        required=False, validator=None, default=None, dump=None, format=None,
+        ops=()):
     """Extend a dataclass field with
 
     :param validator: optional callable which accept (field, value, data)
@@ -37,6 +39,7 @@ def data_field(
     :param dump: optional callable which receive the field value and convert to
                  the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
+    :param ops: optional tuple of strings specifying available operations
     """
     if isinstance(validator, Validator) and not dump:
         dump = validator.dump
@@ -46,7 +49,8 @@ def data_field(
         REQUIRED: required,
         DEFAULT: default,
         DUMP: dump,
-        FORMAT: format
+        FORMAT: format,
+        OPS: ops
     }))
     return f
 
@@ -79,7 +83,8 @@ def decimal_field(required=False, min_value=None,
                   max_value=None, precision=None):
     return data_field(
         required=required,
-        validator=DecimalValidator(min_value, max_value, precision)
+        validator=DecimalValidator(min_value, max_value, precision),
+        ops=('lt', 'gt')
     )
 
 
@@ -93,7 +98,8 @@ def enum_field(EnumClass, **kwargs):
 
 
 def date_time_field(required=False):
-    return data_field(required=required, validator=DateTimeValidator())
+    return data_field(required=required, validator=DateTimeValidator(),
+                      ops=('lt', 'gt'))
 
 
 # VALIDATORS
@@ -237,3 +243,9 @@ class BoolValidator(Validator):
 
     def dump(self, value):
         return str(value).lower() == 'true'
+
+
+def field_ops(field):
+    yield field.name
+    for op in field.metadata.get(OPS, ()):
+        yield f'{field.name}:{op}'
