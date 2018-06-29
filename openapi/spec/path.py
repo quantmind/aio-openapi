@@ -9,6 +9,7 @@ class ApiPath(web.View):
     """An OpenAPI path
     """
     path_schema = None
+    private = False
 
     # UTILITIES
 
