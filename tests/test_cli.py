@@ -26,4 +26,4 @@ def test_serve():
         assert result.exit_code == 0
         assert mock.call_count == 1
         app = mock.call_args[0][0]
-        assert app.router
+        assert app.router is not None
