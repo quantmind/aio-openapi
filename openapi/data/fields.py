@@ -243,3 +243,9 @@ class BoolValidator(Validator):
 
     def dump(self, value):
         return str(value).lower() == 'true'
+
+
+def field_ops(field):
+    yield field.name
+    for op in field.metadata.get(OPS, ()):
+        yield f'{field.name}:{op}'

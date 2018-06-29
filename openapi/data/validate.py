@@ -1,7 +1,7 @@
 from typing import Dict
 from dataclasses import dataclass
 
-from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, OPS
+from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, field_ops
 
 
 @dataclass
@@ -26,8 +26,7 @@ def validate(schema, data, strict=True):
             if field.name not in data and required and strict:
                 raise ValidationError(field.name, 'required')
 
-            ops = field.metadata.get(OPS, ())
-            for name in [field.name] + [f'{field.name}:{op}' for op in ops]:
+            for name in field_ops(field):
                 if name not in data:
                     continue
                 value = data[name]
