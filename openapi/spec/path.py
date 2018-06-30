@@ -32,34 +32,25 @@ class ApiPath(web.View):
             params.update(path)
         return params
 
-    def cleaned(self, name, data, strict=True):
+    def cleaned(self, schema, data, strict=True):
         """Clean data for a given schema name
         """
-        Schema = getattr(self.request['operation'], name, None)
-        if Schema is None:
-            Schema = getattr(self, name, None)
-            if Schema is None:
-                raise web.HTTPNotImplemented
+        Schema = self.get_schema(schema)
         if isinstance(Schema, list):
             Schema = Schema[0]
-        schema = validate(Schema, data, strict)
-        if schema.errors:
-            if name == 'path_schema':
+        validated = validate(Schema, data, strict)
+        if validated.errors:
+            if schema == 'path_schema':
                 raise web.HTTPNotFound()
             app = self.request.app
-            errors = app['exc_schema'].from_errors(schema.errors)
+            errors = app['exc_schema'].from_errors(validated.errors)
             raise web.HTTPUnprocessableEntity(**self.api_response_data(errors))
-        return schema.data
+        return validated.data
 
     def dump(self, schema, data):
         """Dump data using a given schema
         """
-        if isinstance(schema, str):
-            Schema = getattr(self.request['operation'], schema, None)
-        else:
-            Schema = schema
-        if Schema is None:
-            raise web.HTTPNotImplemented
+        Schema = self.get_schema(schema)
         if isinstance(Schema, list):
             Schema = Schema[0]
             return dump_list(Schema, data)
@@ -75,6 +66,19 @@ class ApiPath(web.View):
             raise web.HTTPBadRequest(
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
+
+    def get_schema(self, schema: object) -> object:
+        """Get the Schema class
+        """
+        if isinstance(schema, str):
+            Schema = getattr(self.request['operation'], schema, None)
+        else:
+            Schema = schema
+        if Schema is None:
+            Schema = getattr(self, schema, None)
+            if Schema is None:
+                raise web.HTTPNotImplemented
+        return Schema
 
     @classmethod
     def api_response_data(cls, data):

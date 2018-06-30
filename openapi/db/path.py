@@ -76,8 +76,11 @@ class SqlApiPath(ApiPath):
         return self.dump('response_schema', result)
 
     async def get_one(
-        self, query=None, query_schema='query_schema',
-        dump_schema='response_schema', table=None
+        self,
+        query=None,
+        table=None,
+        query_schema='query_schema',
+        dump_schema='response_schema',
     ):
         """Get a single model
         """
