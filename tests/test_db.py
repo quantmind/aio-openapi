@@ -3,7 +3,7 @@ from datetime import datetime
 
 from click.testing import CliRunner
 
-from openapi.testing import jsonBody
+from openapi.testing import jsonBody, equal_dict
 
 
 def test_db(cli):
@@ -92,8 +92,11 @@ async def tests_get_update(cli):
 async def tests_delete_list(cli):
     response = await cli.delete('/tasks')
     assert response.status == 204
-    await cli.post('/tasks', json=dict(title='bla'))
-    await cli.post('/tasks', json=dict(title='foo'))
+    response = await cli.post('/tasks', json=dict(title='bla'))
+    d1 = await jsonBody(response, 201)
+    response = await cli.post('/tasks', json=dict(title='foo'))
+    d2 = await jsonBody(response, 201)
+    assert not equal_dict(d1, d2)
     response = await cli.get('/tasks')
     data = await jsonBody(response)
     assert len(data) == 2
