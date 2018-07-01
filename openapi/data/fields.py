@@ -2,7 +2,7 @@ import re
 from decimal import Decimal
 from uuid import UUID
 from datetime import datetime
-from dataclasses import field
+from dataclasses import field, Field
 
 from dateutil.parser import parse as parse_date
 
@@ -14,6 +14,7 @@ email_pattern = re.compile("^[a-zA-Z0-9-_]+@[a-zA-Z0-9]+\.[a-z]{1,3}$")
 DEFAULT = 'default'
 REQUIRED = 'required'
 VALIDATOR = 'OPENAPI_VALIDATOR'
+DESCRIPTION = 'description'
 DUMP = 'dump'
 FORMAT = 'format'
 OPS = 'ops'
@@ -28,7 +29,7 @@ class ValidationError(ValueError):
 
 def data_field(
         required=False, validator=None, default=None, dump=None, format=None,
-        ops=()):
+        description=None, ops=()):
     """Extend a dataclass field with
 
     :param validator: optional callable which accept (field, value, data)
@@ -49,57 +50,62 @@ def data_field(
         REQUIRED: required,
         DEFAULT: default,
         DUMP: dump,
+        DESCRIPTION: description,
         FORMAT: format,
         OPS: ops
     }))
     return f
 
 
-def bool_field(**kwargs):
-    if 'validator' not in kwargs:
-        kwargs['validator'] = BoolValidator()
-    return data_field(**kwargs)
+def bool_field(**kw):
+    if 'validator' not in kw:
+        kw['validator'] = BoolValidator()
+    return data_field(**kw)
 
 
-def uuid_field(required=False):
+def uuid_field(format='uuid', **kw):
     """A UUID field with validation
     """
-    return data_field(
-        required=required,
-        validator=UUIDValidator(),
-        format='uuid'
-    )
+    if 'validator' not in kw:
+        kw['validator'] = UUIDValidator()
+    return data_field(format='uuid', **kw)
 
 
-def number_field(required=False, min_value=None,
-                 max_value=None, precision=None):
-    return data_field(
-        required=required,
-        validator=NumberValidator(min_value, max_value, precision)
-    )
+def number_field(min_value=None, max_value=None, precision=None, **kw):
+    if 'validator' not in kw:
+        kw['validator'] = NumberValidator(min_value, max_value, precision)
+    return data_field(**kw)
 
 
-def decimal_field(required=False, min_value=None,
-                  max_value=None, precision=None):
-    return data_field(
-        required=required,
-        validator=DecimalValidator(min_value, max_value, precision),
-        ops=('lt', 'gt')
-    )
+def decimal_field(min_value=None, max_value=None, precision=None, **kw):
+    if 'validator' not in kw:
+        kw['validator'] = DecimalValidator(min_value, max_value, precision)
+    return data_field(**kw)
 
 
-def email_field(required=False):
-    return data_field(required=required, validator=email_validator)
+def email_field(**kw):
+    if 'validator' not in kw:
+        kw['validator'] = email_validator
+    return data_field(**kw)
 
 
-def enum_field(EnumClass, **kwargs):
-    kwargs['validator'] = EnumValidator(EnumClass)
-    return data_field(**kwargs)
+def enum_field(EnumClass, **kw):
+    if 'validator' not in kw:
+        kw['validator'] = EnumValidator(EnumClass)
+    return data_field(**kw)
 
 
-def date_time_field(required=False):
-    return data_field(required=required, validator=DateTimeValidator(),
-                      ops=('lt', 'gt'))
+def date_time_field(**kw):
+    if 'validator' not in kw:
+        kw['validator'] = DateTimeValidator()
+    return data_field(**kw)
+
+
+def as_field(item, **kw):
+    if not isinstance(item, Field):
+        t, item = item, data_field(**kw)
+        item.type = t
+    return item
 
 
 # VALIDATORS
@@ -118,6 +124,9 @@ class Validator:
     def __call__(self, field, value, data=None):
         raise ValidationError(field.name, 'invalid')
 
+    def openapi(self, prop):
+        pass
+
 
 class ListValidator(Validator):
 
@@ -135,6 +144,11 @@ class ListValidator(Validator):
             if hasattr(dump, '__call__'):
                 value = dump(value)
         return dump
+
+    def openapi(self, prop):
+        for validator in self.validators:
+            if isinstance(validator, Validator):
+                validator.openapi(prop)
 
 
 class UUIDValidator(Validator):
@@ -205,7 +219,7 @@ class NumberValidator(Validator):
     def __init__(self, min_value=None, max_value=None, precision=None):
         self.min_value = min_value
         self.max_value = max_value
-        self.precision = precision if precision is not None else 10
+        self.precision = precision
 
     def __call__(self, field, value, data=None):
         try:
@@ -222,6 +236,12 @@ class NumberValidator(Validator):
 
     def dump(self, value):
         return round(value, self.precision)
+
+    def openapi(self, prop):
+        if self.min_value is not None:
+            prop['minimum'] = self.min_value
+        if self.max_value is not None:
+            prop['maximum'] = self.max_value
 
 
 class DecimalValidator(NumberValidator):

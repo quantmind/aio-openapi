@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from .spec import OpenApi
 from .cli import OpenApiClient
+from .data.fields import data_field, NumberValidator
 
 
 def rest(setup_app=None, base_path=None, **kwargs):
@@ -13,5 +14,14 @@ def rest(setup_app=None, base_path=None, **kwargs):
 
 @dataclass
 class Query:
-    limit: int = 25
-    offset: int = 0
+    limit: int = data_field(
+        validator=NumberValidator(min_value=1, max_value=50),
+        description='Limit the number of objects returned from the endpoint'
+    )
+    offset: int = data_field(
+        validator=NumberValidator(min_value=0),
+        description=(
+            'Numer of objects to exclude. '
+            'Use in conjunction with limit to pagnate results'
+        )
+    )
