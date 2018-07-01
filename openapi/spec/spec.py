@@ -12,7 +12,7 @@ from .exceptions import InvalidTypeException
 from .path import ApiPath
 from .utils import load_yaml_from_docstring, trim_docstring
 from ..data import fields
-from ..utils import compact
+from ..utils import compact, is_subclass
 
 OPENAPI = '3.0.1'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
@@ -72,10 +72,10 @@ class SchemaParser:
         mapping = self._fields_mapping.get(field.type, None)
         enum = None
         if not mapping:
-            if issubclass(field.type, Enum):
+            if is_subclass(field.type, Enum):
                 mapping = dict(type='string')
                 enum = [e.name for e in field.type]
-            elif issubclass(field.type, List):
+            elif is_subclass(field.type, List):
                 return self._list2json(field.type)
             elif is_dataclass(field.type):
                 return self._get_schema_ref(field.type)
