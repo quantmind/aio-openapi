@@ -1,5 +1,7 @@
 import os
 import logging
+from inspect import isclass
+
 
 LOCAL = 'local'
 DEV = 'dev'
@@ -41,3 +43,7 @@ def getLogger():
         logger.setLevel(getattr(logging, level))
         logger.addHandler(logging.StreamHandler())
         return logger
+
+
+def is_subclass(value, Klass):
+    return isclass(value) and issubclass(value, Klass)

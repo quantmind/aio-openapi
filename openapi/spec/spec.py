@@ -10,9 +10,9 @@ from dataclasses import dataclass, asdict, is_dataclass
 
 from .exceptions import InvalidTypeException
 from .path import ApiPath
-from .utils import load_yaml_from_docstring
-from ..data.fields import FORMAT, REQUIRED, field_ops
-from ..utils import compact
+from .utils import load_yaml_from_docstring, trim_docstring
+from ..data import fields
+from ..utils import compact, is_subclass
 
 OPENAPI = '3.0.1'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
@@ -46,10 +46,10 @@ class SchemaParser:
 
     _fields_mapping = {
         str: {'type': 'string'},
-        int: {'type': 'integer', FORMAT: 'int32'},
-        float: {'type': 'number', FORMAT: 'float'},
+        int: {'type': 'integer', fields.FORMAT: 'int32'},
+        float: {'type': 'number', fields.FORMAT: 'float'},
         bool: {'type': 'boolean'},
-        datetime: {'type': 'string', FORMAT: 'date-time'},
+        datetime: {'type': 'string', fields.FORMAT: 'date-time'},
         Decimal: {'type': 'number'}
     }
 
@@ -67,20 +67,51 @@ class SchemaParser:
             self.parsed_schemas[schema.__name__] = parsed_schema
         return self.parsed_schemas
 
+    def field2json(self, field):
+        field = fields.as_field(field)
+        mapping = self._fields_mapping.get(field.type, None)
+        enum = None
+        if not mapping:
+            if is_subclass(field.type, Enum):
+                mapping = dict(type='string')
+                enum = [e.name for e in field.type]
+            elif is_subclass(field.type, List):
+                return self._list2json(field.type)
+            elif is_dataclass(field.type):
+                return self._get_schema_ref(field.type)
+            else:
+                raise InvalidTypeException(field.type)
+
+        json_property = {'type': mapping['type']}
+        meta = field.metadata
+        if meta.get(fields.DESCRIPTION):
+            json_property['description'] = meta.get(fields.DESCRIPTION)
+        fmt = meta.get(fields.FORMAT) or mapping.get(fields.FORMAT, None)
+        if fmt:
+            json_property[fields.FORMAT] = fmt
+        if enum:
+            json_property['enum'] = enum
+        validator = meta.get(fields.VALIDATOR)
+        # add additional parameters fields from validators
+        if isinstance(validator, fields.Validator):
+            validator.openapi(json_property)
+        return json_property
+
     def _schema2json(self, schema):
         properties = {}
         required = []
-        for field in schema.__dataclass_fields__.values():
-            if field.metadata.get(REQUIRED, False):
-                required.append(field.name)
-            json_property = self._field2json(field)
+        for item in schema.__dataclass_fields__.values():
+            if item.metadata.get(fields.REQUIRED, False):
+                required.append(item.name)
+            json_property = self.field2json(item)
             if not json_property:
                 continue
-            for name in field_ops(field):
+            for name in fields.field_ops(item):
                 properties[name] = json_property
 
         return {
             'type': 'object',
+            'description': trim_docstring(schema.__doc__),
             'properties': properties,
             'required': required,
             'additionalProperties': False
@@ -93,43 +124,11 @@ class SchemaParser:
 
         return {'$ref': SCHEMA_BASE_REF + schema.__name__}
 
-    def _type2json(self, field_type, field_format=None):
-        mapping = self._fields_mapping.get(field_type, None)
-        if not mapping:
-            if issubclass(field_type, Enum):
-                return self._enum2json(field_type)
-            elif issubclass(field_type, List):
-                return self._list2json(field_type)
-            elif is_dataclass(field_type):
-                return self._get_schema_ref(field_type)
-            else:
-                raise InvalidTypeException(field_type)
-
-        json_property = {'type': mapping['type']}
-        json_format = field_format or mapping.get(FORMAT, None)
-        if json_format:
-            json_property[FORMAT] = json_format
-
-        return json_property
-
-    def _enum2json(self, field_type):
-        enum_names = [e.name for e in field_type]
-        return {
-            'type': 'string',
-            'enum': enum_names
-        }
-
     def _list2json(self, field_type):
-        json_type = 'array'
-        items_type = field_type.__args__[0]
-        items = self._type2json(items_type)
         return {
-            'type': json_type,
-            'items': items
+            'type': 'array',
+            'items': self.field2json(field_type.__args__[0])
         }
-
-    def _field2json(self, field):
-        return self._type2json(field.type, field.metadata.get(FORMAT))
 
 
 class OpenApiSpec:
