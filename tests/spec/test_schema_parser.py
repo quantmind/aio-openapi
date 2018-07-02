@@ -8,6 +8,7 @@ import pytest
 
 from openapi.spec import SchemaParser
 from openapi.spec.exceptions import InvalidTypeException
+from openapi.data.fields import as_field, data_field, number_field
 
 
 def test_get_schema_ref():
@@ -29,8 +30,10 @@ def test_schema2json():
 
     @dataclass
     class MyClass:
-        str_field: str = field(metadata={'required': True, 'format': 'uuid'})
-        int_field: int = field(metadata={'format': 'uint64'})
+        """Test data
+        """
+        str_field: str = data_field(required=True, format='uuid')
+        int_field: int = data_field(format='uint64', description='test')
         float_field: float
         bool_field: bool
         datetime_field: datetime
@@ -41,13 +44,15 @@ def test_schema2json():
     schema_json = parser._schema2json(MyClass)
     expected = {
         'type': 'object',
+        'description': 'Test data',
         'properties': {
             'str_field': {
                 'type': 'string',
                 'format': 'uuid'
             }, 'int_field': {
                 'type': 'integer',
-                'format': 'uint64'
+                'format': 'uint64',
+                'description': 'test'
             }, 'float_field': {
                 'type': 'number',
                 'format': 'float'
@@ -71,13 +76,13 @@ def test_schema2json():
     assert schema_json == expected
 
 
-def test_type2json():
+def test_field2json():
     parser = SchemaParser([])
-    str_json = parser._type2json(str)
-    int_json = parser._type2json(int)
-    float_json = parser._type2json(float)
-    bool_json = parser._type2json(bool)
-    datetime_json = parser._type2json(datetime)
+    str_json = parser.field2json(str)
+    int_json = parser.field2json(int)
+    float_json = parser.field2json(float)
+    bool_json = parser.field2json(bool)
+    datetime_json = parser.field2json(datetime)
 
     assert str_json == {'type': 'string'}
     assert int_json == {'type': 'integer', 'format': 'int32'}
@@ -86,22 +91,22 @@ def test_type2json():
     assert datetime_json == {'type': 'string', 'format': 'date-time'}
 
 
-def test_type2json_format():
+def testfield2json_format():
     parser = SchemaParser([])
-    str_json = parser._type2json(str, field_format='uuid')
-    int_json = parser._type2json(int, field_format='int64')
+    str_json = parser.field2json(as_field(str, format='uuid'))
+    int_json = parser.field2json(as_field(int, format='int64'))
 
     assert str_json == {'type': 'string', 'format': 'uuid'}
     assert int_json == {'type': 'integer', 'format': 'int64'}
 
 
-def test_type2json_invalid():
+def test_field2json_invalid():
     class MyType:
         pass
 
     parser = SchemaParser([])
     with pytest.raises(InvalidTypeException):
-        parser._type2json(MyType)
+        parser.field2json(MyType)
 
 
 def test_enum2json():
@@ -111,7 +116,7 @@ def test_enum2json():
         FIELD_3 = 2
 
     parser = SchemaParser([])
-    json_type = parser._enum2json(MyEnum)
+    json_type = parser.field2json(MyEnum)
     assert json_type == {
         'type': 'string', 'enum': ['FIELD_1', 'FIELD_2', 'FIELD_3']
     }
@@ -123,28 +128,31 @@ def test_list2json():
         list_field: List[str]
 
     parser = SchemaParser([])
-    with patch.object(parser, '_type2json'):
+    with patch.object(parser, 'field2json'):
         list_field = MyClass.__dataclass_fields__['list_field']
         list_json = parser._list2json(list_field.type)
 
         assert list_json['type'] == 'array'
         assert 'items' in list_json.keys()
         assert list_json == {
-            'type': 'array', 'items': parser._type2json.return_value
+            'type': 'array', 'items': parser.field2json.return_value
         }
-        parser._type2json.assert_called_once_with(str)
+        parser.field2json.assert_called_once_with(str)
 
 
-def test_field2json():
+def test_field2json_again():
     @dataclass
     class MyClass:
         str_field: str = field(metadata={'format': 'uuid'})
-        int_field: int
+        int_field: int = number_field(min_value=0, max_value=100)
 
     parser = SchemaParser([])
     fields = MyClass.__dataclass_fields__
-    str_json = parser._field2json(fields['str_field'])
-    int_json = parser._field2json(fields['int_field'])
+    str_json = parser.field2json(fields['str_field'])
+    int_json = parser.field2json(fields['int_field'])
 
     assert str_json == {'type': 'string', 'format': 'uuid'}
-    assert int_json == {'type': 'integer', 'format': 'int32'}
+    assert int_json == {
+        'type': 'integer', 'format': 'int32',
+        'minimum': 0, 'maximum': 100
+    }
