@@ -148,7 +148,8 @@ class SqlApiPath(ApiPath):
 
     def get_query(self, query, params=None, table=None):
         filters = []
-        columns = table.c if table is not None else self.db_table.c
+        table = table if table is not None else self.db_table
+        columns = table.c
         params = params or {}
         for key, value in params.items():
             bits = key.split(':')
