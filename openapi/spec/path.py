@@ -13,8 +13,8 @@ class ApiPath(web.View):
 
     # UTILITIES
 
-    def insert_data(self, data, strict=True):
-        data = self.cleaned('body_schema', data)
+    def insert_data(self, data, strict=True, body_schema='body_schema'):
+        data = self.cleaned(body_schema, data)
         if self.path_schema:
             path = self.cleaned('path_schema', self.request.match_info)
             data.update(path)
