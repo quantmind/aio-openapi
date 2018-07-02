@@ -123,3 +123,9 @@ async def tests_create_list(cli):
     assert len(titles) == 2
     assert 'foo' in titles
     assert 'bar' in titles
+
+
+async def test_spec_root(cli):
+    response = await cli.get('/spec')
+    spec = await jsonBody(response)
+    assert 'paths' in spec
