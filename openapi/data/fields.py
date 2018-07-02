@@ -58,54 +58,50 @@ def data_field(
 
 
 def bool_field(**kw):
-    if 'validator' not in kw:
-        kw['validator'] = BoolValidator()
+    kw.setdefault('validator', BoolValidator())
     return data_field(**kw)
 
 
 def uuid_field(format='uuid', **kw):
     """A UUID field with validation
     """
-    if 'validator' not in kw:
-        kw['validator'] = UUIDValidator()
+    kw.setdefault('validator', UUIDValidator())
     return data_field(format=format, **kw)
 
 
 def number_field(min_value=None, max_value=None, precision=None, **kw):
-    if 'validator' not in kw:
-        kw['validator'] = NumberValidator(min_value, max_value, precision)
+    kw.setdefault(
+        'validator', NumberValidator(min_value, max_value, precision))
     return data_field(**kw)
 
 
 def decimal_field(min_value=None, max_value=None, precision=None, **kw):
-    if 'validator' not in kw:
-        kw['validator'] = DecimalValidator(min_value, max_value, precision)
+    kw.setdefault(
+        'validator', DecimalValidator(min_value, max_value, precision))
     return data_field(**kw)
 
 
 def email_field(**kw):
-    if 'validator' not in kw:
-        kw['validator'] = email_validator
+    kw.setdefault('validator', email_validator)
     return data_field(**kw)
 
 
 def enum_field(EnumClass, **kw):
-    if 'validator' not in kw:
-        kw['validator'] = EnumValidator(EnumClass)
+    kw.setdefault('validator', EnumValidator(EnumClass))
     return data_field(**kw)
 
 
 def date_time_field(**kw):
-    if 'validator' not in kw:
-        kw['validator'] = DateTimeValidator()
+    kw.setdefault('validator', DateTimeValidator())
     return data_field(**kw)
 
 
 def as_field(item, **kw):
-    if not isinstance(item, Field):
-        t, item = item, data_field(**kw)
-        item.type = t
-    return item
+    if isinstance(item, Field):
+        return item
+    field = data_field(**kw)
+    field.type = item
+    return field
 
 
 def field_ops(field):

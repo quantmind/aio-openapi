@@ -86,12 +86,13 @@ class SchemaParser:
         meta = field.metadata
         if meta.get(fields.DESCRIPTION):
             json_property['description'] = meta.get(fields.DESCRIPTION)
-        format = meta.get(fields.FORMAT) or mapping.get(fields.FORMAT, None)
-        if format:
-            json_property[fields.FORMAT] = format
+        fmt = meta.get(fields.FORMAT) or mapping.get(fields.FORMAT, None)
+        if fmt:
+            json_property[fields.FORMAT] = fmt
         if enum:
             json_property['enum'] = enum
         validator = meta.get(fields.VALIDATOR)
+        # add additional parameters fields from validators
         if isinstance(validator, fields.Validator):
             validator.openapi(json_property)
         return json_property

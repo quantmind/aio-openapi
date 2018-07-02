@@ -21,7 +21,7 @@ class Query:
     offset: int = data_field(
         validator=NumberValidator(min_value=0),
         description=(
-            'Numer of objects to exclude. '
-            'Use in conjunction with limit to pagnate results'
+            'Number of objects to exclude. '
+            'Use in conjunction with limit to paginate results'
         )
     )
