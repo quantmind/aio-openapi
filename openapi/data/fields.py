@@ -68,7 +68,7 @@ def uuid_field(format='uuid', **kw):
     """
     if 'validator' not in kw:
         kw['validator'] = UUIDValidator()
-    return data_field(format='uuid', **kw)
+    return data_field(format=format, **kw)
 
 
 def number_field(min_value=None, max_value=None, precision=None, **kw):
