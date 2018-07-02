@@ -1,12 +1,20 @@
+from openapi.utils import compact, compact_dict
 from openapi.spec.utils import (
-    compact, trim_docstring, dedent, load_yaml_from_docstring
+    trim_docstring, dedent, load_yaml_from_docstring
 )
 
 
 def test_compact():
     data = {'key1': 'A', 'key2': 1, 'key3': None, 'key4': False, 'key5': True}
-    expected = {'key1': 'A', 'key2': 1, 'key4': False, 'key5': True}
+    expected = {'key1': 'A', 'key2': 1, 'key5': True}
     new_data = compact(**data)
+    assert new_data == expected
+
+
+def test_compact_dict():
+    data = {'key1': 'A', 'key2': 1, 'key3': None, 'key4': False, 'key5': True}
+    expected = {'key1': 'A', 'key2': 1, 'key4': False, 'key5': True}
+    new_data = compact_dict(data)
     assert new_data == expected
 
 

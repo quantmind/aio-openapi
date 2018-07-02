@@ -159,6 +159,7 @@ class OpenApiSpec:
         """Build the ``doc`` dictionary by adding paths
         """
         self.logger = app.logger
+        self.schemas_to_parse.add(app['exc_schema'])
         self._build_paths(app)
         schemas_parser = SchemaParser(self.schemas_to_parse)
         self.schemas = schemas_parser.parse()
