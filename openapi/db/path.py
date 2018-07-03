@@ -4,6 +4,7 @@ from sqlalchemy.sql import and_
 
 from .compile import compile_query
 from ..spec.path import ApiPath
+from ..spec.pagination import DEF_PAGINATION_LIMIT
 
 
 class SqlApiPath(ApiPath):
@@ -27,15 +28,13 @@ class SqlApiPath(ApiPath):
         """Get a list of models
         """
         params = self.get_filters(query)
-        limit = params.pop('limit', None)
-        page = int(params.pop('page', 1))
+        limit = params.pop('limit', DEF_PAGINATION_LIMIT)
+        offset = params.pop('offset', 0)
         query = self.get_query(self.db_table.select(), params)
 
         # pagination
-        if limit is not None:
-            limit = int(limit)
-            query = query.offset((page - 1) * limit)
-            query = query.limit(limit)
+        query = query.offset(offset)
+        query = query.limit(limit)
 
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
