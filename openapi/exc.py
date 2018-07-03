@@ -18,5 +18,5 @@ class JsonHttpException(HTTPException):
         super().__init__(**kw)
         reason = self.reason
         if isinstance(reason, str):
-            reason = {'error': reason}
+            reason = {'message': reason}
         self.text = dumps(reason)
