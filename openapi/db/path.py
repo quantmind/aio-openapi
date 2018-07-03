@@ -41,17 +41,23 @@ class SqlApiPath(ApiPath):
             values = await db.fetch(sql, *args)
         return self.dump('response_schema', values)
 
-    async def create_one(self, data=None):
+    async def create_one(
+        self, data=None, table=None, body_schema='body_schema',
+        dump_schema='response_schema'
+    ):
         """Create a model
         """
         if data is None:
-            data = self.insert_data(await self.json_data())
-        statement, args = self.get_insert(data)
+            data = self.insert_data(
+                await self.json_data(), body_schema=body_schema
+            )
+        table = table if table is not None else self.db_table
+        statement, args = self.get_insert(data, table=table)
         async with self.db.acquire() as db:
             async with db.transaction():
                 values = await db.fetch(statement, *args)
-        data = ((c.name, v) for c, v in zip(self.db_table.columns, values[0]))
-        return self.dump('response_schema', data)
+        data = ((c.name, v) for c, v in zip(table.columns, values[0]))
+        return self.dump(dump_schema, data)
 
     async def create_list(self, data=None):
         """Create multiple models
@@ -85,7 +91,7 @@ class SqlApiPath(ApiPath):
         """
         table = table if table is not None else self.db_table
         filters = self.get_filters(query, query_schema=query_schema)
-        query = self.get_query(table.select(), filters)
+        query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
@@ -132,15 +138,17 @@ class SqlApiPath(ApiPath):
 
     # UTILITIES
 
-    def get_insert(self, records):
+    def get_insert(self, records, table=None):
         if isinstance(records, dict):
             records = [records]
-        exp = self.db_table.insert(records).returning(*self.db_table.columns)
+        table = table if table is not None else self.db_table
+        exp = table.insert(records).returning(*table.columns)
         return compile_query(exp)
 
-    def get_query(self, query, params=None):
+    def get_query(self, query, params=None, table=None):
         filters = []
-        columns = self.db_table.c
+        table = table if table is not None else self.db_table
+        columns = table.c
         params = params or {}
         for key, value in params.items():
             bits = key.split(':')
