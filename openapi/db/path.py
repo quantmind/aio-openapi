@@ -4,6 +4,7 @@ from sqlalchemy.sql import and_
 
 from .compile import compile_query
 from ..spec.path import ApiPath
+from ..spec.pagination import DEF_PAGINATION_LIMIT
 
 
 class SqlApiPath(ApiPath):
@@ -27,32 +28,36 @@ class SqlApiPath(ApiPath):
         """Get a list of models
         """
         params = self.get_filters(query)
-        limit = params.pop('limit', None)
-        page = int(params.pop('page', 1))
+        limit = params.pop('limit', DEF_PAGINATION_LIMIT)
+        offset = params.pop('offset', 0)
         query = self.get_query(self.db_table.select(), params)
 
         # pagination
-        if limit is not None:
-            limit = int(limit)
-            query = query.offset((page - 1) * limit)
-            query = query.limit(limit)
+        query = query.offset(offset)
+        query = query.limit(limit)
 
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
         return self.dump('response_schema', values)
 
-    async def create_one(self, data=None):
+    async def create_one(
+        self, data=None, table=None, body_schema='body_schema',
+        dump_schema='response_schema'
+    ):
         """Create a model
         """
         if data is None:
-            data = self.insert_data(await self.json_data())
-        statement, args = self.get_insert(data)
+            data = self.insert_data(
+                await self.json_data(), body_schema=body_schema
+            )
+        table = table if table is not None else self.db_table
+        statement, args = self.get_insert(data, table=table)
         async with self.db.acquire() as db:
             async with db.transaction():
                 values = await db.fetch(statement, *args)
-        data = ((c.name, v) for c, v in zip(self.db_table.columns, values[0]))
-        return self.dump('response_schema', data)
+        data = ((c.name, v) for c, v in zip(table.columns, values[0]))
+        return self.dump(dump_schema, data)
 
     async def create_list(self, data=None):
         """Create multiple models
@@ -86,7 +91,7 @@ class SqlApiPath(ApiPath):
         """
         table = table if table is not None else self.db_table
         filters = self.get_filters(query, query_schema=query_schema)
-        query = self.get_query(table.select(), filters)
+        query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
@@ -133,15 +138,17 @@ class SqlApiPath(ApiPath):
 
     # UTILITIES
 
-    def get_insert(self, records):
+    def get_insert(self, records, table=None):
         if isinstance(records, dict):
             records = [records]
-        exp = self.db_table.insert(records).returning(*self.db_table.columns)
+        table = table if table is not None else self.db_table
+        exp = table.insert(records).returning(*table.columns)
         return compile_query(exp)
 
-    def get_query(self, query, params=None):
+    def get_query(self, query, params=None, table=None):
         filters = []
-        columns = self.db_table.c
+        table = table if table is not None else self.db_table
+        columns = table.c
         params = params or {}
         for key, value in params.items():
             bits = key.split(':')

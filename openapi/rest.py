@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from .spec import OpenApi
 from .cli import OpenApiClient
 from .data.fields import data_field, NumberValidator
+from .spec.pagination import MAX_PAGINATION_LIMIT
 
 
 def rest(setup_app=None, base_path=None, **kwargs):
@@ -15,7 +16,7 @@ def rest(setup_app=None, base_path=None, **kwargs):
 @dataclass
 class Query:
     limit: int = data_field(
-        validator=NumberValidator(min_value=1, max_value=50),
+        validator=NumberValidator(min_value=1, max_value=MAX_PAGINATION_LIMIT),
         description='Limit the number of objects returned from the endpoint'
     )
     offset: int = data_field(

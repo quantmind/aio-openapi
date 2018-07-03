@@ -4,6 +4,7 @@ from datetime import datetime
 from click.testing import CliRunner
 
 from openapi.testing import jsonBody, equal_dict
+from openapi.utils import error_dict
 
 
 def test_db(cli):
@@ -65,6 +66,14 @@ async def tests_create(cli):
     assert data['title'] == 'test 1'
 
 
+async def tests_create_422(cli):
+    response = await cli.post('/tasks', json=dict(severity=4))
+    data = await jsonBody(response, 422)
+    assert len(data['errors']) == 1
+    errors = error_dict(data['errors'])
+    assert errors['title'] == 'required'
+
+
 async def tests_get_update(cli):
     response = await cli.post('/tasks', json=dict(title='test 2'))
     data = await jsonBody(response, 201)
@@ -123,3 +132,9 @@ async def tests_create_list(cli):
     assert len(titles) == 2
     assert 'foo' in titles
     assert 'bar' in titles
+
+
+async def test_spec_root(cli):
+    response = await cli.get('/spec')
+    spec = await jsonBody(response)
+    assert 'paths' in spec

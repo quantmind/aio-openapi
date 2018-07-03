@@ -3,6 +3,7 @@ from aiohttp import web
 from openapi.json import loads, dumps
 from ..data.dump import dump, dump_list
 from ..data.validate import validate
+from ..utils import compact, as_list
 
 
 class ApiPath(web.View):
@@ -13,8 +14,8 @@ class ApiPath(web.View):
 
     # UTILITIES
 
-    def insert_data(self, data, strict=True):
-        data = self.cleaned('body_schema', data)
+    def insert_data(self, data, strict=True, body_schema='body_schema'):
+        data = self.cleaned(body_schema, data)
         if self.path_schema:
             path = self.cleaned('path_schema', self.request.match_info)
             data.update(path)
@@ -42,9 +43,7 @@ class ApiPath(web.View):
         if validated.errors:
             if schema == 'path_schema':
                 raise web.HTTPNotFound()
-            app = self.request.app
-            errors = app['exc_schema'].from_errors(validated.errors)
-            raise web.HTTPUnprocessableEntity(**self.api_response_data(errors))
+            self.raiseValidationError(errors=validated.errors)
         return validated.data
 
     def dump(self, schema, data):
@@ -79,6 +78,12 @@ class ApiPath(web.View):
             if Schema is None:
                 raise web.HTTPNotImplemented
         return Schema
+
+    def raiseValidationError(self, message=None, errors=None):
+        app = self.request.app
+        raw = compact(message=message, errors=as_list(errors or ()))
+        data = self.dump(app['exc_schema'], raw)
+        raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
     @classmethod
     def api_response_data(cls, data):
