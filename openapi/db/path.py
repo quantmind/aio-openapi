@@ -24,13 +24,20 @@ class SqlApiPath(ApiPath):
     def db_table(self):
         return self.request.app['metadata'].tables[self.table]
 
-    async def get_list(self, query=None):
+    async def get_list(
+        self,
+        query=None,
+        table=None,
+        query_schema='query_schema',
+        dump_schema='response_schema'
+    ):
         """Get a list of models
         """
-        params = self.get_filters(query)
+        table = table if table is not None else self.db_table
+        params = self.get_filters(query, query_schema=query_schema)
         limit = params.pop('limit', DEF_PAGINATION_LIMIT)
         offset = params.pop('offset', 0)
-        query = self.get_query(self.db_table.select(), params)
+        query = self.get_query(table.select(), params, table=table)
 
         # pagination
         query = query.offset(offset)
@@ -39,7 +46,7 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
             values = await db.fetch(sql, *args)
-        return self.dump('response_schema', values)
+        return self.dump(dump_schema, values)
 
     async def create_one(
         self, data=None, table=None, body_schema='body_schema',
@@ -85,7 +92,7 @@ class SqlApiPath(ApiPath):
         query=None,
         table=None,
         query_schema='query_schema',
-        dump_schema='response_schema',
+        dump_schema='response_schema'
     ):
         """Get a single model
         """
