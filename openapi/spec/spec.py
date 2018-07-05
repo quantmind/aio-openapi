@@ -207,13 +207,14 @@ class OpenApiSpec:
                 continue
 
             method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
-            tags.update(self._extend_tags(method_doc.pop('tags', None)))
+            mtags = tags.copy()
+            mtags.update(self._extend_tags(method_doc.pop('tags', None)))
             op_attrs = asdict(operation)
             self._add_schemas_from_operation(op_attrs)
             responses = self._get_resonse_object(op_attrs, method_doc)
             request_body = self._get_request_body_object(op_attrs, method_doc)
 
-            method_doc['tags'] = list(tags)
+            method_doc['tags'] = list(mtags)
             path_obj[method] = method_doc
 
             if responses is not None:
