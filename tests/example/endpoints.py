@@ -67,7 +67,9 @@ class TaskPath(SqlApiPath):
     ---
     summary: Create and query tasks
     tags:
-        - task
+        - name: task
+          description: simple description
+        - name: random
     """
     table = 'tasks'
     path_schema = TaskPathSchema

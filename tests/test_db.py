@@ -138,3 +138,7 @@ async def test_spec_root(cli):
     response = await cli.get('/spec')
     spec = await jsonBody(response)
     assert 'paths' in spec
+    assert 'tags' in spec
+    assert len(spec['tags']) == 2
+    assert spec['tags'][1]['name'] == 'task'
+    assert spec['tags'][1]['description'] == 'simple description'
