@@ -281,11 +281,13 @@ class OpenApiSpec:
         for tag in (tags or ()):
             if isinstance(tag, str):
                 tag = {'name': tag}
-            if tag['name'] not in self.tags:
-                self.tags[tag['name']] = tag
-            else:
-                self.tags[tag['name']].update(tag)
-            names.add(tag['name'])
+            name = tag.get('name')
+            if name:
+                if name not in self.tags:
+                    self.tags[name] = tag
+                else:
+                    self.tags[name].update(tag)
+                names.add(name)
         return names
 
 
