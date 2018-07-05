@@ -192,7 +192,8 @@ class OpenApiSpec:
                 paths[path] = self._build_path_object(handler, app)
 
     def _build_path_object(self, handler, path_obj):
-        path_obj = {}
+        path_obj = load_yaml_from_docstring(handler.__doc__) or {}
+        tags = self._extend_tags(path_obj.pop('tags', None))
         for method in METHODS:
             method_handler = getattr(handler, method, None)
             if method_handler is None:
@@ -205,15 +206,16 @@ class OpenApiSpec:
                 )
                 continue
 
-            method_doc = load_yaml_from_docstring(method_handler.__doc__)
+            method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
+            mtags = tags.copy()
+            mtags.update(self._extend_tags(method_doc.pop('tags', None)))
             op_attrs = asdict(operation)
             self._add_schemas_from_operation(op_attrs)
             responses = self._get_resonse_object(op_attrs, method_doc)
             request_body = self._get_request_body_object(op_attrs, method_doc)
 
-            path_obj[method] = {
-                'description': method_doc['summary']
-            }
+            method_doc['tags'] = list(mtags)
+            path_obj[method] = method_doc
 
             if responses is not None:
                 path_obj[method]['responses'] = responses
@@ -274,6 +276,20 @@ class OpenApiSpec:
                 if type(schema_obj) == list:
                     schema_obj = schema_obj[0]
                 self.schemas_to_parse.add(schema_obj)
+
+    def _extend_tags(self, tags):
+        names = set()
+        for tag in (tags or ()):
+            if isinstance(tag, str):
+                tag = {'name': tag}
+            name = tag.get('name')
+            if name:
+                if name not in self.tags:
+                    self.tags[name] = tag
+                else:
+                    self.tags[name].update(tag)
+                names.add(name)
+        return names
 
 
 async def spec_root(request):
