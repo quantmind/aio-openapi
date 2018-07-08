@@ -18,7 +18,8 @@ PORT = os.environ.get('MICRO_SERVICE_PORT', 8080)
 
 class OpenApiClient(click.Group):
 
-    def __init__(self, spec, setup_app=None, base_path=None, **extra):
+    def __init__(self, spec, setup_app=None, base_path=None,
+                 commands=None, **extra) -> None:
         params = list(extra.pop('params', None) or ())
         self.spec = spec
         self.debug = get_debug_flag()
@@ -38,6 +39,8 @@ class OpenApiClient(click.Group):
         )
         super().__init__(params=params, **extra)
         self.add_command(serve)
+        for command in commands or ():
+            self.add_command(command)
         self._web = None
 
     def web(self):

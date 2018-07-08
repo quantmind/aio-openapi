@@ -13,7 +13,10 @@ async def test_spec(test_app):
         'done',
         'severity',
         'severity:lt',
-        'severity:gt'
+        'severity:le',
+        'severity:gt',
+        'severity:ge',
+        'severity:ne',
     }
 
 
@@ -41,8 +44,12 @@ async def test_filters(cli, clean_db):
             d.pop('id')
         assert body == expected
 
-    await assert_query({'severity:gt': 2}, [test2])
-    await assert_query({'severity:lt': 2}, [test1])
+    await assert_query({'severity:gt': 1}, [test2])
+    await assert_query({'severity:ge': 1}, [test1, test2])
+    await assert_query({'severity:lt': 3}, [test1])
+    await assert_query({'severity:le': 2}, [test1])
+    await assert_query({'severity:le': 3}, [test1, test2])
+    await assert_query({'severity:ne': 3}, [test1])
     await assert_query({'severity': 2}, [])
     await assert_query({'severity': 1}, [test1])
     await assert_query({'severity': 'NULL'}, [test3])
