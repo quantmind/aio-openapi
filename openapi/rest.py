@@ -6,11 +6,13 @@ from .data.fields import data_field, NumberValidator
 from .spec.pagination import MAX_PAGINATION_LIMIT
 
 
-def rest(setup_app=None, base_path=None, **kwargs):
+def rest(setup_app=None, base_path=None, commands=None, **kwargs):
     """Create the OpenApi application server
     """
     spec = OpenApi(**kwargs)
-    return OpenApiClient(spec, base_path=base_path, setup_app=setup_app)
+    return OpenApiClient(
+        spec, base_path=base_path, commands=commands, setup_app=setup_app
+    )
 
 
 @dataclass
