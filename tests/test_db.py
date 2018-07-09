@@ -37,7 +37,7 @@ def test_migrate(cli):
     assert result.exit_code == 0
 
 
-async def tests_get_list(cli):
+async def test_get_list(cli):
     response = await cli.get('/tasks')
     data = await jsonBody(response)
     assert len(data) == 0
@@ -59,14 +59,14 @@ async def test_400(cli):
     await jsonBody(response, 400)
 
 
-async def tests_create(cli):
+async def test_create(cli):
     response = await cli.post('/tasks', json=dict(title='test 1'))
     data = await jsonBody(response, 201)
     assert data['id'] == 1
     assert data['title'] == 'test 1'
 
 
-async def tests_create_422(cli):
+async def test_create_422(cli):
     response = await cli.post('/tasks', json=dict(severity=4))
     data = await jsonBody(response, 422)
     assert len(data['errors']) == 1
@@ -74,7 +74,7 @@ async def tests_create_422(cli):
     assert errors['title'] == 'required'
 
 
-async def tests_get_update(cli):
+async def test_get_update(cli):
     response = await cli.post('/tasks', json=dict(title='test 2'))
     data = await jsonBody(response, 201)
     assert data['id'] == 2
@@ -98,7 +98,7 @@ async def tests_get_update(cli):
     await jsonBody(response, 404)
 
 
-async def tests_delete_list(cli):
+async def test_delete_list(cli):
     response = await cli.delete('/tasks')
     assert response.status == 204
     response = await cli.post('/tasks', json=dict(title='bla'))
@@ -124,7 +124,7 @@ async def tests_delete_list(cli):
     assert 'done' not in data[0]
 
 
-async def tests_create_list(cli):
+async def test_create_list(cli):
     tasks = [dict(title='foo'), dict(title='bar')]
     response = await cli.post('/bulk/tasks', json=tasks)
     data = await jsonBody(response, status=201)
@@ -211,3 +211,34 @@ async def test_transaction_get_list(cli):
     await cli.post('/tasks', json=dict(title='tran'))
     response = await cli.get('/transaction/tasks')
     await jsonBody(response)
+
+
+async def test_transaction_create_list(cli):
+    tasks = [dict(title='foo'), dict(title='bar')]
+    response = await cli.post('/transaction/bulk/tasks', json=tasks)
+    data = await jsonBody(response, status=201)
+    titles = list(map(lambda t: t['title'], data))
+    assert len(titles) == 2
+    assert 'foo' in titles
+    assert 'bar' in titles
+
+
+async def test_transaction_delete_list(cli):
+    response = await cli.delete('/transaction/bulk/tasks')
+    assert response.status == 204
+    tasks = [dict(title='bulk_created') for i in range(5)]
+    response = await cli.post('/transaction/bulk/tasks', json=tasks)
+    data = await jsonBody(response, 201)
+    assert len(data) == 5
+
+    response = await cli.delete(
+        '/transaction/bulk/tasks', json=dict(title='bulk_created')
+    )
+    assert response.status == 204
+
+    response = await cli.get(
+        '/transaction/tasks', params={'title': 'bulk_created'}
+    )
+    data = await jsonBody(response)
+
+    assert len(data) == 0
