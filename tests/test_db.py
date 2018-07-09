@@ -151,13 +151,13 @@ async def test_transaction_create(cli):
 
 
 async def test_transaction_create_error(cli):
-    response_tasks_before = await cli.get('/tasks')
+    response_tasks_before = await cli.get('/transaction/tasks')
     tasks_before = await jsonBody(response_tasks_before)
     response = await cli.post(
         '/transaction/tasks', json=dict(title='tran', should_raise=True)
     )
     await jsonBody(response, status=500)
-    response_tasks_after = await cli.get('/tasks')
+    response_tasks_after = await cli.get('/transaction/tasks')
     tasks_after = await jsonBody(response_tasks_after)
     assert len(tasks_before) == len(tasks_after)
 
@@ -180,7 +180,7 @@ async def test_transaction_update_error(cli):
         json=dict(title='newtask', should_raise=True)
     )
     await jsonBody(response, status=500)
-    response = await cli.get(f'/tasks/{task["id"]}')
+    response = await cli.get(f'/transaction/tasks/{task["id"]}')
     data = await jsonBody(response)
     assert data['title'] == 'tran'
 
@@ -190,7 +190,7 @@ async def test_transaction_delete(cli):
     task = await jsonBody(response, status=201)
     response = await cli.delete(f'/transaction/tasks/{task["id"]}', json={})
     await jsonBody(response, status=204)
-    response = await cli.get(f'/tasks/{task["id"]}')
+    response = await cli.get(f'/transaction/tasks/{task["id"]}')
     await jsonBody(response, status=404)
 
 
@@ -203,3 +203,11 @@ async def test_transaction_delete_error(cli):
     await jsonBody(response, status=500)
     response = await cli.get(f'/tasks/{task["id"]}')
     await jsonBody(response, 200)
+
+
+async def test_transaction_get_list(cli):
+    await cli.post('/tasks', json=dict(title='tran'))
+    await cli.post('/tasks', json=dict(title='tran'))
+    await cli.post('/tasks', json=dict(title='tran'))
+    response = await cli.get('/transaction/tasks')
+    await jsonBody(response)

@@ -15,7 +15,7 @@ class SqlApiPath(ApiPath):
     # sql table name
 
     @property
-    def conn(self):
+    def db(self):
         """Database connection pool
         """
         return self.request.app['db']
@@ -42,7 +42,7 @@ class SqlApiPath(ApiPath):
 
         sql, args = compile_query(query)
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 values = await conn.fetch(sql, *args)
         else:
             values = await conn.fetch(sql, *args)
@@ -62,7 +62,7 @@ class SqlApiPath(ApiPath):
         statement, args = self.get_insert(data, table=table)
 
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 async with conn.transaction():
                     values = await conn.fetch(statement, *args)
         else:
@@ -84,7 +84,7 @@ class SqlApiPath(ApiPath):
         cols = self.db_table.columns
 
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 async with conn.transaction():
                     statement, args = self.get_insert(data)
                     values = await conn.fetch(statement, *args)
@@ -110,7 +110,7 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(query)
 
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 values = await conn.fetch(sql, *args)
         else:
             values = await conn.fetch(sql, *args)
@@ -131,7 +131,7 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(update)
 
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 values = await conn.fetch(sql, *args)
         else:
             values = await conn.fetch(sql, *args)
@@ -148,7 +148,7 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(delete.returning(*self.db_table.columns))
 
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 values = await conn.fetch(sql, *args)
         else:
             values = await conn.fetch(sql, *args)
@@ -164,7 +164,7 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(delete)
 
         if conn is None:
-            async with self.conn.acquire() as conn:
+            async with self.db.acquire() as conn:
                 async with conn.transaction():
                     await conn.fetch(sql, *args)
         else:

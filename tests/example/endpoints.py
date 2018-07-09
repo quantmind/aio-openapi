@@ -147,7 +147,7 @@ class TaskTransactionsPath(SqlApiPath):
     @op(body_schema=TaskAdd, response_schema=Task)
     async def post(self):
         data = await self.json_data()
-        async with self.conn.acquire() as conn:
+        async with self.db.acquire() as conn:
             async with conn.transaction():
                 should_raise = data.pop('should_raise', False)
 
@@ -157,6 +157,12 @@ class TaskTransactionsPath(SqlApiPath):
                     raise JsonHttpException(status=500)
 
                 return self.json_response(data=task, status=201)
+
+    @op(query_schema=TaskQuery, response_schema=[Task])
+    async def get(self):
+        async with self.db.acquire() as conn:
+            data = await self.get_list(conn=conn)
+            return self.json_response(data=data)
 
 
 @routes.view('/transaction/tasks/{id}')
@@ -170,10 +176,17 @@ class TaskTransactionPath(SqlApiPath):
     table = 'tasks'
     path_schema = TaskPathSchema
 
+    @op(response_schema=Task)
+    async def get(self):
+        async with self.db.acquire() as conn:
+            async with conn.transaction():
+                data = await self.get_one(conn=conn)
+                return self.json_response(data)
+
     @op(body_schema=TaskUpdate, response_schema=Task)
     async def patch(self):
         data = await self.json_data()
-        async with self.conn.acquire() as conn:
+        async with self.db.acquire() as conn:
             async with conn.transaction():
                 should_raise = data.pop('should_raise', False)
 
@@ -187,7 +200,7 @@ class TaskTransactionPath(SqlApiPath):
     @op()
     async def delete(self):
         data = await self.json_data()
-        async with self.conn.acquire() as conn:
+        async with self.db.acquire() as conn:
             async with conn.transaction():
                 should_raise = data.pop('should_raise', False)
 
