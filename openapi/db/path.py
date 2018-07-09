@@ -15,7 +15,7 @@ class SqlApiPath(ApiPath):
     # sql table name
 
     @property
-    def db(self):
+    def conn(self):
         """Database connection pool
         """
         return self.request.app['db']
@@ -26,7 +26,7 @@ class SqlApiPath(ApiPath):
 
     async def get_list(
         self, query=None, table=None, query_schema='query_schema',
-        dump_schema='response_schema', db=None
+        dump_schema='response_schema', conn=None
     ):
         """Get a list of models
         """
@@ -41,16 +41,16 @@ class SqlApiPath(ApiPath):
         query = query.limit(limit)
 
         sql, args = compile_query(query)
-        if db is None:
-            async with self.db.acquire() as db:
-                values = await db.fetch(sql, *args)
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                values = await conn.fetch(sql, *args)
         else:
-            values = await db.fetch(sql, *args)
+            values = await conn.fetch(sql, *args)
         return self.dump(dump_schema, values)
 
     async def create_one(
         self, data=None, table=None, body_schema='body_schema',
-        dump_schema='response_schema', db=None
+        dump_schema='response_schema', conn=None
     ):
         """Create a model
         """
@@ -61,17 +61,17 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         statement, args = self.get_insert(data, table=table)
 
-        if db is None:
-            async with self.db.acquire() as db:
-                async with db.transaction():
-                    values = await db.fetch(statement, *args)
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                async with conn.transaction():
+                    values = await conn.fetch(statement, *args)
         else:
-            values = await db.fetch(statement, *args)
+            values = await conn.fetch(statement, *args)
 
         data = ((c.name, v) for c, v in zip(table.columns, values[0]))
         return self.dump(dump_schema, data)
 
-    async def create_list(self, data=None, db=None):
+    async def create_list(self, data=None, conn=None):
         """Create multiple models
         """
         if data is None:
@@ -83,14 +83,14 @@ class SqlApiPath(ApiPath):
         data = [self.insert_data(d) for d in data]
         cols = self.db_table.columns
 
-        if db is None:
-            async with self.db.acquire() as db:
-                async with db.transaction():
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                async with conn.transaction():
                     statement, args = self.get_insert(data)
-                    values = await db.fetch(statement, *args)
+                    values = await conn.fetch(statement, *args)
         else:
             statement, args = self.get_insert(data)
-            values = await db.fetch(statement, *args)
+            values = await conn.fetch(statement, *args)
 
         result = [
             ((c.name, v) for c, v in zip(cols, value))
@@ -100,7 +100,7 @@ class SqlApiPath(ApiPath):
 
     async def get_one(
         self, query=None, table=None, query_schema='query_schema',
-        dump_schema='response_schema', db=None
+        dump_schema='response_schema', conn=None
     ):
         """Get a single model
         """
@@ -109,17 +109,17 @@ class SqlApiPath(ApiPath):
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
 
-        if db is None:
-            async with self.db.acquire() as db:
-                values = await db.fetch(sql, *args)
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                values = await conn.fetch(sql, *args)
         else:
-            values = await db.fetch(sql, *args)
+            values = await conn.fetch(sql, *args)
 
         if not values:
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
 
-    async def update_one(self, data=None, db=None):
+    async def update_one(self, data=None, conn=None):
         """Update a single model
         """
         if data is None:
@@ -130,45 +130,45 @@ class SqlApiPath(ApiPath):
             ).values(**data).returning(*self.db_table.columns)
         sql, args = compile_query(update)
 
-        if db is None:
-            async with self.db.acquire() as db:
-                values = await db.fetch(sql, *args)
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                values = await conn.fetch(sql, *args)
         else:
-            values = await db.fetch(sql, *args)
+            values = await conn.fetch(sql, *args)
 
         if not values:
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
 
-    async def delete_one(self, db=None):
+    async def delete_one(self, conn=None):
         """delete a single model
         """
         filters = self.cleaned('path_schema', self.request.match_info)
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete.returning(*self.db_table.columns))
 
-        if db is None:
-            async with self.db.acquire() as db:
-                values = await db.fetch(sql, *args)
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                values = await conn.fetch(sql, *args)
         else:
-            values = await db.fetch(sql, *args)
+            values = await conn.fetch(sql, *args)
 
         if not values:
             raise web.HTTPNotFound()
 
-    async def delete_list(self, query=None, db=None):
+    async def delete_list(self, query=None, conn=None):
         """delete multiple models
         """
         filters = self.get_filters(query)
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete)
 
-        if db is None:
-            async with self.db.acquire() as db:
-                async with db.transaction():
-                    await db.fetch(sql, *args)
+        if conn is None:
+            async with self.conn.acquire() as conn:
+                async with conn.transaction():
+                    await conn.fetch(sql, *args)
         else:
-            await db.fetch(sql, *args)
+            await conn.fetch(sql, *args)
 
     # UTILITIES
 

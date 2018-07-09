@@ -4,6 +4,7 @@ from sqlalchemy.sql.expression import null
 
 from openapi.db.path import SqlApiPath
 from openapi.spec import op
+from openapi.exc import JsonHttpException
 from .models import Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate
 
 
@@ -131,3 +132,68 @@ class TaskBulkPath(SqlApiPath):
         """
         data = await self.create_list()
         return self.json_response(data, status=201)
+
+
+@routes.view('/transaction/tasks')
+class TaskTransactionsPath(SqlApiPath):
+    """
+    summary: Manage tasks with transactions
+    tags:
+        - task
+        - transaction
+    """
+    table = 'tasks'
+
+    @op(body_schema=TaskAdd, response_schema=Task)
+    async def post(self):
+        data = await self.json_data()
+        async with self.conn.acquire() as conn:
+            async with conn.transaction():
+                should_raise = data.pop('should_raise', False)
+
+                task = await self.create_one(data=data, conn=conn)
+
+                if should_raise:
+                    raise JsonHttpException(status=500)
+
+                return self.json_response(data=task, status=201)
+
+
+@routes.view('/transaction/tasks/{id}')
+class TaskTransactionPath(SqlApiPath):
+    """
+    summary: Manage tasks with transactions
+    tags:
+        - task
+        - transaction
+    """
+    table = 'tasks'
+    path_schema = TaskPathSchema
+
+    @op(body_schema=TaskUpdate, response_schema=Task)
+    async def patch(self):
+        data = await self.json_data()
+        async with self.conn.acquire() as conn:
+            async with conn.transaction():
+                should_raise = data.pop('should_raise', False)
+
+                task = await self.update_one(data=data, conn=conn)
+
+                if should_raise:
+                    raise JsonHttpException(status=500)
+
+                return self.json_response(data=task, status=200)
+
+    @op()
+    async def delete(self):
+        data = await self.json_data()
+        async with self.conn.acquire() as conn:
+            async with conn.transaction():
+                should_raise = data.pop('should_raise', False)
+
+                await self.delete_one(conn=conn)
+
+                if should_raise:
+                    raise JsonHttpException(status=500)
+
+                return self.json_response(data={}, status=204)

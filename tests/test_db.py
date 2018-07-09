@@ -142,3 +142,64 @@ async def test_spec_root(cli):
     assert len(spec['tags']) == 2
     assert spec['tags'][1]['name'] == 'task'
     assert spec['tags'][1]['description'] == 'simple description'
+
+
+async def test_transaction_create(cli):
+    response = await cli.post('/transaction/tasks', json=dict(title='tran'))
+    data = await jsonBody(response, status=201)
+    assert data['title'] == 'tran'
+
+
+async def test_transaction_create_error(cli):
+    response_tasks_before = await cli.get('/tasks')
+    tasks_before = await jsonBody(response_tasks_before)
+    response = await cli.post(
+        '/transaction/tasks', json=dict(title='tran', should_raise=True)
+    )
+    await jsonBody(response, status=500)
+    response_tasks_after = await cli.get('/tasks')
+    tasks_after = await jsonBody(response_tasks_after)
+    assert len(tasks_before) == len(tasks_after)
+
+
+async def test_transaction_update(cli):
+    response = await cli.post('/tasks', json=dict(title='tran'))
+    task = await jsonBody(response, status=201)
+    response = await cli.patch(
+        f'/transaction/tasks/{task["id"]}', json=dict(title='newtask')
+    )
+    data = await jsonBody(response)
+    assert data['title'] == 'newtask'
+
+
+async def test_transaction_update_error(cli):
+    response = await cli.post('/tasks', json=dict(title='tran'))
+    task = await jsonBody(response, status=201)
+    response = await cli.patch(
+        f'/transaction/tasks/{task["id"]}',
+        json=dict(title='newtask', should_raise=True)
+    )
+    await jsonBody(response, status=500)
+    response = await cli.get(f'/tasks/{task["id"]}')
+    data = await jsonBody(response)
+    assert data['title'] == 'tran'
+
+
+async def test_transaction_delete(cli):
+    response = await cli.post('/tasks', json=dict(title='tran'))
+    task = await jsonBody(response, status=201)
+    response = await cli.delete(f'/transaction/tasks/{task["id"]}', json={})
+    await jsonBody(response, status=204)
+    response = await cli.get(f'/tasks/{task["id"]}')
+    await jsonBody(response, status=404)
+
+
+async def test_transaction_delete_error(cli):
+    response = await cli.post('/tasks', json=dict(title='tran'))
+    task = await jsonBody(response, status=201)
+    response = await cli.delete(
+        f'/transaction/tasks/{task["id"]}', json=dict(should_raise=True)
+    )
+    await jsonBody(response, status=500)
+    response = await cli.get(f'/tasks/{task["id"]}')
+    await jsonBody(response, 200)
