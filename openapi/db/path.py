@@ -5,6 +5,7 @@ from sqlalchemy.sql import and_
 from .compile import compile_query
 from ..spec.path import ApiPath
 from ..spec.pagination import DEF_PAGINATION_LIMIT
+from ..utils import asynccontextmanager
 
 
 class SqlApiPath(ApiPath):
@@ -24,6 +25,15 @@ class SqlApiPath(ApiPath):
     def db_table(self):
         return self.request.app['metadata'].tables[self.table]
 
+    @asynccontextmanager
+    async def ensure_connection(self, conn):
+        if conn:
+            yield conn
+        else:
+            async with self.db.acquire() as conn:
+                async with conn.transaction():
+                    yield conn
+
     async def get_list(
         self, query=None, table=None, query_schema='query_schema',
         dump_schema='response_schema', conn=None
@@ -41,11 +51,9 @@ class SqlApiPath(ApiPath):
         query = query.limit(limit)
 
         sql, args = compile_query(query)
-        if conn is None:
-            async with self.db.acquire() as conn:
-                values = await conn.fetch(sql, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(sql, *args)
+
         return self.dump(dump_schema, values)
 
     async def create_one(
@@ -61,11 +69,7 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         statement, args = self.get_insert(data, table=table)
 
-        if conn is None:
-            async with self.db.acquire() as conn:
-                async with conn.transaction():
-                    values = await conn.fetch(statement, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(statement, *args)
 
         data = ((c.name, v) for c, v in zip(table.columns, values[0]))
@@ -83,12 +87,7 @@ class SqlApiPath(ApiPath):
         data = [self.insert_data(d) for d in data]
         cols = self.db_table.columns
 
-        if conn is None:
-            async with self.db.acquire() as conn:
-                async with conn.transaction():
-                    statement, args = self.get_insert(data)
-                    values = await conn.fetch(statement, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(data)
             values = await conn.fetch(statement, *args)
 
@@ -109,10 +108,7 @@ class SqlApiPath(ApiPath):
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
 
-        if conn is None:
-            async with self.db.acquire() as conn:
-                values = await conn.fetch(sql, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(sql, *args)
 
         if not values:
@@ -130,10 +126,7 @@ class SqlApiPath(ApiPath):
             ).values(**data).returning(*self.db_table.columns)
         sql, args = compile_query(update)
 
-        if conn is None:
-            async with self.db.acquire() as conn:
-                values = await conn.fetch(sql, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(sql, *args)
 
         if not values:
@@ -147,10 +140,7 @@ class SqlApiPath(ApiPath):
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete.returning(*self.db_table.columns))
 
-        if conn is None:
-            async with self.db.acquire() as conn:
-                values = await conn.fetch(sql, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(sql, *args)
 
         if not values:
@@ -163,11 +153,7 @@ class SqlApiPath(ApiPath):
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete)
 
-        if conn is None:
-            async with self.db.acquire() as conn:
-                async with conn.transaction():
-                    await conn.fetch(sql, *args)
-        else:
+        async with self.ensure_connection(conn) as conn:
             await conn.fetch(sql, *args)
 
     # UTILITIES
