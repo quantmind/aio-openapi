@@ -179,15 +179,13 @@ def test_email_validator_valid():
     field = email_field()
     assert email_validator(field, 'valid@email.com') == 'valid@email.com'
     assert email_validator(field, 'a1-_@email.us') == 'a1-_@email.us'
-    assert email_validator(field, 'a@a.a') == 'a@a.a'
+    assert email_validator(field, 'foo.top@kaputt.co') == 'foo.top@kaputt.co'
 
 
 def test_email_validator_invalid():
     field = email_field()
     with pytest.raises(ValidationError):
-        email_validator(field, 'a@email.comm')
-    with pytest.raises(ValidationError):
-        email_validator(field, '#$%@email.com')
+        email_validator(field, 'a@email')
     with pytest.raises(ValidationError):
         email_validator(field, 'email.com')
     with pytest.raises(ValidationError):

@@ -20,6 +20,8 @@ python-dotenv
 pytz
 pyyaml
 pyjwt
+phonenumbers
+email_validator
 #
 # required for python 3.6
 dataclasses

@@ -27,7 +27,7 @@ class SqlApiPath(ApiPath):
     async def get_list(self, query=None):
         """Get a list of models
         """
-        params = self.get_filters(query)
+        params = self.get_filters(query=query)
         limit = params.pop('limit', DEF_PAGINATION_LIMIT)
         offset = params.pop('offset', 0)
         query = self.get_query(self.db_table.select(), params)
@@ -90,7 +90,7 @@ class SqlApiPath(ApiPath):
         """Get a single model
         """
         table = table if table is not None else self.db_table
-        filters = self.get_filters(query, query_schema=query_schema)
+        filters = self.get_filters(query=query, query_schema=query_schema)
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
         async with self.db.acquire() as db:
@@ -129,7 +129,7 @@ class SqlApiPath(ApiPath):
     async def delete_list(self, query=None):
         """delete multiple models
         """
-        filters = self.get_filters(query)
+        filters = self.get_filters(query=query)
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete)
         async with self.db.acquire() as db:
