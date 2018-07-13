@@ -5,6 +5,7 @@ from sqlalchemy.sql import and_
 from .compile import compile_query
 from ..spec.path import ApiPath
 from ..spec.pagination import DEF_PAGINATION_LIMIT
+from ..utils import asynccontextmanager
 
 
 class SqlApiPath(ApiPath):
@@ -24,26 +25,40 @@ class SqlApiPath(ApiPath):
     def db_table(self):
         return self.request.app['metadata'].tables[self.table]
 
-    async def get_list(self, query=None):
+    @asynccontextmanager
+    async def ensure_connection(self, conn):
+        if conn:
+            yield conn
+        else:
+            async with self.db.acquire() as conn:
+                async with conn.transaction():
+                    yield conn
+
+    async def get_list(
+        self, query=None, table=None, query_schema='query_schema',
+        dump_schema='response_schema', conn=None
+    ):
         """Get a list of models
         """
-        params = self.get_filters(query=query)
+        table = table if table is not None else self.db_table
+        params = self.get_filters(query=query, query_schema=query_schema)
         limit = params.pop('limit', DEF_PAGINATION_LIMIT)
         offset = params.pop('offset', 0)
-        query = self.get_query(self.db_table.select(), params)
+        query = self.get_query(table.select(), params, table=table)
 
         # pagination
         query = query.offset(offset)
         query = query.limit(limit)
 
         sql, args = compile_query(query)
-        async with self.db.acquire() as db:
-            values = await db.fetch(sql, *args)
-        return self.dump('response_schema', values)
+        async with self.ensure_connection(conn) as conn:
+            values = await conn.fetch(sql, *args)
+
+        return self.dump(dump_schema, values)
 
     async def create_one(
         self, data=None, table=None, body_schema='body_schema',
-        dump_schema='response_schema'
+        dump_schema='response_schema', conn=None
     ):
         """Create a model
         """
@@ -53,13 +68,14 @@ class SqlApiPath(ApiPath):
             )
         table = table if table is not None else self.db_table
         statement, args = self.get_insert(data, table=table)
-        async with self.db.acquire() as db:
-            async with db.transaction():
-                values = await db.fetch(statement, *args)
+
+        async with self.ensure_connection(conn) as conn:
+            values = await conn.fetch(statement, *args)
+
         data = ((c.name, v) for c, v in zip(table.columns, values[0]))
         return self.dump(dump_schema, data)
 
-    async def create_list(self, data=None):
+    async def create_list(self, data=None, conn=None):
         """Create multiple models
         """
         if data is None:
@@ -70,10 +86,11 @@ class SqlApiPath(ApiPath):
             )
         data = [self.insert_data(d) for d in data]
         cols = self.db_table.columns
-        async with self.db.acquire() as db:
-            async with db.transaction():
-                statement, args = self.get_insert(data)
-                values = await db.fetch(statement, *args)
+
+        async with self.ensure_connection(conn) as conn:
+            statement, args = self.get_insert(data)
+            values = await conn.fetch(statement, *args)
+
         result = [
             ((c.name, v) for c, v in zip(cols, value))
             for value in values
@@ -81,11 +98,8 @@ class SqlApiPath(ApiPath):
         return self.dump('response_schema', result)
 
     async def get_one(
-        self,
-        query=None,
-        table=None,
-        query_schema='query_schema',
-        dump_schema='response_schema',
+        self, query=None, table=None, query_schema='query_schema',
+        dump_schema='response_schema', conn=None
     ):
         """Get a single model
         """
@@ -93,13 +107,15 @@ class SqlApiPath(ApiPath):
         filters = self.get_filters(query=query, query_schema=query_schema)
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
-        async with self.db.acquire() as db:
-            values = await db.fetch(sql, *args)
+
+        async with self.ensure_connection(conn) as conn:
+            values = await conn.fetch(sql, *args)
+
         if not values:
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
 
-    async def update_one(self, data=None):
+    async def update_one(self, data=None, conn=None):
         """Update a single model
         """
         if data is None:
@@ -109,32 +125,36 @@ class SqlApiPath(ApiPath):
                 self.db_table.update(), filters
             ).values(**data).returning(*self.db_table.columns)
         sql, args = compile_query(update)
-        async with self.db.acquire() as db:
-            values = await db.fetch(sql, *args)
+
+        async with self.ensure_connection(conn) as conn:
+            values = await conn.fetch(sql, *args)
+
         if not values:
             raise web.HTTPNotFound()
         return self.dump('response_schema', values[0])
 
-    async def delete_one(self):
+    async def delete_one(self, conn=None):
         """delete a single model
         """
         filters = self.cleaned('path_schema', self.request.match_info)
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete.returning(*self.db_table.columns))
-        async with self.db.acquire() as db:
-            values = await db.fetch(sql, *args)
+
+        async with self.ensure_connection(conn) as conn:
+            values = await conn.fetch(sql, *args)
+
         if not values:
             raise web.HTTPNotFound()
 
-    async def delete_list(self, query=None):
+    async def delete_list(self, query=None, conn=None):
         """delete multiple models
         """
         filters = self.get_filters(query=query)
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete)
-        async with self.db.acquire() as db:
-            async with db.transaction():
-                await db.fetch(sql, *args)
+
+        async with self.ensure_connection(conn) as conn:
+            await conn.fetch(sql, *args)
 
     # UTILITIES
 

@@ -22,7 +22,7 @@ class Task(TaskAdd):
 @dataclass
 class TaskQuery:
     done: bool = data_field()
-    severity: int = decimal_field(ops=('lt', 'gt'))
+    severity: int = decimal_field(ops=('lt', 'le', 'gt', 'ge', 'ne'))
 
 
 @dataclass
