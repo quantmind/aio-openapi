@@ -21,7 +21,7 @@ class ApiPath(web.View):
             data.update(path)
         return data
 
-    def get_filters(self, query=None, query_schema='query_schema'):
+    def get_filters(self, *, query=None, query_schema='query_schema'):
         combined = dict(self.request.query)
         combined.update(query or {})
         try:

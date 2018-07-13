@@ -1,14 +1,13 @@
-import re
 from decimal import Decimal
 from uuid import UUID
 from datetime import datetime
 from dataclasses import field, Field
 
+from email_validator import validate_email, EmailNotValidError
+
 from dateutil.parser import parse as parse_date
 
 from ..utils import compact_dict
-
-email_pattern = re.compile("^[a-zA-Z0-9-_]+@[a-zA-Z0-9]+\.[a-z]{1,3}$")
 
 
 DEFAULT = 'default'
@@ -115,8 +114,11 @@ def field_ops(field):
 
 def email_validator(field, value, data=None):
     value = str(value)
-    if not email_pattern.match(value):
-        raise ValidationError(field.name, '%s not a valid email' % value)
+    try:
+        validate_email(value, check_deliverability=False)
+    except EmailNotValidError:
+        raise ValidationError(
+            field.name, '%s not a valid email' % value) from None
     return value
 
 
