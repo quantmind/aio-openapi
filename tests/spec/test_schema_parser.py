@@ -16,11 +16,11 @@ def test_get_schema_ref():
     class MyClass:
         str_field: str
 
-    parser = SchemaParser([MyClass])
+    parser = SchemaParser()
 
-    schema_ref = parser._get_schema_ref(MyClass)
+    schema_ref = parser.get_schema_ref(MyClass)
     assert schema_ref == {'$ref': '#/components/schemas/MyClass'}
-    assert 'MyClass' in parser.parsed_schemas.keys()
+    assert 'MyClass' in parser.group.parsed_schemas.keys()
 
 
 def test_schema2json():
@@ -40,8 +40,8 @@ def test_schema2json():
         ref_field: OtherClass = field(metadata={'required': True})
         list_ref_field: List[OtherClass]
 
-    parser = SchemaParser([])
-    schema_json = parser._schema2json(MyClass)
+    parser = SchemaParser()
+    schema_json = parser.schema2json(MyClass)
     expected = {
         'type': 'object',
         'description': 'Test data',

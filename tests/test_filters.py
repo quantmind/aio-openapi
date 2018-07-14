@@ -9,7 +9,9 @@ async def test_spec(test_app):
 
     spec = OpenApiSpec(asdict(open_api))
     spec.build(test_app)
-    assert spec.schemas['TaskQuery']['properties'].keys() == {
+    query = spec.paths['/tasks']['get']['parameters']
+    filters = [q['name'] for q in query]
+    assert set(filters) == {
         'done',
         'severity',
         'severity:lt',
