@@ -13,6 +13,7 @@ async def test_spec(test_app):
     filters = [q['name'] for q in query]
     assert set(filters) == {
         'done',
+        'type',
         'severity',
         'severity:lt',
         'severity:le',

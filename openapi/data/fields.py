@@ -181,10 +181,15 @@ class EnumValidator(Validator):
         try:
             e = getattr(self.EnumClass, value)
             if isinstance(e, self.EnumClass):
-                return e.name
+                return e if field.type == self.EnumClass else e.name
             raise AttributeError
         except AttributeError:
             raise ValidationError(field.name, '%s not valid' % value)
+
+    def dump(self, value):
+        if isinstance(value, self.EnumClass):
+            return value.name
+        return value
 
 
 class Choice(Validator):

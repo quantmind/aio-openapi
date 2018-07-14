@@ -74,7 +74,7 @@ def test_UUIDValidator_dump():
 def test_EnumValidator_call_valid():
     field = enum_field(FakeEnum)
     validator = EnumValidator(FakeEnum)
-    assert validator(field, 'VALUE_A') == 'VALUE_A'
+    assert validator(field, 'VALUE_A') == FakeEnum.VALUE_A.name
 
 
 def test_EnumValidator_call_invalid():
