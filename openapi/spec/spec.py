@@ -16,6 +16,7 @@ from ..utils import compact, is_subclass
 
 OPENAPI = '3.0.1'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
+SCHEMAS_TO_SCHEMA = ('response_schema', 'body_schema')
 SCHEMA_BASE_REF = '#/components/schemas/'
 
 
@@ -53,19 +54,23 @@ class SchemaParser:
         Decimal: {'type': 'number'}
     }
 
-    parsed_schemas = {}
+    def __init__(self, group=None):
+        self.group = group or SchemaGroup()
 
-    def __init__(self, schemas_to_parse):
-        self._schemas_to_parse = set(schemas_to_parse)
-
-    def parse(self):
-        for schema in self._schemas_to_parse:
-            if schema.__name__ in self.parsed_schemas:
-                continue
-
-            parsed_schema = self._schema2json(schema)
-            self.parsed_schemas[schema.__name__] = parsed_schema
-        return self.parsed_schemas
+    def parameters(self, Schema, default_in='path'):
+        params = []
+        schema = self.schema2json(Schema)
+        required = set(schema['required'])
+        for name, entry in schema['properties'].items():
+            entry = compact(
+                name=name,
+                description=entry.pop('description', None),
+                schema=entry,
+                required=name in required
+            )
+            entry['in'] = default_in
+            params.append(entry)
+        return params
 
     def field2json(self, field):
         field = fields.as_field(field)
@@ -78,7 +83,7 @@ class SchemaParser:
             elif is_subclass(field.type, List):
                 return self._list2json(field.type)
             elif is_dataclass(field.type):
-                return self._get_schema_ref(field.type)
+                return self.get_schema_ref(field.type)
             else:
                 raise InvalidTypeException(field.type)
 
@@ -97,7 +102,7 @@ class SchemaParser:
             validator.openapi(json_property)
         return json_property
 
-    def _schema2json(self, schema):
+    def schema2json(self, schema):
         properties = {}
         required = []
         for item in schema.__dataclass_fields__.values():
@@ -117,10 +122,10 @@ class SchemaParser:
             'additionalProperties': False
         }
 
-    def _get_schema_ref(self, schema):
-        if schema not in self.parsed_schemas:
-            parsed_schema = self._schema2json(schema)
-            self.parsed_schemas[schema.__name__] = parsed_schema
+    def get_schema_ref(self, schema):
+        if schema not in self.group.parsed_schemas:
+            parsed_schema = self.schema2json(schema)
+            self.group.parsed_schemas[schema.__name__] = parsed_schema
 
         return {'$ref': SCHEMA_BASE_REF + schema.__name__}
 
@@ -129,6 +134,21 @@ class SchemaParser:
             'type': 'array',
             'items': self.field2json(field_type.__args__[0])
         }
+
+
+class SchemaGroup:
+
+    def __init__(self):
+        self.parsed_schemas = {}
+
+    def parse(self, schemas):
+        for schema in set(schemas):
+            if schema.__name__ in self.parsed_schemas:
+                continue
+
+            parsed_schema = SchemaParser(self).schema2json(schema)
+            self.parsed_schemas[schema.__name__] = parsed_schema
+        return self.parsed_schemas
 
 
 class OpenApiSpec:
@@ -161,8 +181,7 @@ class OpenApiSpec:
         self.logger = app.logger
         self.schemas_to_parse.add(app['exc_schema'])
         self._build_paths(app)
-        schemas_parser = SchemaParser(self.schemas_to_parse)
-        self.schemas = schemas_parser.parse()
+        self.schemas = SchemaGroup().parse(self.schemas_to_parse)
         s = self.schemas
         p = self.parameters
         r = self.responses
@@ -194,6 +213,9 @@ class OpenApiSpec:
     def _build_path_object(self, handler, path_obj):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
         tags = self._extend_tags(path_obj.pop('tags', None))
+        if handler.path_schema:
+            p = SchemaParser()
+            path_obj['parameters'] = p.parameters(handler.path_schema)
         for method in METHODS:
             method_handler = getattr(handler, method, None)
             if method_handler is None:
@@ -207,40 +229,38 @@ class OpenApiSpec:
                 continue
 
             method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
+            if method_doc.pop('private', False):
+                continue
             mtags = tags.copy()
             mtags.update(self._extend_tags(method_doc.pop('tags', None)))
             op_attrs = asdict(operation)
             self._add_schemas_from_operation(op_attrs)
-            responses = self._get_resonse_object(op_attrs, method_doc)
-            request_body = self._get_request_body_object(op_attrs, method_doc)
-
+            self._get_response_object(op_attrs, method_doc)
+            self._get_request_body_object(op_attrs, method_doc)
+            self._get_query_parameters(op_attrs, method_doc)
             method_doc['tags'] = list(mtags)
             path_obj[method] = method_doc
 
-            if responses is not None:
-                path_obj[method]['responses'] = responses
-
-            if request_body is not None:
-                path_obj[method]['requestBody'] = request_body
-
         return path_obj
 
-    def _get_resonse_object(self, op_attrs, method_doc):
+    def _get_schema_info(self, schema):
+        info = {}
+        if type(schema) == list:
+            info['type'] = 'array'
+            info['items'] = {
+                '$ref': f'{SCHEMA_BASE_REF}{schema[0].__name__}'
+            }
+        elif schema is not None:
+            info['$ref'] = f'{SCHEMA_BASE_REF}{schema.__name__}'
+        return info
+
+    def _get_response_object(self, op_attrs, doc):
         response_schema = op_attrs.get('response_schema', None)
         if response_schema is None:
             return None
-
-        schema = {}
-        if type(response_schema) == list:
-            schema['type'] = 'array'
-            schema['items'] = {
-                '$ref': SCHEMA_BASE_REF + response_schema[0].__name__
-            }
-        elif response_schema is not None:
-            schema['$ref'] = SCHEMA_BASE_REF + response_schema.__name__
-
+        schema = self._get_schema_info(response_schema)
         responses = {}
-        for response, data in method_doc.get('responses', {}).items():
+        for response, data in doc.get('responses', {}).items():
             responses[response] = {
                 'description': data['description'],
                 'content': {
@@ -249,28 +269,26 @@ class OpenApiSpec:
                     }
                 }
             }
-        return responses
+        doc['responses'] = responses
 
-    def _get_request_body_object(self, op_attrs, method_doc):
-        body_schema = op_attrs.get('body_schema', None)
-        if body_schema is None:
-            return
-
-        if type(body_schema) == list:
-            body_schema = body_schema[0]
-
-        return {
-            'description': method_doc.get('body', {}).get('summary', ''),
-            'content': {
-                'application/json': {
-                    'schema': SCHEMA_BASE_REF + body_schema.__name__
+    def _get_request_body_object(self, op_attrs, doc):
+        schema = self._get_schema_info(op_attrs.get('body_schema', None))
+        if schema:
+            doc['requestBody'] = {
+                'content': {
+                    'application/json': {
+                        'schema': schema
+                    }
                 }
             }
-        }
+
+    def _get_query_parameters(self, op_attrs, doc):
+        schema = op_attrs.get('query_schema', None)
+        if schema:
+            doc['parameters'] = SchemaParser().parameters(schema, 'query')
 
     def _add_schemas_from_operation(self, operation_obj):
-        schemas = ['response_schema', 'body_schema', 'query_schema']
-        for schema in schemas:
+        for schema in SCHEMAS_TO_SCHEMA:
             schema_obj = operation_obj[schema]
             if schema_obj is not None:
                 if type(schema_obj) == list:
