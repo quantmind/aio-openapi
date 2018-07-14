@@ -1,4 +1,4 @@
-from decimal import Decimal
+import decimal
 from uuid import UUID
 from datetime import datetime
 from dataclasses import field, Field
@@ -147,7 +147,7 @@ class ListValidator(Validator):
             dump = getattr(validator, 'dump', None)
             if hasattr(dump, '__call__'):
                 value = dump(value)
-        return dump
+        return value
 
     def openapi(self, prop):
         for validator in self.validators:
@@ -181,10 +181,15 @@ class EnumValidator(Validator):
         try:
             e = getattr(self.EnumClass, value)
             if isinstance(e, self.EnumClass):
-                return e.name
+                return e if field.type == self.EnumClass else e.name
             raise AttributeError
         except AttributeError:
             raise ValidationError(field.name, '%s not valid' % value)
+
+    def dump(self, value):
+        if isinstance(value, self.EnumClass):
+            return value.name
+        return value
 
 
 class Choice(Validator):
@@ -251,8 +256,8 @@ class NumberValidator(Validator):
 class DecimalValidator(NumberValidator):
     def __call__(self, field, value, data=None):
         try:
-            value = Decimal(value)
-        except TypeError:
+            value = decimal.Decimal(value)
+        except (TypeError, decimal.InvalidOperation):
             raise ValidationError(field.name, '%s not valid Decimal' % value)
         return super().__call__(field, value, data=None)
 
