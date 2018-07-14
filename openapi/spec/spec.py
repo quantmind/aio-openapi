@@ -2,11 +2,11 @@ from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import List
+from typing import List, Dict
 
 from aiohttp import hdrs
 from aiohttp import web
-from dataclasses import dataclass, asdict, is_dataclass
+from dataclasses import dataclass, asdict, is_dataclass, field
 
 from .exceptions import InvalidTypeException
 from .path import ApiPath
@@ -39,6 +39,7 @@ class OpenApi:
     description: str = ''
     version: str = '0.1.0'
     termsOfService: str = ''
+    security: Dict[str, Dict] = field(default_factory=dict)
     contact: Contact = Contact()
     license: License = License()
 
@@ -180,6 +181,11 @@ class OpenApiSpec:
         """
         self.logger = app.logger
         self.schemas_to_parse.add(app['exc_schema'])
+        security = self.doc['info'].get('security')
+        sk = {}
+        if security:
+            sk = security
+            self.doc['info']['security'] = list(sk)
         self._build_paths(app)
         self.schemas = SchemaGroup().parse(self.schemas_to_parse)
         s = self.schemas
@@ -192,6 +198,7 @@ class OpenApiSpec:
                 schemas=OrderedDict(((k, s[k]) for k in sorted(s))),
                 parameters=OrderedDict(((k, p[k]) for k in sorted(p))),
                 responses=OrderedDict(((k, r[k]) for k in sorted(r))),
+                securitySchemes=OrderedDict((((k, sk[k]) for k in sorted(sk))))
             ),
             servers=self.servers
         ))
