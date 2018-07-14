@@ -11,7 +11,7 @@ PRODUCTION = 'production'
 NO_DEBUG = {'0', 'false', 'no'}
 
 
-class _AsyncGeneratorContextManager:
+class _AsyncGeneratorContextManager:    # pragma: no cover
     def __init__(self, func, args, kwds):
         self.gen = func(*args, **kwds)
         self.func, self.args, self.kwds = func, args, kwds
