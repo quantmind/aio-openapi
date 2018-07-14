@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 from enum import Enum
 from uuid import uuid4
+from decimal import Decimal
 
 from openapi.data.fields import (
     ValidationError, data_field, bool_field, uuid_field, number_field,
@@ -30,13 +31,21 @@ class FakeValidatorError(Validator):
         raise ValidationError(field, 'invalid')
 
 
+def test_base_validator():
+    validator = Validator()
+    field = data_field()
+    with pytest.raises(ValidationError):
+        validator(field, None)
+
+
 def test_ListValidator_call_valid():
-    value = [1, 'string']
+    value = 'test'
     field = data_field()
     validator1 = FakeValidator()
     validator2 = FakeValidator()
     validator = ListValidator((validator1, validator2))
-    assert validator(field, value) == [1, 'string']
+    assert validator(field, value) == 'test'
+    assert validator.dump(3) == '3'
 
 
 def test_ListValidator_call_invalid():
@@ -74,7 +83,7 @@ def test_UUIDValidator_dump():
 def test_EnumValidator_call_valid():
     field = enum_field(FakeEnum)
     validator = EnumValidator(FakeEnum)
-    assert validator(field, 'VALUE_A') == 'VALUE_A'
+    assert validator(field, 'VALUE_A') == FakeEnum.VALUE_A.name
 
 
 def test_EnumValidator_call_invalid():
@@ -152,7 +161,7 @@ def test_DecimalValidator_valid():
     validator = DecimalValidator(min_value=-10, max_value=10, precision=2)
     assert validator(field, 10) == 10
     assert validator(field, -10) == -10
-    # assert validator(field, 5.55) == 5.55
+    assert validator(field, 5.55) == Decimal('5.55')
     # assert validator(field, 5.555) == Decimal(5.55)
     # assert validator(field, '5.555') == Decimal(5.55)
     # assert validator(field, (5, 555)) == Decimal(5.55)
@@ -161,6 +170,8 @@ def test_DecimalValidator_valid():
 def test_DecimalValidator_invalid():
     field = decimal_field()
     validator = DecimalValidator(min_value=-10, max_value=10, precision=2)
+    with pytest.raises(ValidationError):
+        validator(field, 'xy')
     with pytest.raises(ValidationError):
         validator(field, 11)
     with pytest.raises(ValidationError):

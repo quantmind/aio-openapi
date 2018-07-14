@@ -60,10 +60,11 @@ async def test_400(cli):
 
 
 async def test_create(cli):
-    response = await cli.post('/tasks', json=dict(title='test 1'))
+    response = await cli.post('/tasks', json=dict(title='test 1', type='todo'))
     data = await jsonBody(response, 201)
     assert data['id'] == 1
     assert data['title'] == 'test 1'
+    assert data['type'] == 'todo'
 
 
 async def test_create_422(cli):
