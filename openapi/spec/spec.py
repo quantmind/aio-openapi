@@ -83,6 +83,8 @@ class SchemaParser:
                 enum = [e.name for e in field.type]
             elif is_subclass(field.type, List):
                 return self._list2json(field.type)
+            elif is_subclass(field.type, Dict):
+                return self._map2json(field.type)
             elif is_dataclass(field.type):
                 return self.get_schema_ref(field.type)
             else:
@@ -135,6 +137,17 @@ class SchemaParser:
             'type': 'array',
             'items': self.field2json(field_type.__args__[0])
         }
+
+    def _map2json(self, field_type):
+        args = field_type.__args__
+        spec = {
+            'type': 'object'
+        }
+        if args:
+            if len(args) != 2 or args[0] != str:
+                raise InvalidTypeException(field_type)
+            spec['additionalProperties'] = self.field2json(args[1])
+        return spec
 
 
 class SchemaGroup:
