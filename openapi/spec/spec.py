@@ -333,10 +333,10 @@ class OpenApiSpec:
                 names.add(name)
         return names
 
-    def _include(self, private, includePublic, includePrivate):
+    def _include(self, is_private, public, private):
         return (
-            (private and includePrivate) or
-            (not private and includePublic)
+            (is_private and private) or
+            (not is_private and public)
         )
 
 
