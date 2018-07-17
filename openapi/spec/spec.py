@@ -83,6 +83,8 @@ class SchemaParser:
                 enum = [e.name for e in field.type]
             elif is_subclass(field.type, List):
                 return self._list2json(field.type)
+            elif is_subclass(field.type, Dict):
+                return self._map2json(field.type)
             elif is_dataclass(field.type):
                 return self.get_schema_ref(field.type)
             else:
@@ -136,6 +138,17 @@ class SchemaParser:
             'items': self.field2json(field_type.__args__[0])
         }
 
+    def _map2json(self, field_type):
+        args = field_type.__args__
+        spec = {
+            'type': 'object'
+        }
+        if args:
+            if len(args) != 2 or args[0] != str:
+                raise InvalidTypeException(field_type)
+            spec['additionalProperties'] = self.field2json(args[1])
+        return spec
+
 
 class SchemaGroup:
 
@@ -176,7 +189,7 @@ class OpenApiSpec:
     def paths(self):
         return self.doc['paths']
 
-    def build(self, app):
+    def build(self, app, public=True, private=False):
         """Build the ``doc`` dictionary by adding paths
         """
         self.logger = app.logger
@@ -186,7 +199,7 @@ class OpenApiSpec:
         if security:
             sk = security
             self.doc['info']['security'] = list(sk)
-        self._build_paths(app)
+        self._build_paths(app, public, private)
         self.schemas = SchemaGroup().parse(self.schemas_to_parse)
         s = self.schemas
         p = self.parameters
@@ -204,7 +217,7 @@ class OpenApiSpec:
         ))
         return self
 
-    def _build_paths(self, app):
+    def _build_paths(self, app, public, private):
         """Loop through app paths and add
         schemas, parameters and paths objects to the spec
         """
@@ -214,10 +227,13 @@ class OpenApiSpec:
             route_info = route.get_info()
             path = route_info.get('path', route_info.get('formatter', None))
             handler = route.handler
-            if issubclass(handler, ApiPath) and not handler.private:
-                paths[path] = self._build_path_object(handler, app)
+            if (issubclass(handler, ApiPath) and
+                    self._include(handler.private, public, private)):
+                paths[path] = self._build_path_object(
+                    handler, app, public, private
+                )
 
-    def _build_path_object(self, handler, path_obj):
+    def _build_path_object(self, handler, path_obj, public, private):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
         tags = self._extend_tags(path_obj.pop('tags', None))
         if handler.path_schema:
@@ -236,7 +252,8 @@ class OpenApiSpec:
                 continue
 
             method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
-            if method_doc.pop('private', False):
+            if not self._include(
+                    method_doc.pop('private', False), public, private):
                 continue
             mtags = tags.copy()
             mtags.update(self._extend_tags(method_doc.pop('tags', None)))
@@ -315,6 +332,12 @@ class OpenApiSpec:
                     self.tags[name].update(tag)
                 names.add(name)
         return names
+
+    def _include(self, is_private, public, private):
+        return (
+            (is_private and private) or
+            (not is_private and public)
+        )
 
 
 async def spec_root(request):

@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from typing import List
+from typing import List, Dict
 from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
@@ -36,6 +36,8 @@ def test_schema2json():
         int_field: int = data_field(format='uint64', description='test')
         float_field: float
         bool_field: bool
+        map_field: Dict[str, int]
+        free_field: Dict
         datetime_field: datetime
         ref_field: OtherClass = field(metadata={'required': True})
         list_ref_field: List[OtherClass]
@@ -58,6 +60,14 @@ def test_schema2json():
                 'format': 'float'
             }, 'bool_field': {
                 'type': 'boolean'
+            }, 'map_field': {
+                'type': 'object',
+                'additionalProperties': {
+                    'type': 'integer',
+                    'format': 'int32'
+                }
+            }, 'free_field': {
+                'type': 'object'
             }, 'datetime_field': {
                 'type': 'string',
                 'format': 'date-time'
@@ -156,3 +166,13 @@ def test_field2json_again():
         'type': 'integer', 'format': 'int32',
         'minimum': 0, 'maximum': 100
     }
+
+
+def test_non_string_keys():
+    @dataclass
+    class MyClass:
+        map_field: Dict[int, str]
+
+    parser = SchemaParser()
+    with pytest.raises(InvalidTypeException):
+        parser.schema2json(MyClass)
