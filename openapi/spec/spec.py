@@ -253,7 +253,7 @@ class OpenApiSpec:
 
             method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
             if not self._include(
-                    method_doc.pop('private', False), public, private):
+                    method_doc.pop('private', private), public, private):
                 continue
             mtags = tags.copy()
             mtags.update(self._extend_tags(method_doc.pop('tags', None)))
