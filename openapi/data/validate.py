@@ -38,7 +38,10 @@ def validate(schema, data, strict=True):
                 if validator:
                     value = validator(field, value)
 
-                if not isinstance(value, field.type):
+                if not isinstance(
+                        value,
+                        getattr(field.type, '__origin__', field.type)
+                ):
                     try:
                         value = field.type(value)
                     except (TypeError, ValueError):
