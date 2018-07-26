@@ -45,6 +45,8 @@ class TasksPath(SqlApiPath):
         responses:
             201:
                 description: the task was successfully added
+            422:
+                description: Failed validation
         """
         data = await self.create_one()
         return web.json_response(data, status=201)

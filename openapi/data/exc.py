@@ -5,16 +5,25 @@ from .fields import data_field
 
 
 @dataclass
-class FieldError:
-    """Error message for a data field
+class ErrorMessage:
+    """Error message and list of errors for data fields
     """
-    field: str = data_field(description='name of the data field with error')
-    message: str = data_field(description='error message')
+    message: str = data_field(description='Error message')
 
 
 @dataclass
-class Error:
+class FieldError(ErrorMessage):
+    """Error message for a data field
+    """
+    field: str = data_field(description='name of the data field with error')
+
+
+@dataclass
+class Error(ErrorMessage):
     """Error message and list of errors for data fields
     """
-    message: str = data_field(description='error message')
     errors: List[FieldError]
+
+
+def error_response_schema(status):
+    return Error if status == 422 else ErrorMessage

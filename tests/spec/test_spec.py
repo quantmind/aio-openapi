@@ -33,3 +33,15 @@ async def test_spec_security(test_app):
     spec.build(test_app)
     assert spec.doc['info']['security'] == ['auth_key']
     assert spec.doc['components']['securitySchemes']
+
+
+async def test_spec_422(test_app):
+    open_api = OpenApi()
+    spec = OpenApiSpec(asdict(open_api))
+    spec.build(test_app)
+    tasks = spec.doc['paths']['/tasks']
+    resp = tasks['post']['responses']
+    assert (
+        resp[422]['content']['application/json']['schema']['$ref'] ==
+        '#/components/schemas/Error'
+    )
