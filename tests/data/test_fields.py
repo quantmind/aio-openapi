@@ -6,9 +6,10 @@ from decimal import Decimal
 
 from openapi.data.fields import (
     ValidationError, data_field, bool_field, uuid_field, number_field,
-    decimal_field, email_field, enum_field, date_time_field,  ListValidator,
-    UUIDValidator, EnumValidator, Choice, DateTimeValidator, NumberValidator,
-    DecimalValidator, email_validator, BoolValidator, Validator
+    decimal_field, email_field, enum_field, date_time_field,  json_field,
+    ListValidator, UUIDValidator, EnumValidator, Choice, DateTimeValidator,
+    NumberValidator, DecimalValidator, email_validator, BoolValidator,
+    Validator, JSONValidator
 )
 
 
@@ -231,3 +232,27 @@ def test_BoolValidator_dump():
     assert validator.dump(False) is False
     assert validator.dump('TrUe') is True
     assert validator.dump('fAlSe') is False
+
+
+def test_JSONValidator_call_valid():
+    value = {'field1': 1, 'field2': ['1', '2'], 'field3': True}
+    dump = '{"field1": 1, "field2": ["1", "2"], "field3": true}'
+    field = json_field()
+    validator = JSONValidator()
+    assert validator(field, value) == value
+    assert validator(field, dump) == value
+
+
+def test_JSONValidator_call_invalid():
+    field = json_field()
+    validator = JSONValidator()
+    with pytest.raises(ValidationError):
+        validator(field, '{]}')
+
+
+def test_JSONValidator_dump():
+    value = {'field1': 1, 'field2': ['1', '2'], 'field3': True}
+    dump = '{"field1": 1, "field2": ["1", "2"], "field3": true}'
+    validator = JSONValidator()
+    assert validator.dump(value) == value
+    assert validator.dump(dump) == value

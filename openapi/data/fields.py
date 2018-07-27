@@ -1,9 +1,11 @@
+from simplejson.errors import JSONDecodeError
 import decimal
 from uuid import UUID
 from datetime import datetime
 from dataclasses import field, Field
 
 from email_validator import validate_email, EmailNotValidError
+from ..json import loads, dumps
 
 from dateutil.parser import parse as parse_date
 
@@ -107,6 +109,11 @@ def field_ops(field):
     yield field.name
     for op in field.metadata.get(OPS, ()):
         yield f'{field.name}:{op}'
+
+
+def json_field(**kw):
+    kw.setdefault('validator', JSONValidator())
+    return data_field(**kw)
 
 
 # VALIDATORS
@@ -274,3 +281,22 @@ class BoolValidator(Validator):
 
     def dump(self, value):
         return str(value).lower() == 'true'
+
+
+class JSONValidator(Validator):
+
+    def __call__(self, field, value, data=None):
+        if isinstance(value, str):
+            try:
+                value = loads(value)
+            except JSONDecodeError:
+                raise ValidationError(field.name, '%s not valid' % value)
+        return value
+
+    def dump(self, value):
+        if isinstance(value, str):
+            return loads(value)
+        elif isinstance(value, dict):
+            return loads(dumps(value))
+        else:
+            raise ValidationError(field.name, '%s not valid' % value)
