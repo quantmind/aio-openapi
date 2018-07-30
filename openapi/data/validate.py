@@ -10,10 +10,23 @@ class ValidatedData:
     errors: Dict
 
 
+class ValidationErrors(ValueError):
+
+    def __init__(self, errors):
+        self.errors = errors
+
+
+def validated_schema(schema, data, strict=True):
+    d = validate(schema, data, strict)
+    if d.errors:
+        raise ValidationErrors(d.errors)
+    return schema(**d.data)
+
+
 def validate(schema, data, strict=True):
     """Validate a dictionary of data with a given dataclass
     """
-    data = data.copy()
+    data = dict(data)
     errors = {}
     cleaned = {}
     for field in schema.__dataclass_fields__.values():
@@ -31,7 +44,7 @@ def validate(schema, data, strict=True):
                     continue
                 value = data[name]
 
-                if value == 'NULL':
+                if value is None or value == 'NULL':
                     cleaned[name] = None
                     continue
 

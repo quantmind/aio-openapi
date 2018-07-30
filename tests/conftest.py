@@ -3,6 +3,7 @@ import os
 import shutil
 
 import pytest
+
 from aiohttp import test_utils
 
 from openapi import db
