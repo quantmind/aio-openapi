@@ -19,11 +19,11 @@ class FieldError(ErrorMessage):
 
 
 @dataclass
-class Error(ErrorMessage):
+class ValidationErrors(ErrorMessage):
     """Error message and list of errors for data fields
     """
     errors: List[FieldError]
 
 
 def error_response_schema(status):
-    return Error if status == 422 else ErrorMessage
+    return ValidationErrors if status == 422 else ErrorMessage

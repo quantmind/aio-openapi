@@ -12,7 +12,9 @@ from .exceptions import InvalidTypeException
 from .path import ApiPath
 from .utils import load_yaml_from_docstring, trim_docstring
 from ..data import fields
-from ..data.exc import Error, ErrorMessage, FieldError, error_response_schema
+from ..data.exc import (
+    ValidationErrors, ErrorMessage, FieldError, error_response_schema
+)
 from ..utils import compact, is_subclass
 
 OPENAPI = '3.0.1'
@@ -194,7 +196,7 @@ class OpenApiSpec:
         """Build the ``doc`` dictionary by adding paths
         """
         self.logger = app.logger
-        self.schemas_to_parse.add(Error)
+        self.schemas_to_parse.add(ValidationErrors)
         self.schemas_to_parse.add(ErrorMessage)
         self.schemas_to_parse.add(FieldError)
         security = self.doc['info'].get('security')

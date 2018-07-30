@@ -3,6 +3,7 @@ import os
 import shutil
 
 import pytest
+
 from aiohttp import test_utils
 
 from openapi import db
@@ -12,7 +13,7 @@ from openapi.rest import rest
 from . import example
 
 
-DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/postgres'
+DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/openapi'
 
 
 def setup_app(app):

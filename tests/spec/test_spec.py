@@ -43,5 +43,5 @@ async def test_spec_422(test_app):
     resp = tasks['post']['responses']
     assert (
         resp[422]['content']['application/json']['schema']['$ref'] ==
-        '#/components/schemas/Error'
+        '#/components/schemas/ValidationErrors'
     )
