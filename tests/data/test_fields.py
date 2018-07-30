@@ -250,9 +250,15 @@ def test_JSONValidator_call_invalid():
         validator(field, '{]}')
 
 
-def test_JSONValidator_dump():
+def test_JSONValidator_dump_valid():
     value = {'field1': 1, 'field2': ['1', '2'], 'field3': True}
     dump = '{"field1": 1, "field2": ["1", "2"], "field3": true}'
     validator = JSONValidator()
     assert validator.dump(value) == value
     assert validator.dump(dump) == value
+
+
+def test_JSONValidator_dump_invalid():
+    validator = JSONValidator()
+    with pytest.raises(ValidationError):
+        validator.dump(1)
