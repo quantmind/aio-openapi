@@ -13,7 +13,7 @@ from openapi.rest import rest
 from . import example
 
 
-DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/openapi'
+DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/postgres'
 
 
 def setup_app(app):
