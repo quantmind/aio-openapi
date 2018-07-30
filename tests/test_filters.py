@@ -24,21 +24,25 @@ async def test_spec(test_app):
 
 
 async def test_filters(cli, clean_db):
-    test1 = {
-        'title': 'test1',
-        'severity': 1
-    }
-    test2 = {
-        'title': 'test2',
-        'severity': 3
-    }
-    test3 = {
-        'title': 'test3'
-    }
+    tests = [{
+            'title': 'test1',
+            'severity': 1
+        },
+        {
+            'title': 'test2',
+            'severity': 3
+        },
+        {
+            'title': 'test3'
+        }
+    ]
 
-    await cli.post('/tasks', json=test1)
-    await cli.post('/tasks', json=test2)
-    await cli.post('/tasks', json=test3)
+    results = []
+    for test in tests:
+        rs = await cli.post('/tasks', json=test)
+        test = await jsonBody(rs, 201)
+        test.pop('id')
+        results.append(test)
 
     async def assert_query(params, expected):
         response = await cli.get('/tasks', params=params)
@@ -47,6 +51,7 @@ async def test_filters(cli, clean_db):
             d.pop('id')
         assert body == expected
 
+    test1, test2, test3 = results
     await assert_query({'severity:gt': 1}, [test2])
     await assert_query({'severity:ge': 1}, [test1, test2])
     await assert_query({'severity:lt': 3}, [test1])

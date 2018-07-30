@@ -3,6 +3,7 @@ from aiohttp import web
 from openapi.json import loads, dumps
 from ..data.dump import dump, dump_list
 from ..data.validate import validate
+from ..data.exc import ValidationErrors
 from ..utils import compact, as_list
 
 
@@ -80,9 +81,8 @@ class ApiPath(web.View):
         return Schema
 
     def raiseValidationError(self, message=None, errors=None):
-        app = self.request.app
         raw = compact(message=message, errors=as_list(errors or ()))
-        data = self.dump(app['exc_schema'], raw)
+        data = self.dump(ValidationErrors, raw)
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
     @classmethod

@@ -179,7 +179,9 @@ class EnumValidator(Validator):
 
     def __call__(self, field, value, data=None):
         try:
-            e = getattr(self.EnumClass, value)
+            e = value
+            if isinstance(e, str):
+                e = getattr(self.EnumClass, value)
             if isinstance(e, self.EnumClass):
                 return e if field.type == self.EnumClass else e.name
             raise AttributeError
