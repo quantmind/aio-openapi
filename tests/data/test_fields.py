@@ -260,5 +260,5 @@ def test_JSONValidator_dump_valid():
 
 def test_JSONValidator_dump_invalid():
     validator = JSONValidator()
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         validator.dump(1)

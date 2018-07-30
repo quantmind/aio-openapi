@@ -299,4 +299,4 @@ class JSONValidator(Validator):
         elif isinstance(value, dict):
             return loads(dumps(value))
         else:
-            raise ValidationError(field.name, '%s not valid' % value)
+            raise ValueError('%s not valid JSON' % value)
