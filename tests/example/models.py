@@ -17,7 +17,12 @@ class TaskType(enum.Enum):
 class TaskAdd:
     title: str = data_field(required=True)
     severity: int = decimal_field()
-    type: TaskType = enum_field(TaskType)
+    type: TaskType = enum_field(TaskType, default=TaskType.todo)
+
+    @classmethod
+    def validate(cls, data, errors):
+        """here just for coverage
+        """
 
 
 @dataclass
