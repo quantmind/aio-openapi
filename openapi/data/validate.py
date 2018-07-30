@@ -44,7 +44,7 @@ def validate(schema, data, strict=True):
                     continue
                 value = data[name]
 
-                if value == 'NULL':
+                if value is None or value == 'NULL':
                     cleaned[name] = None
                     continue
 
