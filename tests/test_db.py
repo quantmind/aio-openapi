@@ -243,3 +243,34 @@ async def test_transaction_delete_list(cli):
     data = await jsonBody(response)
 
     assert len(data) == 0
+
+
+async def test_create_unique_error(cli):
+    task = {'title': 'task', 'unique_title': 'task'}
+    response = await cli.post('/tasks', json=task)
+    await jsonBody(response, status=201)
+
+    duplicated_response = await cli.post('/tasks', json=task)
+    duplicated_body = await jsonBody(duplicated_response, status=422)
+    errors = duplicated_body['errors']
+    assert len(errors) == 1
+    assert errors[0]['field'] == 'unique_title'
+    assert errors[0]['message'] == 'already exists'
+
+
+async def test_update_unique_error(cli):
+    task1 = {'title': 'task', 'unique_title': 'task1'}
+    task2 = {'title': 'task', 'unique_title': 'task2'}
+    response1 = await cli.post('/tasks', json=task1)
+    await jsonBody(response1, status=201)
+    response2 = await cli.post('/tasks', json=task2)
+    task_body = await jsonBody(response2, status=201)
+
+    duplicated_response = await cli.patch(
+        f'/tasks/{task_body["id"]}', json=task1
+    )
+    duplicated_body = await jsonBody(duplicated_response, status=422)
+    errors = duplicated_body['errors']
+    assert len(errors) == 1
+    assert errors[0]['field'] == 'unique_title'
+    assert errors[0]['message'] == 'already exists'

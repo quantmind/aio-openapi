@@ -8,10 +8,11 @@ from ..example.models import TaskAdd
 def test_validated_schema():
     data = dict(
         title='test',
-        severity=1
+        severity=1,
+        unique_title='test'
     )
     v = validated_schema(TaskAdd, data)
-    assert len(data) == 2
+    assert len(data) == 3
     assert v
 
 

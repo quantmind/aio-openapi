@@ -1,11 +1,16 @@
+import re
 from aiohttp import web
 
 from sqlalchemy.sql import and_
+from asyncpg.exceptions import UniqueViolationError
 
 from .compile import compile_query
 from ..spec.path import ApiPath
 from ..spec.pagination import DEF_PAGINATION_LIMIT
 from ..utils import asynccontextmanager
+
+
+unique_regex = re.compile(r'Key \((?P<column>\w+)\)=\((?P<value>.+)\)')
 
 
 class SqlApiPath(ApiPath):
@@ -70,7 +75,10 @@ class SqlApiPath(ApiPath):
         statement, args = self.get_insert(data, table=table)
 
         async with self.ensure_connection(conn) as conn:
-            values = await conn.fetch(statement, *args)
+            try:
+                values = await conn.fetch(statement, *args)
+            except UniqueViolationError as exc:
+                self.handle_unique_violation(exc)
 
         data = ((c.name, v) for c, v in zip(table.columns, values[0]))
         return self.dump(dump_schema, data)
@@ -127,7 +135,10 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(update)
 
         async with self.ensure_connection(conn) as conn:
-            values = await conn.fetch(sql, *args)
+            try:
+                values = await conn.fetch(sql, *args)
+            except UniqueViolationError as exc:
+                self.handle_unique_violation(exc)
 
         if not values:
             raise web.HTTPNotFound()
@@ -244,3 +255,14 @@ class SqlApiPath(ApiPath):
                 return field < value
             elif op == 'le':
                 return field <= value
+
+    def handle_unique_violation(self, exception):
+        match = re.match(unique_regex, exception.detail)
+        if not match:
+            raise exception
+
+        column = match.group('column')
+        value = match.group('value')
+        data = {column: 'already exists'}
+        message = f'{column} with value {value} already exists on database'
+        self.raiseValidationError(message=message, errors=data)
