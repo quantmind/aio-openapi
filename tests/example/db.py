@@ -15,7 +15,8 @@ def meta(meta=None):
         sa.Column('title', sa.String, nullable=False),
         sa.Column('done', sa.DateTime),
         sa.Column('severity', sa.Integer),
-        sa.Column('type', sa.Enum(TaskType))
+        sa.Column('type', sa.Enum(TaskType)),
+        sa.Column('unique_title', sa.String, nullable=True, unique=True)
     )
 
     return meta

@@ -2,7 +2,7 @@
 flake8
 coverage
 mypy
-pytest
+pytest==3.6.4
 pytest-cov
 pytest-aiohttp
 twine
