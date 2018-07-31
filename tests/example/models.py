@@ -18,6 +18,7 @@ class TaskAdd:
     title: str = data_field(required=True)
     severity: int = decimal_field()
     type: TaskType = enum_field(TaskType, default=TaskType.todo)
+    unique_title: str = data_field()
 
     @classmethod
     def validate(cls, data, errors):
