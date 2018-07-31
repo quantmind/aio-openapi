@@ -262,7 +262,5 @@ class SqlApiPath(ApiPath):
             raise exception
 
         column = match.group('column')
-        value = match.group('value')
-        data = {column: 'already exists'}
-        message = f'{column} with value {value} already exists on database'
-        self.raiseValidationError(message=message, errors=data)
+        message = f'{column} already exists'
+        self.raiseValidationError(message=message)

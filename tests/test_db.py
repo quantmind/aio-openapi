@@ -252,10 +252,7 @@ async def test_create_unique_error(cli):
 
     duplicated_response = await cli.post('/tasks', json=task)
     duplicated_body = await jsonBody(duplicated_response, status=422)
-    errors = duplicated_body['errors']
-    assert len(errors) == 1
-    assert errors[0]['field'] == 'unique_title'
-    assert errors[0]['message'] == 'already exists'
+    assert duplicated_body['message'] == 'unique_title already exists'
 
 
 async def test_update_unique_error(cli):
@@ -270,7 +267,4 @@ async def test_update_unique_error(cli):
         f'/tasks/{task_body["id"]}', json=task1
     )
     duplicated_body = await jsonBody(duplicated_response, status=422)
-    errors = duplicated_body['errors']
-    assert len(errors) == 1
-    assert errors[0]['field'] == 'unique_title'
-    assert errors[0]['message'] == 'already exists'
+    assert duplicated_body['message'] == 'unique_title already exists'
