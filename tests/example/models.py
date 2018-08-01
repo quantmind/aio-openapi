@@ -47,3 +47,8 @@ class TaskUpdate(TaskAdd):
 @dataclass
 class TaskPathSchema:
     id: int = data_field(required=True)
+
+
+@dataclass
+class TaskPathSchema2:
+    task_id: int = data_field(required=True)
