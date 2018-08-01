@@ -1,6 +1,9 @@
+import pytest
+
 from openapi import utils
-from openapi.exc import JsonHttpException
+from openapi.exc import JsonHttpException, ImproperlyConfigured
 from openapi.json import dumps
+from openapi.db import utils as db
 
 
 def test_env():
@@ -23,3 +26,12 @@ def test_json_http_exception_reason():
     assert ex.status == 422
     assert ex.text == dumps({'message': 'non lo so'})
     assert ex.headers['content-type'] == 'application/json; charset=utf-8'
+
+
+def test_exist_database_none():
+    assert db.exist_database({}, '') is False
+    assert db.drop_database({}, '') is False
+    with pytest.raises(ImproperlyConfigured):
+        db.create_tables({})
+    with pytest.raises(ImproperlyConfigured):
+        db.create_database({}, 'foo')

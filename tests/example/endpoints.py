@@ -5,7 +5,9 @@ from sqlalchemy.sql.expression import null
 from openapi.db.path import SqlApiPath
 from openapi.spec import op
 from openapi.exc import JsonHttpException
-from .models import Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate
+from .models import (
+    Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate, TaskPathSchema2
+)
 
 
 routes = web.RouteTableDef()
@@ -281,3 +283,54 @@ class TaskBulkTransactionPath(SqlApiPath):
             async with conn.transaction():
                 data = await self.create_list(conn=conn)
                 return self.json_response(data, status=201)
+
+
+@routes.view('/tasks2/{task_id}')
+class TaskPath2(SqlApiPath):
+    """
+    ---
+    tags:
+        - name: task
+    """
+    table = 'tasks'
+    path_schema = TaskPathSchema2
+
+    def get_filters(self):
+        filters = super().get_filters()
+        return {'id': filters['task_id']}
+
+    @op(response_schema=Task)
+    async def get(self):
+        """
+        ---
+        summary: get an existing Task by ID
+        responses:
+            200:
+                description: the task
+        """
+        data = await self.get_one(filters=self.get_filters())
+        return self.json_response(data)
+
+    @op(response_schema=Task, body_schema=TaskUpdate)
+    async def patch(self):
+        """
+        ---
+        summary: update an existing Task by ID
+        responses:
+            200:
+                description: the updated task
+        """
+        data = await self.update_one(filters=self.get_filters())
+        return self.json_response(data)
+
+    @op()
+    async def delete(self):
+        """
+        ---
+        summary: Delete an existing task
+        responses:
+            204:
+                description: Task successfully deleted
+        """
+        await self.delete_one(filters=self.get_filters())
+        return web.Response(status=204)

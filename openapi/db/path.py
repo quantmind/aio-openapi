@@ -40,16 +40,18 @@ class SqlApiPath(ApiPath):
                     yield conn
 
     async def get_list(
-        self, query=None, table=None, query_schema='query_schema',
-        dump_schema='response_schema', conn=None
+        self, *, filters=None, query=None, table=None,
+        query_schema='query_schema', dump_schema='response_schema',
+        conn=None
     ):
         """Get a list of models
         """
         table = table if table is not None else self.db_table
-        params = self.get_filters(query=query, query_schema=query_schema)
-        limit = params.pop('limit', DEF_PAGINATION_LIMIT)
-        offset = params.pop('offset', 0)
-        query = self.get_query(table.select(), params, table=table)
+        if not filters:
+            filters = self.get_filters(query=query, query_schema=query_schema)
+        limit = filters.pop('limit', DEF_PAGINATION_LIMIT)
+        offset = filters.pop('offset', 0)
+        query = self.get_query(table.select(), filters, table=table)
 
         # pagination
         query = query.offset(offset)
@@ -58,11 +60,10 @@ class SqlApiPath(ApiPath):
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(sql, *args)
-
         return self.dump(dump_schema, values)
 
     async def create_one(
-        self, data=None, table=None, body_schema='body_schema',
+        self, *, data=None, table=None, body_schema='body_schema',
         dump_schema='response_schema', conn=None
     ):
         """Create a model
@@ -83,7 +84,9 @@ class SqlApiPath(ApiPath):
         data = ((c.name, v) for c, v in zip(table.columns, values[0]))
         return self.dump(dump_schema, data)
 
-    async def create_list(self, data=None, conn=None):
+    async def create_list(
+        self, *, data=None, dump_schema='response_schema', conn=None
+    ):
         """Create multiple models
         """
         if data is None:
@@ -103,16 +106,18 @@ class SqlApiPath(ApiPath):
             ((c.name, v) for c, v in zip(cols, value))
             for value in values
         ]
-        return self.dump('response_schema', result)
+        return self.dump(dump_schema, result)
 
     async def get_one(
-        self, query=None, table=None, query_schema='query_schema',
+        self, *, filters=None, query=None, table=None,
+        query_schema='query_schema',
         dump_schema='response_schema', conn=None
     ):
         """Get a single model
         """
         table = table if table is not None else self.db_table
-        filters = self.get_filters(query=query, query_schema=query_schema)
+        if not filters:
+            filters = self.get_filters(query=query, query_schema=query_schema)
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
 
@@ -123,15 +128,20 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
 
-    async def update_one(self, data=None, conn=None):
+    async def update_one(
+        self, *, data=None, filters=None, table=None,
+        dump_schema='response_schema', conn=None
+    ):
         """Update a single model
         """
+        table = table if table is not None else self.db_table
         if data is None:
             data = self.cleaned('body_schema', await self.json_data(), False)
-        filters = self.cleaned('path_schema', self.request.match_info)
+        if not filters:
+            filters = self.cleaned('path_schema', self.request.match_info)
         update = self.get_query(
-                self.db_table.update(), filters
-            ).values(**data).returning(*self.db_table.columns)
+                table.update(), filters
+            ).values(**data).returning(*table.columns)
         sql, args = compile_query(update)
 
         async with self.ensure_connection(conn) as conn:
@@ -139,15 +149,15 @@ class SqlApiPath(ApiPath):
                 values = await conn.fetch(sql, *args)
             except UniqueViolationError as exc:
                 self.handle_unique_violation(exc)
-
         if not values:
             raise web.HTTPNotFound()
-        return self.dump('response_schema', values[0])
+        return self.dump(dump_schema, values[0])
 
-    async def delete_one(self, conn=None):
+    async def delete_one(self, *, filters=None, conn=None):
         """delete a single model
         """
-        filters = self.cleaned('path_schema', self.request.match_info)
+        if not filters:
+            filters = self.cleaned('path_schema', self.request.match_info)
         delete = self.get_query(self.db_table.delete(), filters)
         sql, args = compile_query(delete.returning(*self.db_table.columns))
 
@@ -258,7 +268,7 @@ class SqlApiPath(ApiPath):
 
     def handle_unique_violation(self, exception):
         match = re.match(unique_regex, exception.detail)
-        if not match:
+        if not match:   # pragma: no cover
             raise exception
 
         column = match.group('column')

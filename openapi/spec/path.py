@@ -34,7 +34,7 @@ class ApiPath(web.View):
             params.update(path)
         return params
 
-    def cleaned(self, schema, data, strict=True):
+    def cleaned(self, schema, data, strict=True, Error=None):
         """Clean data for a given schema name
         """
         Schema = self.get_schema(schema)
@@ -42,7 +42,9 @@ class ApiPath(web.View):
             Schema = Schema[0]
         validated = validate(Schema, data, strict)
         if validated.errors:
-            if schema == 'path_schema':
+            if Error:
+                raise Error()
+            elif schema == 'path_schema':
                 raise web.HTTPNotFound()
             self.raiseValidationError(errors=validated.errors)
         return validated.data
@@ -50,6 +52,8 @@ class ApiPath(web.View):
     def dump(self, schema, data):
         """Dump data using a given schema
         """
+        if schema is None:
+            return data
         Schema = self.get_schema(schema)
         if isinstance(Schema, list):
             Schema = Schema[0]
