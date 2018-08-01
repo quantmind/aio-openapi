@@ -268,7 +268,7 @@ class SqlApiPath(ApiPath):
 
     def handle_unique_violation(self, exception):
         match = re.match(unique_regex, exception.detail)
-        if not match:
+        if not match:   # pragma: no cover
             raise exception
 
         column = match.group('column')
