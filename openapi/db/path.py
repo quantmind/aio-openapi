@@ -40,16 +40,18 @@ class SqlApiPath(ApiPath):
                     yield conn
 
     async def get_list(
-        self, query=None, table=None, query_schema='query_schema',
-        dump_schema='response_schema', conn=None
+        self, *, filters=None, query=None, table=None,
+        query_schema='query_schema', dump_schema='response_schema',
+        conn=None
     ):
         """Get a list of models
         """
         table = table if table is not None else self.db_table
-        params = self.get_filters(query=query, query_schema=query_schema)
-        limit = params.pop('limit', DEF_PAGINATION_LIMIT)
-        offset = params.pop('offset', 0)
-        query = self.get_query(table.select(), params, table=table)
+        if not filters:
+            filters = self.get_filters(query=query, query_schema=query_schema)
+        limit = filters.pop('limit', DEF_PAGINATION_LIMIT)
+        offset = filters.pop('offset', 0)
+        query = self.get_query(table.select(), filters, table=table)
 
         # pagination
         query = query.offset(offset)
@@ -61,7 +63,7 @@ class SqlApiPath(ApiPath):
         return self.dump(dump_schema, values)
 
     async def create_one(
-        self, data=None, table=None, body_schema='body_schema',
+        self, *, data=None, table=None, body_schema='body_schema',
         dump_schema='response_schema', conn=None
     ):
         """Create a model
@@ -83,7 +85,7 @@ class SqlApiPath(ApiPath):
         return self.dump(dump_schema, data)
 
     async def create_list(
-        self, data=None, dump_schema='response_schema', conn=None
+        self, *, data=None, dump_schema='response_schema', conn=None
     ):
         """Create multiple models
         """
@@ -107,13 +109,15 @@ class SqlApiPath(ApiPath):
         return self.dump(dump_schema, result)
 
     async def get_one(
-        self, query=None, table=None, query_schema='query_schema',
+        self, *, filters=None, query=None, table=None,
+        query_schema='query_schema',
         dump_schema='response_schema', conn=None
     ):
         """Get a single model
         """
         table = table if table is not None else self.db_table
-        filters = self.get_filters(query=query, query_schema=query_schema)
+        if not filters:
+            filters = self.get_filters(query=query, query_schema=query_schema)
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
 
@@ -125,7 +129,7 @@ class SqlApiPath(ApiPath):
         return self.dump(dump_schema, values[0])
 
     async def update_one(
-        self, data=None, filters=None, table=None,
+        self, *, data=None, filters=None, table=None,
         dump_schema='response_schema', conn=None
     ):
         """Update a single model
@@ -149,7 +153,7 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
 
-    async def delete_one(self, filters=None, conn=None):
+    async def delete_one(self, *, filters=None, conn=None):
         """delete a single model
         """
         if not filters:
