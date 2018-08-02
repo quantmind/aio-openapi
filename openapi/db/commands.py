@@ -61,11 +61,21 @@ def revision(ctx, message, branch_label, autogenerate):
 
 @db.command()
 @click.option('--revision', default='heads')
+@click.option('--drop-tables', default=False, is_flag=True,
+              help="Drop tables before applying migrations")
 @click.pass_context
-def upgrade(ctx, revision):
+def upgrade(ctx, revision, drop_tables):
     """Upgrade to a later version
     """
-    return migration(ctx).upgrade(revision)
+    if drop_tables:
+        app = ctx.obj['app']
+        metadata = app['metadata']
+        engine = app['store']
+        metadata.reflect(engine)
+        metadata.drop_all(engine)
+        click.echo("tables dropped")
+    migration(ctx).upgrade(revision)
+    click.echo("upgraded sucessfuly")
 
 
 @db.command()

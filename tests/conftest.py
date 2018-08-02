@@ -71,6 +71,10 @@ async def cli(loop, db_engine):
     await client.close()
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def clean_db(db_engine):
     db_engine.execute('truncate table tasks')
+    try:
+        db_engine.execute('drop table alembic_version')
+    except:  # noqa
+        pass
