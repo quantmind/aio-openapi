@@ -69,10 +69,9 @@ def upgrade(ctx, revision, drop_tables):
     """
     if drop_tables:
         app = ctx.obj['app']
-        metadata = app['metadata']
         engine = app['store']
-        metadata.reflect(engine)
-        metadata.drop_all(engine)
+        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        engine.execute("CREATE SCHEMA IF NOT EXISTS public")
         click.echo("tables dropped")
     migration(ctx).upgrade(revision)
     click.echo("upgraded sucessfuly")
