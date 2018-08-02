@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+import sqlalchemy as sa
 from click.testing import CliRunner
 
 from openapi.testing import jsonBody, equal_dict
@@ -21,6 +22,29 @@ def test_createdb(cli):
     result = runner.invoke(
         cli.app['cli'], ['db', 'create', 'testing-aio-db', '--force'])
     assert result.exit_code == 0
+
+
+def test_migration_upgrade(cli):
+    app = cli.app
+    metadata = app['metadata']
+    engine = app['store']
+    metadata.drop_all(engine)
+
+    runner = CliRunner()
+    runner.invoke(cli.app['cli'], ['db', 'init'])
+    runner.invoke(cli.app['cli'], ['db', 'migrate', '-m', 'test'])
+
+    result = runner.invoke(cli.app['cli'], ['db', 'upgrade'])
+    assert result.exit_code == 0
+
+    # delete column to check if tables will be droped and recreated
+    engine.execute("ALTER TABLE tasks DROP COLUMN title")
+
+    result = runner.invoke(cli.app['cli'], ['db', 'upgrade', '--drop-tables'])
+    assert result.exit_code == 0
+
+    metadata = sa.MetaData(engine, reflect=True)
+    assert 'title' in metadata.tables['tasks'].c
 
 
 async def test_migration_init(cli):

@@ -23,7 +23,7 @@ async def test_spec(test_app):
     }
 
 
-async def test_filters(cli, clean_db):
+async def test_filters(cli):
     tests = [{
             'title': 'test1',
             'severity': 1
