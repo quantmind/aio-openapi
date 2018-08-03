@@ -15,7 +15,7 @@ class ApiPath(web.View):
 
     # UTILITIES
 
-    def insert_data(self, data, strict=True, body_schema='body_schema'):
+    def insert_data(self, data, *, strict=True, body_schema='body_schema'):
         data = self.cleaned(body_schema, data)
         if self.path_schema:
             path = self.cleaned('path_schema', self.request.match_info)
@@ -34,7 +34,7 @@ class ApiPath(web.View):
             params.update(path)
         return params
 
-    def cleaned(self, schema, data, strict=True, Error=None):
+    def cleaned(self, schema, data, *, strict=True, Error=None):
         """Clean data for a given schema name
         """
         Schema = self.get_schema(schema)
