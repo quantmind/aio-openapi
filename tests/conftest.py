@@ -2,18 +2,24 @@ import asyncio
 import os
 import shutil
 
+import dotenv
+
 import pytest
 
 from aiohttp import test_utils
 
+from sqlalchemy_utils import database_exists, drop_database, create_database
+
 from openapi import db
-from openapi.db.utils import create_database, create_tables
+from openapi.db.utils import create_tables
 from openapi.json import dumps
 from openapi.rest import rest
 from . import example
 
 
-DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/postgres'
+dotenv.load_dotenv()
+
+DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/openapi'
 
 
 def setup_app(app):
@@ -21,13 +27,21 @@ def setup_app(app):
     example.setup_app(app)
 
 
-@pytest.fixture(scope='session')
-def test_app():
-    if not os.environ.get('DATASTORE'):
-        os.environ['DATASTORE'] = DEFAULT_DB
+@pytest.fixture(scope='session', autouse=True)
+def db_url():
+    url = os.environ.get('DATASTORE') or DEFAULT_DB
+    if database_exists(url):
+        drop_database(url)
+    create_database(url)
+    return url
+
+
+@pytest.fixture(autouse=True)
+def test_app(db_url):
+    os.environ['DATASTORE'] = db_url
     cli = rest(setup_app=setup_app)
-    cli.load_dotenv()
     app = cli.web()
+    create_tables(app)
     return app
 
 
@@ -46,25 +60,9 @@ def loop():
     loop.close()
 
 
-@pytest.fixture(scope='session', autouse=True)
-def db_engine():
-    cli = rest(setup_app=setup_app)
-    cli.load_dotenv()
-    if not os.environ.get('DATASTORE'):
-        os.environ['DATASTORE'] = DEFAULT_DB
-    app = cli.web()
-    db_engine = create_database(app, 'openapi_unit_test')
-    app['store'] = db_engine
-    create_tables(app)
-    return db_engine
-
-
 @pytest.fixture
-async def cli(loop, db_engine):
-    app = rest(setup_app=setup_app).web()
-    app['store'] = db_engine
-
-    server = test_utils.TestServer(app, loop=loop)
+async def cli(loop, test_app):
+    server = test_utils.TestServer(test_app, loop=loop)
     client = test_utils.TestClient(server, loop=loop, json_serialize=dumps)
     await client.start_server()
     yield client
@@ -72,9 +70,10 @@ async def cli(loop, db_engine):
 
 
 @pytest.fixture(autouse=True)
-def clean_db(db_engine):
-    db_engine.execute('truncate table tasks')
+def clean_db(test_app):
+    engine = test_app['store']
+    engine.execute('truncate table tasks')
     try:
-        db_engine.execute('drop table alembic_version')
-    except:  # noqa
+        engine.execute('drop table alembic_version')
+    except Exception:  # noqa
         pass

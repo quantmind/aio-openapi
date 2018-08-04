@@ -29,9 +29,10 @@ def test_json_http_exception_reason():
 
 
 def test_exist_database_none():
-    assert db.exist_database({}, '') is False
-    assert db.drop_database({}, '') is False
     with pytest.raises(ImproperlyConfigured):
         db.create_tables({})
-    with pytest.raises(ImproperlyConfigured):
-        db.create_database({}, 'foo')
+
+
+def test_replace_key():
+    assert utils.replace_key({}, 'foo', 'bla') == {}
+    assert utils.replace_key({'foo': 5}, 'foo', 'bla') == {'bla': 5}
