@@ -15,7 +15,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/spec/test_spec.py"
+                "tests/test_dc_db.py"
             ]
         }
     ]

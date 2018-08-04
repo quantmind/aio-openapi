@@ -81,8 +81,7 @@ class SqlApiPath(ApiPath):
             except UniqueViolationError as exc:
                 self.handle_unique_violation(exc)
 
-        data = ((c.name, v) for c, v in zip(table.columns, values[0]))
-        return self.dump(dump_schema, data)
+        return self.dump(dump_schema, values[0])
 
     async def create_list(
         self, *, data=None, dump_schema='response_schema', conn=None
@@ -96,17 +95,12 @@ class SqlApiPath(ApiPath):
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
         data = [self.insert_data(d) for d in data]
-        cols = self.db_table.columns
 
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(data)
             values = await conn.fetch(statement, *args)
 
-        result = [
-            ((c.name, v) for c, v in zip(cols, value))
-            for value in values
-        ]
-        return self.dump(dump_schema, result)
+        return self.dump(dump_schema, values)
 
     async def get_one(
         self, *, filters=None, query=None, table=None,
@@ -136,7 +130,8 @@ class SqlApiPath(ApiPath):
         """
         table = table if table is not None else self.db_table
         if data is None:
-            data = self.cleaned('body_schema', await self.json_data(), False)
+            data = self.cleaned(
+                'body_schema', await self.json_data(), strict=False)
         if not filters:
             filters = self.cleaned('path_schema', self.request.match_info)
         update = self.get_query(

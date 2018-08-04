@@ -9,6 +9,7 @@ LOCAL = 'local'
 DEV = 'dev'
 PRODUCTION = 'production'
 NO_DEBUG = {'0', 'false', 'no'}
+Null = object()
 
 
 class _AsyncGeneratorContextManager:    # pragma: no cover
@@ -71,6 +72,13 @@ def compact(**kwargs) -> Dict:
 
 def compact_dict(kwargs) -> Dict:
     return {k: v for k, v in kwargs.items() if v is not None}
+
+
+def replace_key(kwargs, from_key, to_key):
+    value = kwargs.pop(from_key, Null)
+    if value is not Null:
+        kwargs[to_key] = value
+    return kwargs
 
 
 def iter_items(data):
