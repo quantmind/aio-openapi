@@ -72,7 +72,8 @@ async def cli(loop, test_app):
 @pytest.fixture(autouse=True)
 def clean_db(test_app):
     engine = test_app['store']
-    engine.execute('truncate table tasks')
+    meta = test_app['metadata']
+    engine.execute(f'truncate {", ".join(meta.tables)}')
     try:
         engine.execute('drop table alembic_version')
     except Exception:  # noqa
