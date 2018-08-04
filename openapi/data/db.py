@@ -43,7 +43,7 @@ def integer(col):
 def number(col):
     return (
         Decimal, fields.number_field(
-            precision=col.type.precision, **info(col)
+            precision=col.type.scale, **info(col)
         )
     )
 
