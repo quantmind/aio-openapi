@@ -1,14 +1,13 @@
 import re
-from aiohttp import web
 
-from sqlalchemy.sql import and_
+from aiohttp import web
 from asyncpg.exceptions import UniqueViolationError
+from sqlalchemy.sql import and_
 
 from .compile import compile_query
-from ..spec.path import ApiPath
 from ..spec.pagination import DEF_PAGINATION_LIMIT
+from ..spec.path import ApiPath
 from ..utils import asynccontextmanager
-
 
 unique_regex = re.compile(r'Key \((?P<column>\w+)\)=\((?P<value>.+)\)')
 
@@ -39,23 +38,27 @@ class SqlApiPath(ApiPath):
                 async with conn.transaction():
                     yield conn
 
+    @staticmethod
+    def get_order_clause(table, query, order_by, order_desc):
+        if not order_by:
+            return query
+
+        order_by_column = getattr(table.c, order_by)
+        if order_desc:
+            order_by_column = order_by_column.desc()
+        return query.order_by(order_by_column)
+
     async def get_list(
-        self, *, filters=None, query=None, table=None,
-        query_schema='query_schema', dump_schema='response_schema',
-        conn=None
+            self, *, filters=None, query=None, table=None,
+            query_schema='query_schema', dump_schema='response_schema',
+            conn=None
     ):
         """Get a list of models
         """
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        limit = filters.pop('limit', DEF_PAGINATION_LIMIT)
-        offset = filters.pop('offset', 0)
         query = self.get_query(table.select(), filters, table=table)
-
-        # pagination
-        query = query.offset(offset)
-        query = query.limit(limit)
 
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
@@ -186,6 +189,10 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         columns = table.c
         params = params or {}
+        limit = params.pop('limit', DEF_PAGINATION_LIMIT)
+        offset = params.pop('offset', 0)
+        order_by = params.pop('order_by', None)
+        order_desc = params.pop('order_desc', False)
         for key, value in params.items():
             bits = key.split(':')
             field = bits[0]
@@ -203,6 +210,14 @@ class SqlApiPath(ApiPath):
         if filters:
             filters = and_(*filters) if len(filters) > 1 else filters[0]
             query = query.where(filters)
+
+        # ordering
+        query = self.get_order_clause(table, query, order_by, order_desc)
+
+        # pagination
+        query = query.offset(offset)
+        query = query.limit(limit)
+
         return query
 
     def default_filter_field(self, field, op, value):

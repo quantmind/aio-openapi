@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from openapi.data.fields import (
     data_field, date_time_field, decimal_field, enum_field
 )
+from openapi.rest import orderable, Query
 
 
 class TaskType(enum.Enum):
@@ -34,9 +35,15 @@ class Task(TaskAdd):
 
 @dataclass
 class TaskQuery:
+    title: str = data_field()
     done: bool = data_field()
     type: TaskType = enum_field(TaskType)
     severity: int = decimal_field(ops=('lt', 'le', 'gt', 'ge', 'ne'))
+
+
+@dataclass
+class TaskOrderableQuery(TaskQuery, orderable('title'), Query):
+    pass
 
 
 @dataclass

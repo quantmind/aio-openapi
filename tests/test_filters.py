@@ -12,6 +12,7 @@ async def test_spec(test_app):
     query = spec.paths['/tasks']['get']['parameters']
     filters = [q['name'] for q in query]
     assert set(filters) == {
+        'title',
         'done',
         'type',
         'severity',
@@ -20,6 +21,10 @@ async def test_spec(test_app):
         'severity:gt',
         'severity:ge',
         'severity:ne',
+        'order_by',
+        'order_desc',
+        'limit',
+        'offset',
     }
 
 

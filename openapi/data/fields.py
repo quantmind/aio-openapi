@@ -262,6 +262,15 @@ class NumberValidator(Validator):
             prop['maximum'] = self.max_value
 
 
+class IntegerValidator(NumberValidator):
+    def __call__(self, field, value, data=None):
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            raise ValidationError(field.name, '%s not valid integer' % value)
+        return super().__call__(field, value, data=data)
+
+
 class DecimalValidator(NumberValidator):
     def __call__(self, field, value, data=None):
         try:
