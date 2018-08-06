@@ -234,11 +234,16 @@ class DateTimeValidator(Validator):
 
 class NumberValidator(Validator):
 
-    def __init__(self, min_value=None, max_value=None):
+    def __init__(self, min_value=None, max_value=None, precision=None):
         self.min_value = min_value
         self.max_value = max_value
+        self.precision = precision
 
     def __call__(self, field, value, data=None):
+        try:
+            value = round(value, self.precision)
+        except (ValueError, TypeError):
+            raise ValidationError(field.name, '%s not valid number' % value)
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(field.name, '%s less than %s'
                                   % (value, self.min_value))
@@ -248,7 +253,7 @@ class NumberValidator(Validator):
         return value
 
     def dump(self, value):
-        return value
+        return round(value, self.precision)
 
     def openapi(self, prop):
         if self.min_value is not None:
@@ -267,21 +272,12 @@ class IntegerValidator(NumberValidator):
 
 
 class DecimalValidator(NumberValidator):
-    def __init__(self, min_value=None, max_value=None, precision=None):
-        super().__init__(min_value=min_value, max_value=max_value)
-        self.precision = precision
-
     def __call__(self, field, value, data=None):
         try:
             value = decimal.Decimal(value)
-            value = round(value, self.precision)
-        except (TypeError, ValueError, decimal.InvalidOperation):
+        except (TypeError, decimal.InvalidOperation):
             raise ValidationError(field.name, '%s not valid Decimal' % value)
-
         return super().__call__(field, value, data=None)
-
-    def dump(self, value):
-        return round(value, self.precision)
 
 
 class BoolValidator(Validator):
