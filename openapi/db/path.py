@@ -2,7 +2,7 @@ import re
 
 from aiohttp import web
 from asyncpg.exceptions import UniqueViolationError
-from sqlalchemy.sql import and_
+from sqlalchemy.sql import and_, Select
 
 from .compile import compile_query
 from ..spec.pagination import DEF_PAGINATION_LIMIT
@@ -211,12 +211,13 @@ class SqlApiPath(ApiPath):
             filters = and_(*filters) if len(filters) > 1 else filters[0]
             query = query.where(filters)
 
-        # ordering
-        query = self.get_order_clause(table, query, order_by, order_desc)
+        if isinstance(query, Select):
+            # ordering
+            query = self.get_order_clause(table, query, order_by, order_desc)
 
-        # pagination
-        query = query.offset(offset)
-        query = query.limit(limit)
+            # pagination
+            query = query.offset(offset)
+            query = query.limit(limit)
 
         return query
 
