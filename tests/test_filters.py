@@ -21,6 +21,7 @@ async def test_spec(test_app):
         'severity:gt',
         'severity:ge',
         'severity:ne',
+        'story_points',
         'order_by',
         'order_desc',
         'limit',
