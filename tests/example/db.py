@@ -30,7 +30,8 @@ def meta(meta=None):
         sa.Column('done', sa.DateTime),
         sa.Column('severity', sa.Integer),
         sa.Column('type', sa.Enum(TaskType)),
-        sa.Column('unique_title', sa.String, nullable=True, unique=True)
+        sa.Column('unique_title', sa.String, nullable=True, unique=True),
+        sa.Column('story_points', sa.Numeric(2))
     )
 
     sa.Table(
