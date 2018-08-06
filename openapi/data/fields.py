@@ -274,13 +274,9 @@ class DecimalValidator(NumberValidator):
     def __call__(self, field, value, data=None):
         try:
             value = decimal.Decimal(value)
-        except (TypeError, decimal.InvalidOperation):
-            raise ValidationError(field.name, '%s not valid Decimal' % value)
-
-        try:
             value = round(value, self.precision)
-        except (ValueError, TypeError):
-            raise ValidationError(field.name, '%s not valid number' % value)
+        except (TypeError, ValueError, decimal.InvalidOperation):
+            raise ValidationError(field.name, '%s not valid Decimal' % value)
 
         return super().__call__(field, value, data=None)
 
