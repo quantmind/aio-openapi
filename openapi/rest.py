@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from openapi.data.fields import Choice, IntegerValidator
+from .data.fields import Choice, IntegerValidator
 from .cli import OpenApiClient
 from .data.fields import data_field, bool_field
 from .spec import OpenApi
