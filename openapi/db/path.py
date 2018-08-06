@@ -84,20 +84,22 @@ class SqlApiPath(ApiPath):
         return self.dump(dump_schema, values[0])
 
     async def create_list(
-        self, *, data=None, dump_schema='response_schema', conn=None
+        self, *, data=None, table=None, body_schema='body_schema',
+        dump_schema='response_schema', conn=None
     ):
         """Create multiple models
         """
+        table = table if table is not None else self.db_table
         if data is None:
             data = await self.json_data()
         if not isinstance(data, list):
             raise web.HTTPBadRequest(
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
-        data = [self.insert_data(d) for d in data]
+        data = [self.insert_data(d, body_schema=body_schema) for d in data]
 
         async with self.ensure_connection(conn) as conn:
-            statement, args = self.get_insert(data)
+            statement, args = self.get_insert(data, table=table)
             values = await conn.fetch(statement, *args)
 
         return self.dump(dump_schema, values)
@@ -124,7 +126,7 @@ class SqlApiPath(ApiPath):
 
     async def update_one(
         self, *, data=None, filters=None, table=None,
-        dump_schema='response_schema', conn=None
+        body_schema='body_schema', dump_schema='response_schema', conn=None
     ):
         """Update a single model
         """
