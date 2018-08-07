@@ -37,7 +37,6 @@ class DbModelMixin:
         table = table if table is not None else self.db_table
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
-
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 

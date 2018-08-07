@@ -116,7 +116,7 @@ class SqlApiPath(ApiPath, DbModelMixin):
         """
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        values = await self.db_select(filters, table=table)
+        values = await self.db_select(filters, table=table, conn=conn)
         if not values:
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
