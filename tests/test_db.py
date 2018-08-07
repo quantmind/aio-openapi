@@ -159,6 +159,70 @@ async def test_create_list(cli):
     assert 'bar' in titles
 
 
+async def test_get_ordered_list(cli):
+    tasks = [dict(title='c'), dict(title='a'), dict(title='b')]
+    response = await cli.post('/bulk/tasks', json=tasks)
+    await jsonBody(response, status=201)
+
+    response = await cli.get('/tasks?order_by=title')
+    data = await jsonBody(response, 200)
+    titles = list(map(lambda t: t['title'], data))
+    assert titles == ['a', 'b', 'c']
+
+
+async def test_get_ordered_list_desc(cli):
+    tasks = [dict(title='c'), dict(title='a'), dict(title='b')]
+    response = await cli.post('/bulk/tasks', json=tasks)
+    await jsonBody(response, status=201)
+
+    response = await cli.get('/tasks?order_by=title&order_desc=true')
+    data = await jsonBody(response, 200)
+    titles = list(map(lambda t: t['title'], data))
+    assert titles == ['c', 'b', 'a']
+
+
+async def test_limit_list(cli):
+    tasks = [dict(title='c'), dict(title='a'), dict(title='b')]
+    response = await cli.post('/bulk/tasks', json=tasks)
+    await jsonBody(response, status=201)
+
+    params = {
+        'order_by': 'title',
+        'limit': 2
+    }
+    response = await cli.get(f'/tasks', params=params)
+    data = await jsonBody(response, 200)
+    titles = list(map(lambda t: t['title'], data))
+    assert len(titles) == 2
+    assert titles == ['a', 'b']
+
+
+async def test_limit_and_offset_list(cli):
+    tasks = [dict(title='c'), dict(title='a'), dict(title='b')]
+    response = await cli.post('/bulk/tasks', json=tasks)
+    await jsonBody(response, status=201)
+
+    params = {
+        'order_by': 'title',
+        'limit': 2,
+        'offset': 1
+    }
+    response = await cli.get(f'/tasks', params=params)
+    data = await jsonBody(response, 200)
+    titles = list(map(lambda t: t['title'], data))
+    assert len(titles) == 2
+    assert titles == ['b', 'c']
+
+
+async def test_validation_error_if_field_not_allowed(cli):
+    tasks = [dict(title='c'), dict(title='a'), dict(title='b')]
+    response = await cli.post('/bulk/tasks', json=tasks)
+    await jsonBody(response, status=201)
+
+    response = await cli.get('/tasks?order_by=done')
+    await jsonBody(response, 422)
+
+
 async def test_spec_root(cli):
     response = await cli.get('/spec')
     spec = await jsonBody(response)

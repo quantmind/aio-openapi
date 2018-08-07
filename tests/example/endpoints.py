@@ -6,7 +6,8 @@ from openapi.db.path import SqlApiPath
 from openapi.spec import op
 from openapi.exc import JsonHttpException
 from .models import (
-    Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate, TaskPathSchema2
+    Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate, TaskPathSchema2,
+    TaskOrderableQuery,
 )
 
 
@@ -27,7 +28,7 @@ class TasksPath(SqlApiPath):
         done = self.db_table.c.done
         return done != null() if value else done == null()
 
-    @op(query_schema=TaskQuery, response_schema=[Task])
+    @op(query_schema=TaskOrderableQuery, response_schema=[Task])
     async def get(self):
         """
         ---
@@ -162,7 +163,7 @@ class TaskTransactionsPath(SqlApiPath):
 
                 return self.json_response(data=task, status=201)
 
-    @op(query_schema=TaskQuery, response_schema=[Task])
+    @op(query_schema=TaskOrderableQuery, response_schema=[Task])
     async def get(self):
         """
         ---

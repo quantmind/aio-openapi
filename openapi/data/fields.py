@@ -76,6 +76,12 @@ def number_field(min_value=None, max_value=None, precision=None, **kw):
     return data_field(**kw)
 
 
+def integer_field(min_value=None, max_value=None, **kw):
+    kw.setdefault(
+        'validator', IntegerValidator(min_value, max_value))
+    return data_field(**kw)
+
+
 def decimal_field(min_value=None, max_value=None, precision=None, **kw):
     kw.setdefault(
         'validator', DecimalValidator(min_value, max_value, precision))
@@ -232,18 +238,12 @@ class DateTimeValidator(Validator):
         return value
 
 
-class NumberValidator(Validator):
-
-    def __init__(self, min_value=None, max_value=None, precision=None):
+class BoundedNumberValidator(Validator):
+    def __init__(self, min_value=None, max_value=None):
         self.min_value = min_value
         self.max_value = max_value
-        self.precision = precision
 
     def __call__(self, field, value, data=None):
-        try:
-            value = round(value, self.precision)
-        except (ValueError, TypeError):
-            raise ValidationError(field.name, '%s not valid number' % value)
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(field.name, '%s less than %s'
                                   % (value, self.min_value))
@@ -253,13 +253,41 @@ class NumberValidator(Validator):
         return value
 
     def dump(self, value):
-        return round(value, self.precision)
+        return value
 
     def openapi(self, prop):
         if self.min_value is not None:
             prop['minimum'] = self.min_value
         if self.max_value is not None:
             prop['maximum'] = self.max_value
+
+
+class NumberValidator(BoundedNumberValidator):
+
+    def __init__(self, min_value=None, max_value=None, precision=None):
+        super().__init__(min_value=min_value, max_value=max_value)
+        self.precision = precision
+
+    def __call__(self, field, value, data=None):
+        try:
+            value = round(value, self.precision)
+        except (ValueError, TypeError):
+            raise ValidationError(field.name, '%s not valid number' % value)
+        return super().__call__(field, value, data=data)
+
+    def dump(self, value):
+        return round(value, self.precision)
+
+
+class IntegerValidator(BoundedNumberValidator):
+    def __call__(self, field, value, data=None):
+        try:
+            if isinstance(value, float):
+                raise ValueError
+            value = int(value)
+        except (ValueError, TypeError):
+            raise ValidationError(field.name, '%s not valid integer' % value)
+        return super().__call__(field, value, data=data)
 
 
 class DecimalValidator(NumberValidator):

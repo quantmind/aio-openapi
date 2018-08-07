@@ -6,10 +6,10 @@ from decimal import Decimal
 
 from openapi.data.fields import (
     ValidationError, data_field, bool_field, uuid_field, number_field,
-    decimal_field, email_field, enum_field, date_time_field,  json_field,
+    decimal_field, email_field, enum_field, date_time_field, json_field,
     ListValidator, UUIDValidator, EnumValidator, Choice, DateTimeValidator,
     NumberValidator, DecimalValidator, email_validator, BoolValidator,
-    Validator, JSONValidator
+    Validator, JSONValidator, IntegerValidator,
 )
 
 
@@ -155,6 +155,33 @@ def test_NumberValidator_dump():
     assert validator.dump(-10) == -10
     assert validator.dump(5.55) == 5.55
     assert validator.dump(5.556) == 5.56
+
+
+def test_IntegerValidator_valid():
+    field = number_field()
+    validator = IntegerValidator(min_value=-10, max_value=10)
+    assert validator(field, 10) == 10
+    assert validator(field, 0) == 0
+    assert validator(field, -10) == -10
+    assert validator(field, '-5') == -5
+
+
+def test_IntegerValidator_invalid():
+    field = number_field()
+    validator = IntegerValidator(min_value=-10, max_value=10)
+    with pytest.raises(ValidationError):
+        validator(field, 11)
+    with pytest.raises(ValidationError):
+        validator(field, -11)
+    with pytest.raises(ValidationError):
+        validator(field, -1.12)
+
+
+def test_IntegerValidator_dump():
+    validator = IntegerValidator(min_value=-10, max_value=10)
+    assert validator.dump(10) == 10
+    assert validator.dump(0) == 0
+    assert validator.dump(-10) == -10
 
 
 def test_DecimalValidator_valid():
