@@ -34,7 +34,7 @@ class DbModelMixin:
                     yield conn
 
     async def db_select(self, filters, *, table=None, conn=None):
-        table = table if table else self.db_table
+        table = table if table is not None else self.db_table
         query = self.get_query(table.select(), filters, table=table)
         sql, args = compile_query(query)
 
@@ -42,7 +42,7 @@ class DbModelMixin:
             return await conn.fetch(sql, *args)
 
     async def db_delete(self, filters, *, table=None, conn=None):
-        table = table if table else self.db_table
+        table = table if table is not None else self.db_table
         query = self.get_query(table.delete(), filters, table=table)
         sql, args = compile_query(query.returning(*table.columns))
         async with self.ensure_connection(conn) as conn:
