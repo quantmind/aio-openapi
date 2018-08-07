@@ -5,7 +5,6 @@ from asyncpg.exceptions import UniqueViolationError
 
 from .compile import compile_query
 from ..spec.path import ApiPath
-from ..utils import asynccontextmanager
 from .dbmodel import DbModelMixin
 
 
@@ -28,25 +27,6 @@ class SqlApiPath(ApiPath, DbModelMixin):
     @property
     def db_table(self):
         return self.request.app['metadata'].tables[self.table]
-
-    @asynccontextmanager
-    async def ensure_connection(self, conn):
-        if conn:
-            yield conn
-        else:
-            async with self.db.acquire() as conn:
-                async with conn.transaction():
-                    yield conn
-
-    @staticmethod
-    def get_order_clause(table, query, order_by, order_desc):
-        if not order_by:
-            return query
-
-        order_by_column = getattr(table.c, order_by)
-        if order_desc:
-            order_by_column = order_by_column.desc()
-        return query.order_by(order_by_column)
 
     async def get_list(
             self, *, filters=None, query=None, table=None,
