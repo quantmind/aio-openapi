@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 from uuid import uuid4
 
@@ -6,10 +7,19 @@ import pytest
 from openapi.json import encoder
 
 
+class Pippo(enum.Enum):
+    bla = 1
+    foo = 2
+
+
 def test_encoder_uuid():
     uuid = uuid4()
     encoded = encoder(uuid)
     assert encoded == uuid.hex
+
+
+def test_encoder_enum():
+    assert encoder(Pippo.bla) == 'bla'
 
 
 def test_encoder_datetime():

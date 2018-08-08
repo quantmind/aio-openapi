@@ -16,23 +16,22 @@ class ValidationErrors(ValueError):
         self.errors = errors
 
 
-def validated_schema(schema, data, strict=True):
-    d = validate(schema, data, strict)
+def validated_schema(schema, data, *, strict=True):
+    d = validate(schema, data, strict=strict)
     if d.errors:
         raise ValidationErrors(d.errors)
     return schema(**d.data)
 
 
-def validate(schema, data, strict=True):
+def validate(schema, data, *, strict=True, multiple=False):
     """Validate a dictionary of data with a given dataclass
     """
-    data = dict(data)
     errors = {}
     cleaned = {}
+    data = data.copy()
     for field in schema.__dataclass_fields__.values():
         try:
             required = field.metadata.get(REQUIRED)
-            validator = field.metadata.get(VALIDATOR)
             if DEFAULT in field.metadata:
                 data.setdefault(field.name, field.metadata[DEFAULT])
 
@@ -42,23 +41,20 @@ def validate(schema, data, strict=True):
             for name in field_ops(field):
                 if name not in data:
                     continue
-                value = data[name]
 
-                if value is None or value == 'NULL':
-                    cleaned[name] = None
-                    continue
-
-                if validator:
-                    value = validator(field, value)
-
-                if not isinstance(
-                        value,
-                        getattr(field.type, '__origin__', field.type)
-                ):
-                    try:
-                        value = field.type(value)
-                    except (TypeError, ValueError):
-                        raise ValidationError(name, 'not a valid value')
+                if multiple and hasattr(data, 'getall'):
+                    values = data.getall(name)
+                    if len(values) > 1:
+                        collected = []
+                        for v in values:
+                            v = collect_value(field, name, v)
+                            if v is not None:
+                                collected.append(v)
+                        value = collected if collected else None
+                    else:
+                        value = collect_value(field, name, values[0])
+                else:
+                    value = collect_value(field, name, data[name])
 
                 cleaned[name] = value
 
@@ -71,3 +67,23 @@ def validate(schema, data, strict=True):
             validate(cleaned, errors)
 
     return ValidatedData(data=cleaned, errors=errors)
+
+
+def collect_value(field, name, value):
+    if value is None or value == 'NULL':
+        return None
+
+    validator = field.metadata.get(VALIDATOR)
+    if validator:
+        value = validator(field, value)
+
+    if not isinstance(
+            value,
+            getattr(field.type, '__origin__', field.type)
+    ):
+        try:
+            value = field.type(value)
+        except (TypeError, ValueError):
+            raise ValidationError(name, 'not a valid value')
+
+    return value

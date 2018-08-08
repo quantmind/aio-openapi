@@ -51,11 +51,11 @@ def create_config(app):
 
     cfg.set_main_option('script_location', migrations)
     cfg.config_file_name = os.path.join(migrations, 'alembic.ini')
-    engine = app['store']
-    cfg.set_section_option('default', 'sqlalchemy.url', str(engine.url))
+    db = app['db']
+    cfg.set_section_option('default', 'sqlalchemy.url', str(db.engine.url))
     # put database in main options
     cfg.set_main_option("databases", 'default')
     # create empty logging section to avoid raising errors in env.py
     cfg.set_section_option('logging', 'path', '')
-    cfg.metadata = dict(default=app['metadata'])
+    cfg.metadata = dict(default=db.metadata)
     return cfg

@@ -11,7 +11,6 @@ from aiohttp import test_utils
 from sqlalchemy_utils import database_exists, drop_database, create_database
 
 from openapi import db
-from openapi.db.utils import create_tables
 from openapi.json import dumps
 from openapi.rest import rest
 from . import example
@@ -41,7 +40,7 @@ def test_app(db_url):
     os.environ['DATASTORE'] = db_url
     cli = rest(setup_app=setup_app)
     app = cli.web()
-    create_tables(app)
+    app['db'].create_all()
     return app
 
 
@@ -71,10 +70,4 @@ async def cli(loop, test_app):
 
 @pytest.fixture(autouse=True)
 def clean_db(test_app):
-    engine = test_app['store']
-    meta = test_app['metadata']
-    engine.execute(f'truncate {", ".join(meta.tables)}')
-    try:
-        engine.execute('drop table alembic_version')
-    except Exception:  # noqa
-        pass
+    test_app['db'].drop_all()
