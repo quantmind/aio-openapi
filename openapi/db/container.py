@@ -2,12 +2,11 @@ import asyncpg
 
 import sqlalchemy as sa
 
-from .dbmodel import DbConnection, DbModel
 from ..utils import asynccontextmanager
 from ..exc import ImproperlyConfigured
 
 
-class Database(DbConnection):
+class Database:
     """A container for tables in a database
     """
     def __init__(self, dsn: str=None):
@@ -35,10 +34,7 @@ class Database(DbConnection):
     def __getattr__(self, name):
         if name in self._metadata.tables:
             return self._metadata.tables[name]
-        return super().__getattr__(name)
-
-    def model(self, name):
-        return DbModel(self, name)
+        return super().__getattribute__(name)
 
     async def connect(self) -> None:
         self._pool = await asyncpg.create_pool(self._dsn)
@@ -49,6 +45,20 @@ class Database(DbConnection):
             await self.connect()
         async with self._pool.acquire() as conn:
             yield conn
+
+    @asynccontextmanager
+    async def transaction(self) -> asyncpg.Connection:
+        async with self.connection() as conn, conn.transaction():
+            yield conn
+
+    @asynccontextmanager
+    async def ensure_connection(self, conn):
+        if conn:
+            yield conn
+        else:
+            async with self.connection() as conn:
+                async with conn.transaction():
+                    yield conn
 
     async def close(self) -> None:
         if self._pool:
