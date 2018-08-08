@@ -68,10 +68,7 @@ def upgrade(ctx, revision, drop_tables):
     """Upgrade to a later version
     """
     if drop_tables:
-        app = ctx.obj['app']
-        engine = app['store']
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("CREATE SCHEMA IF NOT EXISTS public")
+        ctx.obj['app']['db'].drop_all_schemas()
         click.echo("tables dropped")
     migration(ctx).upgrade(revision)
     click.echo("upgraded sucessfuly")
@@ -94,8 +91,8 @@ def show(ctx, revision):
 def create(ctx, dbname, force):
     """Creates a new database
     """
-    store = ctx.obj['app']['store']
-    url = copy(store.url)
+    engine = ctx.obj['app']['db'].engine
+    url = copy(engine.url)
     url.database = dbname
     store = str(url)
     if database_exists(store):

@@ -5,6 +5,6 @@ from .endpoints import routes
 
 
 def setup_app(app):
-    meta(app['metadata'])
+    meta(app['db'].metadata)
     app.middlewares.append(json404)
     app.router.add_routes(routes)

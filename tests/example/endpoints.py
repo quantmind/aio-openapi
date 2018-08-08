@@ -152,16 +152,15 @@ class TaskTransactionsPath(SqlApiPath):
     @op(body_schema=TaskAdd, response_schema=Task)
     async def post(self):
         data = await self.json_data()
-        async with self.db.acquire() as conn:
-            async with conn.transaction():
-                should_raise = data.pop('should_raise', False)
+        async with self.db.transaction() as conn:
+            should_raise = data.pop('should_raise', False)
 
-                task = await self.create_one(data=data, conn=conn)
+            task = await self.create_one(data=data, conn=conn)
 
-                if should_raise:
-                    raise JsonHttpException(status=500)
+            if should_raise:
+                raise JsonHttpException(status=500)
 
-                return self.json_response(data=task, status=201)
+            return self.json_response(data=task, status=201)
 
     @op(query_schema=TaskOrderableQuery, response_schema=[Task])
     async def get(self):
@@ -172,7 +171,7 @@ class TaskTransactionsPath(SqlApiPath):
             200:
                 description: Authenticated tasks
         """
-        async with self.db.acquire() as conn:
+        async with self.db.transaction() as conn:
             data = await self.get_list(conn=conn)
             return self.json_response(data=data)
 
@@ -197,10 +196,9 @@ class TaskTransactionPath(SqlApiPath):
             200:
                 description: the task
         """
-        async with self.db.acquire() as conn:
-            async with conn.transaction():
-                data = await self.get_one(conn=conn)
-                return self.json_response(data)
+        async with self.db.transaction() as conn:
+            data = await self.get_one(conn=conn)
+            return self.json_response(data)
 
     @op(body_schema=TaskUpdate, response_schema=Task)
     async def patch(self):
@@ -212,16 +210,15 @@ class TaskTransactionPath(SqlApiPath):
                 description: the updated task
         """
         data = await self.json_data()
-        async with self.db.acquire() as conn:
-            async with conn.transaction():
-                should_raise = data.pop('should_raise', False)
+        async with self.db.transaction() as conn:
+            should_raise = data.pop('should_raise', False)
 
-                task = await self.update_one(data=data, conn=conn)
+            task = await self.update_one(data=data, conn=conn)
 
-                if should_raise:
-                    raise JsonHttpException(status=500)
+            if should_raise:
+                raise JsonHttpException(status=500)
 
-                return self.json_response(data=task, status=200)
+            return self.json_response(data=task, status=200)
 
     @op()
     async def delete(self):
@@ -233,16 +230,15 @@ class TaskTransactionPath(SqlApiPath):
                 description: Task successfully deleted
         """
         data = await self.json_data()
-        async with self.db.acquire() as conn:
-            async with conn.transaction():
-                should_raise = data.pop('should_raise', False)
+        async with self.db.transaction() as conn:
+            should_raise = data.pop('should_raise', False)
 
-                await self.delete_one(conn=conn)
+            await self.delete_one(conn=conn)
 
-                if should_raise:
-                    raise JsonHttpException(status=500)
+            if should_raise:
+                raise JsonHttpException(status=500)
 
-                return self.json_response(data={}, status=204)
+            return self.json_response(data={}, status=204)
 
 
 @routes.view('/transaction/bulk/tasks')
@@ -264,12 +260,11 @@ class TaskBulkTransactionPath(SqlApiPath):
             204:
                 description: Tasks successfully deleted
         """
-        async with self.db.acquire() as conn:
-            async with conn.transaction():
-                await self.delete_list(
-                    query=dict(self.request.query), conn=conn
-                )
-                return web.Response(status=204)
+        async with self.db.transaction() as conn:
+            await self.delete_list(
+                query=dict(self.request.query), conn=conn
+            )
+            return web.Response(status=204)
 
     @op(body_schema=[TaskAdd], response_schema=[Task])
     async def post(self):
@@ -280,10 +275,9 @@ class TaskBulkTransactionPath(SqlApiPath):
             201:
                 description: created tasks
         """
-        async with self.db.acquire() as conn:
-            async with conn.transaction():
-                data = await self.create_list(conn=conn)
-                return self.json_response(data, status=201)
+        async with self.db.transaction() as conn:
+            data = await self.create_list(conn=conn)
+            return self.json_response(data, status=201)
 
 
 @routes.view('/tasks2/{task_id}')

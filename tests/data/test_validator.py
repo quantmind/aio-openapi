@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 import pytest
 
 from openapi.data.validate import validated_schema, ValidationErrors
@@ -13,7 +15,7 @@ def test_validated_schema():
     )
     v = validated_schema(TaskAdd, data)
     assert len(data) == 3
-    assert v
+    assert len(asdict(v)) == 5
 
 
 def test_validated_schema_errors():

@@ -1,5 +1,7 @@
 from aiohttp import web
 
+from multidict import MultiDict
+
 from openapi.json import loads, dumps
 from ..data.dump import dump, dump_list
 from ..data.validate import validate
@@ -23,10 +25,10 @@ class ApiPath(web.View):
         return data
 
     def get_filters(self, *, query=None, query_schema='query_schema'):
-        combined = dict(self.request.query)
+        combined = MultiDict(self.request.query)
         combined.update(query or {})
         try:
-            params = self.cleaned(query_schema, combined)
+            params = self.cleaned(query_schema, combined, multiple=True)
         except web.HTTPNotImplemented:
             params = {}
         if self.path_schema:
@@ -34,13 +36,14 @@ class ApiPath(web.View):
             params.update(path)
         return params
 
-    def cleaned(self, schema, data, *, strict=True, Error=None):
+    def cleaned(
+            self, schema, data, *, multiple=False, strict=True, Error=None):
         """Clean data for a given schema name
         """
         Schema = self.get_schema(schema)
         if isinstance(Schema, list):
             Schema = Schema[0]
-        validated = validate(Schema, data, strict)
+        validated = validate(Schema, data, strict=strict, multiple=multiple)
         if validated.errors:
             if Error:
                 raise Error()
