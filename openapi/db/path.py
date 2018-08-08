@@ -37,7 +37,7 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        query = self.db.get_query(self, table, table.select(), filters)
+        query = self.db.get_query(table, table.select(), self, filters)
 
         sql, args = compile_query(query)
         async with self.db.ensure_connection(conn) as conn:
@@ -92,7 +92,8 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        values = await self.db.db_select(self, table, filters, conn=conn)
+        values = await self.db.db_select(table, filters, conn=conn,
+                                         consumer=self)
         if not values:
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
@@ -109,9 +110,7 @@ class SqlApiPath(ApiPath):
                 'body_schema', await self.json_data(), strict=False)
         if not filters:
             filters = self.cleaned('path_schema', self.request.match_info)
-        update = self.db.get_query(
-                self, table, table.update(), filters
-            ).values(**data).returning(*table.columns)
+        update = self.db.get_query(table, table.update(), self, filters).values(**data).returning(*table.columns)
         sql, args = compile_query(update)
 
         async with self.db.ensure_connection(conn) as conn:
@@ -129,7 +128,8 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.cleaned('path_schema', self.request.match_info)
-        values = await self.db.db_delete(self, table, filters, conn=conn)
+        values = await self.db.db_delete(table, filters, conn=conn,
+                                         consumer=self)
         if not values:
             raise web.HTTPNotFound()
 
@@ -140,7 +140,8 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query)
-        return await self.db.db_delete(self, table, filters, conn=conn)
+        return await self.db.db_delete(table, filters, conn=conn,
+                                       consumer=self)
 
     def handle_unique_violation(self, exception):
         match = re.match(unique_regex, exception.detail)

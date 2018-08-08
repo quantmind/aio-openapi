@@ -17,14 +17,14 @@ class CrudDB(Database):
             order_by_column = order_by_column.desc()
         return query.order_by(order_by_column)
 
-    async def db_select(self, consumer, table, filters, *, conn=None):
-        query = self.get_query(consumer, table, table.select(), filters)
+    async def db_select(self, table, filters, *, conn=None, consumer=None):
+        query = self.get_query(table, table.select(), consumer, filters)
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_delete(self, consumer, table, filters, *, conn=None):
-        query = self.get_query(consumer, table, table.delete(), filters)
+    async def db_delete(self, table, filters, *, conn=None, consumer=None):
+        query = self.get_query(table, table.delete(), consumer, filters)
         sql, args = compile_query(query.returning(*table.columns))
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
@@ -40,7 +40,7 @@ class CrudDB(Database):
         exp = table.insert(records).returning(*table.columns)
         return compile_query(exp)
 
-    def get_query(self, consumer, table, query, params=None):
+    def get_query(self, table, query, consumer=None, params=None):
         filters = []
         columns = table.c
         params = params or {}
