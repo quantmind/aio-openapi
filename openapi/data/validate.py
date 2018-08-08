@@ -2,6 +2,7 @@ from typing import Dict
 from dataclasses import dataclass
 
 from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, field_ops
+from ..utils import mapping_copy
 
 
 @dataclass
@@ -28,7 +29,7 @@ def validate(schema, data, *, strict=True, multiple=False):
     """
     errors = {}
     cleaned = {}
-    data = data.copy()
+    data = mapping_copy(data)
     for field in schema.__dataclass_fields__.values():
         try:
             required = field.metadata.get(REQUIRED)

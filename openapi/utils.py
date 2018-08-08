@@ -2,6 +2,7 @@ import os
 import logging
 from functools import wraps
 from inspect import isclass
+from collections import Mapping
 from typing import List, Dict
 
 
@@ -79,6 +80,12 @@ def replace_key(kwargs, from_key, to_key):
     if value is not Null:
         kwargs[to_key] = value
     return kwargs
+
+
+def mapping_copy(data):
+    if isinstance(data, Mapping):
+        return data.copy()
+    return dict(data)
 
 
 def iter_items(data):
