@@ -57,14 +57,6 @@ class Database(DbConnection):
             await self._pool.close()
             self._pool = None
 
-    @asynccontextmanager
-    async def ensure_connection(self, conn):
-        if conn:
-            yield conn
-        else:
-            async with self.transaction() as conn:
-                yield conn
-
     # SQL Alchemy Sync Operations
     def create_all(self) -> None:
         self.metadata.create_all(self.engine)
