@@ -9,7 +9,8 @@ from ..exc import ImproperlyConfigured
 
 
 class Database(DbConnection):
-
+    """A container for tables in a database
+    """
     def __init__(self, dsn: str=None):
         self._dsn = dsn
         self._pool = None
@@ -74,3 +75,7 @@ class Database(DbConnection):
             self.engine.execute('drop table alembic_version')
         except Exception:  # noqa
             pass
+
+    def drop_all_schemas(self) -> None:
+        self.engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        self.engine.execute("CREATE SCHEMA IF NOT EXISTS public")
