@@ -28,8 +28,10 @@ def test_json_http_exception_reason():
     assert ex.headers['content-type'] == 'application/json; charset=utf-8'
 
 
-def test_exist_database_none():
+def test_exist_database_not_configured():
     db = Database()
+    db.setup(None)
+    assert db.pool is None
     with pytest.raises(ImproperlyConfigured):
         db.engine
 
