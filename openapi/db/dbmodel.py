@@ -1,3 +1,6 @@
+import asyncpg
+import abc
+
 from sqlalchemy.sql import and_, Select
 
 from ..utils import asynccontextmanager
@@ -5,7 +8,28 @@ from ..spec.pagination import DEF_PAGINATION_LIMIT
 from .compile import compile_query
 
 
-class DbModelMixin:
+class DbConnection(abc.ABC):
+
+    @abc.abstractmethod
+    async def connection(self) -> asyncpg.Connection:
+        pass
+
+    @asynccontextmanager
+    async def transaction(self) -> asyncpg.Connection:
+        async with self.connection() as conn, conn.transaction():
+            yield conn
+
+    @asynccontextmanager
+    async def ensure_connection(self, conn):
+        if conn:
+            yield conn
+        else:
+            async with self.connection() as conn:
+                async with conn.transaction():
+                    yield conn
+
+
+class DbModelMixin(DbConnection):
 
     table = None
     # sql table name
@@ -25,13 +49,9 @@ class DbModelMixin:
         return query.order_by(order_by_column)
 
     @asynccontextmanager
-    async def ensure_connection(self, conn):
-        if conn:
+    async def connection(self) -> asyncpg.Connection:
+        async with self.db.connection() as conn:
             yield conn
-        else:
-            async with self.db.acquire() as conn:
-                async with conn.transaction():
-                    yield conn
 
     async def db_select(self, filters, *, table=None, conn=None):
         table = table if table is not None else self.db_table
@@ -150,16 +170,10 @@ class DbModelMixin:
 
 class DbModel(DbModelMixin):
 
-    def __init__(self, app, table):
-        self.app = app
+    def __init__(self, db, table):
+        self.db = db
         self.table = table
 
     @property
-    def db(self):
-        """Database connection pool
-        """
-        return self.app['db']
-
-    @property
     def db_table(self):
-        return self.app['metadata'].tables[self.table]
+        return self.db.metadata.tables[self.table]

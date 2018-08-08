@@ -26,7 +26,7 @@ class SqlApiPath(ApiPath, DbModelMixin):
 
     @property
     def db_table(self):
-        return self.request.app['metadata'].tables[self.table]
+        return self.db.metadata.tables[self.table]
 
     async def get_list(
             self, *, filters=None, query=None, table=None,
