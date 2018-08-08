@@ -17,11 +17,6 @@ class Database(DbConnection):
         self._engine = None
         self._metadata = sa.MetaData()
 
-    def setup(self, app):
-        """Called by app during setup
-        """
-        pass
-
     @property
     def metadata(self):
         return self._metadata
@@ -38,12 +33,16 @@ class Database(DbConnection):
             self._engine = sa.create_engine(self._dsn)
         return self._engine
 
+    def __getattr__(self, name):
+        if name in self._metadata.tables:
+            return self._metadata.tables[name]
+        return super().__getattr__(name)
+
     def model(self, name):
         return DbModel(self, name)
 
-    async def connect(self) -> Pool:
+    async def connect(self):
         self._pool = await asyncpg.create_pool(self._dsn)
-        return self._pool
 
     @asynccontextmanager
     async def connection(self) -> asyncpg.Connection:
