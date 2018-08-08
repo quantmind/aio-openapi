@@ -1,7 +1,7 @@
 import os
 
+from openapi.db.dbmodel import CrudDB
 from .commands import db
-from .container import Database
 
 
 def setup_app(app):
@@ -9,5 +9,5 @@ def setup_app(app):
     if not store:
         app.logger.warning('DATASTORE not available')
     else:
-        app['db'] = Database(store)
+        app['db'] = CrudDB(store)
     app['cli'].add_command(db)

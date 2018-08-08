@@ -1,43 +1,11 @@
-import asyncpg
-import abc
-
 from sqlalchemy.sql import and_, Select
 
-from ..utils import asynccontextmanager
-from ..spec.pagination import DEF_PAGINATION_LIMIT
+from ..db.container import Database
 from .compile import compile_query
+from ..spec.pagination import DEF_PAGINATION_LIMIT
 
 
-class DbConnection(abc.ABC):
-    compile_query = staticmethod(compile_query)
-
-    @abc.abstractmethod
-    async def connection(self) -> asyncpg.Connection:
-        pass
-
-    @asynccontextmanager
-    async def transaction(self) -> asyncpg.Connection:
-        async with self.connection() as conn, conn.transaction():
-            yield conn
-
-    @asynccontextmanager
-    async def ensure_connection(self, conn):
-        if conn:
-            yield conn
-        else:
-            async with self.connection() as conn:
-                async with conn.transaction():
-                    yield conn
-
-
-class DbModelMixin(DbConnection):
-
-    table = None
-    # sql table name
-    db = None
-    # database connection pool
-    db_table = None
-    # database table
+class CrudDB(Database):
 
     @classmethod
     def get_order_clause(cls, table, query, order_by, order_desc):
@@ -49,35 +17,31 @@ class DbModelMixin(DbConnection):
             order_by_column = order_by_column.desc()
         return query.order_by(order_by_column)
 
-    @asynccontextmanager
-    async def connection(self) -> asyncpg.Connection:
-        async with self.db.connection() as conn:
-            yield conn
-
-    async def db_select(self, filters, *, table=None, conn=None):
-        table = table if table is not None else self.db_table
-        query = self.get_query(table.select(), filters, table=table)
+    async def db_select(self, consumer, table, filters, *, conn=None):
+        query = self.get_query(consumer, table, table.select(), filters)
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_delete(self, filters, *, table=None, conn=None):
-        table = table if table is not None else self.db_table
-        query = self.get_query(table.delete(), filters, table=table)
+    async def db_delete(self, consumer, table, filters, *, conn=None):
+        query = self.get_query(consumer, table, table.delete(), filters)
         sql, args = compile_query(query.returning(*table.columns))
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    def get_insert(self, records, *, table=None):
+    async def db_insert(self, table, data, *, conn=None):
+        async with self.ensure_connection(conn) as conn:
+            statement, args = self.get_insert(table, data)
+            return await conn.fetch(statement, *args)
+
+    def get_insert(self, table, records):
         if isinstance(records, dict):
             records = [records]
-        table = table if table is not None else self.db_table
         exp = table.insert(records).returning(*table.columns)
         return compile_query(exp)
 
-    def get_query(self, query, params=None, table=None):
+    def get_query(self, consumer, table, query, params=None):
         filters = []
-        table = table if table is not None else self.db_table
         columns = table.c
         params = params or {}
         limit = params.pop('limit', DEF_PAGINATION_LIMIT)
@@ -88,7 +52,7 @@ class DbModelMixin(DbConnection):
             bits = key.split(':')
             field = bits[0]
             op = bits[1] if len(bits) == 2 else 'eq'
-            filter_field = getattr(self, f'filter_{field}', None)
+            filter_field = getattr(consumer, f'filter_{field}', None)
             if filter_field:
                 result = filter_field(op, value)
             else:
@@ -167,14 +131,3 @@ class DbModelMixin(DbConnection):
                 return field < value
             elif op == 'le':
                 return field <= value
-
-
-class DbModel(DbModelMixin):
-
-    def __init__(self, db, table):
-        self.db = db
-        self.table = table
-
-    @property
-    def db_table(self):
-        return self.db.metadata.tables[self.table]
