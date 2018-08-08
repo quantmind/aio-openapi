@@ -1,7 +1,7 @@
 import os
 
-from openapi.db.dbmodel import CrudDB
 from .commands import db
+from ..db.dbmodel import CrudDB
 
 
 def setup_app(app):
