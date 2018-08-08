@@ -9,6 +9,7 @@ from .compile import compile_query
 
 
 class DbConnection(abc.ABC):
+    compile_query = staticmethod(compile_query)
 
     @abc.abstractmethod
     async def connection(self) -> asyncpg.Connection:

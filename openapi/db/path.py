@@ -3,7 +3,6 @@ import re
 from aiohttp import web
 from asyncpg.exceptions import UniqueViolationError
 
-from .compile import compile_query
 from ..spec.path import ApiPath
 from .dbmodel import DbModelMixin
 
@@ -40,7 +39,7 @@ class SqlApiPath(ApiPath, DbModelMixin):
             filters = self.get_filters(query=query, query_schema=query_schema)
         query = self.get_query(table.select(), filters, table=table)
 
-        sql, args = compile_query(query)
+        sql, args = self.compile_query(query)
         async with self.ensure_connection(conn) as conn:
             values = await conn.fetch(sql, *args)
         return self.dump(dump_schema, values)
@@ -116,7 +115,7 @@ class SqlApiPath(ApiPath, DbModelMixin):
         update = self.get_query(
                 table.update(), filters
             ).values(**data).returning(*table.columns)
-        sql, args = compile_query(update)
+        sql, args = self.compile_query(update)
 
         async with self.ensure_connection(conn) as conn:
             try:

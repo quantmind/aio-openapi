@@ -10,5 +10,4 @@ def setup_app(app):
         app.logger.warning('DATASTORE not available')
     else:
         app['db'] = Database(store)
-        app['db'].setup(app)
     app['cli'].add_command(db)

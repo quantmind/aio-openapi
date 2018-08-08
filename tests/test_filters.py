@@ -80,7 +80,7 @@ async def test_filters(cli, fixtures):
     await assert_query(cli, {'severity': 'NULL'}, [test3])
 
 
-async def __test_multiple(cli, fixtures):
+async def test_multiple(cli, fixtures):
     test1, test2, test3 = fixtures
     params = MultiDict((('severity', 1), ('severity', 3)))
     await assert_query(cli, params, [test1, test2])
