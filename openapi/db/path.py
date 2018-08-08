@@ -110,7 +110,9 @@ class SqlApiPath(ApiPath):
                 'body_schema', await self.json_data(), strict=False)
         if not filters:
             filters = self.cleaned('path_schema', self.request.match_info)
-        update = self.db.get_query(table, table.update(), self, filters).values(**data).returning(*table.columns)
+        update = self.db.get_query(
+            table, table.update(), self, filters
+        ).values(**data).returning(*table.columns)
         sql, args = compile_query(update)
 
         async with self.db.ensure_connection(conn) as conn:
