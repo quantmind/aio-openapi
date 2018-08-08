@@ -1,5 +1,4 @@
 import asyncpg
-from asyncpg.pool import Pool
 
 import sqlalchemy as sa
 
@@ -41,7 +40,7 @@ class Database(DbConnection):
     def model(self, name):
         return DbModel(self, name)
 
-    async def connect(self):
+    async def connect(self) -> None:
         self._pool = await asyncpg.create_pool(self._dsn)
 
     @asynccontextmanager
