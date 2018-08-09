@@ -21,7 +21,7 @@ def dataclass_from_table(name, table, *, exclude=None):
             continue
         ctype = type(col.type)
         converter = CONVERTERS.get(ctype)
-        if not converter:
+        if not converter:   # pragma:   no cover
             raise NotImplementedError(
                 f'Cannot convert column {col.name}: {ctype}')
         field = (col.name, *converter(col))
