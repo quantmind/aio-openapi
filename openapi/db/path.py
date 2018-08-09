@@ -79,7 +79,7 @@ class SqlApiPath(ApiPath):
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
         data = [self.insert_data(d, body_schema=body_schema) for d in data]
-        values = await self.db.db_insert(table, data)
+        values = await self.db.db_insert(table, data, conn=conn)
         return self.dump(dump_schema, values)
 
     async def get_one(
