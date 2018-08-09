@@ -1,6 +1,6 @@
+import typing
 from datetime import datetime
 from dataclasses import make_dataclass
-from typing import Dict
 from decimal import Decimal
 
 import sqlalchemy as sa
@@ -74,7 +74,7 @@ def en(col):
 @converter(sa.JSON)
 def js(col):
     return (
-        Dict,
+        typing.Dict,
         fields.json_field(**info(col))
     )
 

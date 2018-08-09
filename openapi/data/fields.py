@@ -159,7 +159,8 @@ class StrValidator(Validator):
     max_length: int = 0
 
     def __call__(self, field, value, data=None):
-        value = str(value)
+        if not isinstance(value, str):
+            raise ValidationError(field.name, 'Must be a string')
         if self.min_length and len(value) < self.min_length:
             raise ValidationError(field.name, 'Too short')
         if self.max_length and len(value) > self.max_length:

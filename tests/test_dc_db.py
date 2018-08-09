@@ -21,10 +21,14 @@ def test_convert_task():
 
 
 def test_convert_random():
-    Tasks = dataclass_from_table('Randoms', db.randoms)
-    assert Tasks
-    fields = Tasks.__dataclass_fields__
+    Randoms = dataclass_from_table('Randoms', db.randoms)
+    assert Randoms
+    fields = Randoms.__dataclass_fields__
     assert isinstance(fields['id'].metadata[VALIDATOR], UUIDValidator)
+    d = validate(Randoms, dict(info='jhgjg'))
+    assert d.errors['info'] == 'jhgjg not valid'
+    d = validate(Randoms, dict(info=dict(a=3, b='test')))
+    assert 'info' not in d.errors
 
 
 def test_validate():
@@ -35,3 +39,5 @@ def test_validate():
     assert d.errors['title'] == 'Too short'
     d = validate(Tasks, dict(title='t'*100))
     assert d.errors['title'] == 'Too long'
+    d = validate(Tasks, dict(title=40))
+    assert d.errors['title'] == 'Must be a string'
