@@ -1,11 +1,11 @@
-from datetime import datetime
-import sqlalchemy as sa
 import uuid
+from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
 
+from openapi.db.columns import UUIDColumn
 from .models import TaskType
-
 
 original_init = UUIDType.__init__
 
@@ -25,7 +25,7 @@ def meta(meta=None):
 
     sa.Table(
         'tasks', meta,
-        sa.Column('id', sa.Integer, primary_key=True),
+        UUIDColumn('id', make_default=True),
         sa.Column('title', sa.String, nullable=False),
         sa.Column('done', sa.DateTime),
         sa.Column('severity', sa.Integer),
