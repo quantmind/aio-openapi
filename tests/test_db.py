@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime
 
 from click.testing import CliRunner
@@ -83,7 +84,8 @@ async def test_400(cli):
 async def test_create(cli):
     response = await cli.post('/tasks', json=dict(title='test 1', type='todo'))
     data = await jsonBody(response, 201)
-    assert data['id'] == 1
+
+    uuid.UUID(data['id'])  # Check that we get a valid uuid
     assert data['title'] == 'test 1'
     assert data['type'] == 'todo'
 
@@ -99,25 +101,37 @@ async def test_create_422(cli):
 async def test_get_update(cli):
     response = await cli.post('/tasks', json=dict(title='test 2'))
     data = await jsonBody(response, 201)
-    assert data['id'] == 2
+
+    task_id = uuid.UUID(data['id'])  # Check that we get a valid uuid
     assert data['title'] == 'test 2'
     #
     # now get it
-    response = await cli.get('/tasks/2')
+    task_path = f'/tasks/{task_id.hex}'
+    response = await cli.get(task_path)
     await jsonBody(response, 200)
     #
     # now update
     response = await cli.patch(
-        '/tasks/2', json=dict(done=datetime.now().isoformat())
+        task_path, json=dict(done=datetime.now().isoformat())
     )
     data = await jsonBody(response, 200)
-    assert data['id'] == 2
+    assert data['id'] == task_id.hex
     #
     # now delete it
-    response = await cli.delete('/tasks/2')
+    response = await cli.delete(task_path)
     assert response.status == 204
-    response = await cli.get('/tasks/2')
+    response = await cli.get(task_path)
     await jsonBody(response, 404)
+
+
+async def test_update_empty(cli):
+    response = await cli.post(
+        '/tasks', json=dict(title='U2', story_points=5))
+    data = await jsonBody(response, 201)
+    id_ = data['id']
+    response = await cli.patch(f'/tasks/{id_}', json={})
+    data2 = await jsonBody(response, 200)
+    assert data == data2
 
 
 async def test_delete_list(cli):
@@ -131,7 +145,7 @@ async def test_delete_list(cli):
     response = await cli.get('/tasks')
     data = await jsonBody(response)
     assert len(data) == 2
-    response = await cli.patch(
+    await cli.patch(
         f'/tasks/{data[0]["id"]}', json=dict(done=datetime.now().isoformat())
     )
     response = await cli.get('/tasks', params={'done': 'true'})

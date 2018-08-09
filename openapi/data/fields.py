@@ -1,13 +1,13 @@
-from simplejson.errors import JSONDecodeError
 import decimal
 from uuid import UUID
 from datetime import datetime
-from dataclasses import field, Field
+from dataclasses import dataclass, field, Field
 
 from email_validator import validate_email, EmailNotValidError
-from ..json import loads, dumps
 
 from dateutil.parser import parse as parse_date
+
+from ..json import loads, dumps, JSONDecodeError
 
 from ..utils import compact_dict
 
@@ -56,6 +56,14 @@ def data_field(
         OPS: ops
     }))
     return f
+
+
+def str_field(max_length=None, min_length=None, **kw):
+    kw.setdefault(
+        'validator',
+        StrValidator(min_length=min_length, max_length=max_length)
+    )
+    return data_field(**kw)
 
 
 def bool_field(**kw):
@@ -143,6 +151,27 @@ class Validator:
 
     def openapi(self, prop):
         pass
+
+
+@dataclass
+class StrValidator(Validator):
+    min_length: int = 0
+    max_length: int = 0
+
+    def __call__(self, field, value, data=None):
+        if not isinstance(value, str):
+            raise ValidationError(field.name, 'Must be a string')
+        if self.min_length and len(value) < self.min_length:
+            raise ValidationError(field.name, 'Too short')
+        if self.max_length and len(value) > self.max_length:
+            raise ValidationError(field.name, 'Too long')
+        return value
+
+    def openapi(self, prop):
+        if self.min_length:
+            prop['minLength'] = self.min_length
+        if self.max_length:
+            prop['maxLength'] = self.max_length
 
 
 class ListValidator(Validator):
