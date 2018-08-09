@@ -80,7 +80,7 @@ def js(col):
 
 
 @converter(UUIDType)
-def uiid(col):
+def uuid(col):
     return (
         str,
         fields.uuid_field(**info(col))
