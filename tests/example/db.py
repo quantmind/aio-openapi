@@ -26,12 +26,14 @@ def meta(meta=None):
     sa.Table(
         'tasks', meta,
         UUIDColumn('id', make_default=True),
-        sa.Column('title', sa.String, nullable=False),
+        sa.Column(
+            'title', sa.String(64), nullable=False, info=dict(min_length=3)),
         sa.Column('done', sa.DateTime),
         sa.Column('severity', sa.Integer),
         sa.Column('type', sa.Enum(TaskType)),
         sa.Column('unique_title', sa.String, nullable=True, unique=True),
-        sa.Column('story_points', sa.Numeric(2))
+        sa.Column('story_points', sa.Numeric(2)),
+        sa.Column('random', sa.String(64))
     )
 
     sa.Table(
@@ -47,6 +49,7 @@ def meta(meta=None):
                   default=datetime.now),
         sa.Column('price', sa.Numeric(precision=100, scale=4), nullable=False),
         sa.Column('tenor', sa.String(3), nullable=False),
+        sa.Column('info', sa.JSON),
         sa.Column('task_id', sa.ForeignKey('tasks.id', ondelete='CASCADE'),
                   nullable=False)
     )

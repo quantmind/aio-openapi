@@ -79,7 +79,7 @@ class SqlApiPath(ApiPath):
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
         data = [self.insert_data(d, body_schema=body_schema) for d in data]
-        values = await self.db.db_insert(table, data)
+        values = await self.db.db_insert(table, data, conn=conn)
         return self.dump(dump_schema, values)
 
     async def get_one(
@@ -110,16 +110,20 @@ class SqlApiPath(ApiPath):
                 'body_schema', await self.json_data(), strict=False)
         if not filters:
             filters = self.cleaned('path_schema', self.request.match_info)
-        update = self.db.get_query(
-            table, table.update(), self, filters
-        ).values(**data).returning(*table.columns)
-        sql, args = compile_query(update)
 
-        async with self.db.ensure_connection(conn) as conn:
-            try:
-                values = await conn.fetch(sql, *args)
-            except UniqueViolationError as exc:
-                self.handle_unique_violation(exc)
+        if data:
+            update = self.db.get_query(
+                table, table.update(), self, filters
+            ).values(**data).returning(*table.columns)
+            sql, args = compile_query(update)
+            async with self.db.ensure_connection(conn) as conn:
+                try:
+                    values = await conn.fetch(sql, *args)
+                except UniqueViolationError as exc:
+                    self.handle_unique_violation(exc)
+        else:
+            values = await self.db.db_select(
+                table, filters, conn=conn, consumer=self)
         if not values:
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])

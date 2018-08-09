@@ -33,7 +33,7 @@ def validate(schema, data, *, strict=True, multiple=False):
     for field in schema.__dataclass_fields__.values():
         try:
             required = field.metadata.get(REQUIRED)
-            if DEFAULT in field.metadata:
+            if strict and DEFAULT in field.metadata:
                 data.setdefault(field.name, field.metadata[DEFAULT])
 
             if field.name not in data and required and strict:
@@ -78,10 +78,8 @@ def collect_value(field, name, value):
     if validator:
         value = validator(field, value)
 
-    if not isinstance(
-            value,
-            getattr(field.type, '__origin__', field.type)
-    ):
+    type_ = getattr(field.type, '__origin__', None) or field.type
+    if not isinstance(value, type_):
         try:
             value = field.type(value)
         except (TypeError, ValueError):

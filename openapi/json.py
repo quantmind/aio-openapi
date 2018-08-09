@@ -4,6 +4,7 @@ from functools import partial
 from uuid import UUID
 
 import simplejson
+from simplejson.errors import JSONDecodeError
 
 
 def encoder(obj):
@@ -23,4 +24,4 @@ dumps = partial(simplejson.dumps,
                 iterable_as_array=True
                 )
 
-__all__ = ['loads', 'dumps']
+__all__ = ['loads', 'dumps', 'JSONDecodeError']
