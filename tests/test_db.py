@@ -85,7 +85,7 @@ async def test_create(cli):
     response = await cli.post('/tasks', json=dict(title='test 1', type='todo'))
     data = await jsonBody(response, 201)
 
-    task_id = uuid.UUID(data['id'])  # Check that we get a valid uuid
+    uuid.UUID(data['id'])  # Check that we get a valid uuid
     assert data['title'] == 'test 1'
     assert data['type'] == 'todo'
 
@@ -135,7 +135,7 @@ async def test_delete_list(cli):
     response = await cli.get('/tasks')
     data = await jsonBody(response)
     assert len(data) == 2
-    response = await cli.patch(
+    await cli.patch(
         f'/tasks/{data[0]["id"]}', json=dict(done=datetime.now().isoformat())
     )
     response = await cli.get('/tasks', params={'done': 'true'})
