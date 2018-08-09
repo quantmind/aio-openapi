@@ -124,6 +124,15 @@ async def test_get_update(cli):
     await jsonBody(response, 404)
 
 
+async def test_empty_update(cli):
+    response = await cli.post('/tasks', json=dict(title='test'))
+    data = await jsonBody(response, 201)
+    rv = await cli.patch(f'/tasks/{data["id"]}', json={})
+    await jsonBody(rv, 422)
+    rv = await cli.patch(f'/tasks/{data["id"]}', json={'this': 'that'})
+    await jsonBody(rv, 422)
+
+
 async def test_delete_list(cli):
     response = await cli.delete('/tasks')
     assert response.status == 204
