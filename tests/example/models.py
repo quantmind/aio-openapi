@@ -5,11 +5,10 @@ from decimal import Decimal
 from dataclasses import dataclass
 
 from openapi.data.fields import (
-    data_field, date_time_field, enum_field,
-    integer_field,
-    decimal_field,
+    data_field, date_time_field, decimal_field, enum_field, integer_field,
+    uuid_field,
 )
-from openapi.rest import orderable, Query
+from openapi.rest import Query, orderable
 
 
 class TaskType(enum.Enum):
@@ -33,7 +32,7 @@ class TaskAdd:
 
 @dataclass
 class Task(TaskAdd):
-    id: int = data_field(required=True)
+    id: str = uuid_field(required=True)
     done: datetime = date_time_field()
     story_points: Decimal = decimal_field()
 
@@ -59,9 +58,9 @@ class TaskUpdate(TaskAdd):
 
 @dataclass
 class TaskPathSchema:
-    id: int = data_field(required=True)
+    id: str = uuid_field(required=True)
 
 
 @dataclass
 class TaskPathSchema2:
-    task_id: int = data_field(required=True)
+    task_id: str = uuid_field(required=True)
