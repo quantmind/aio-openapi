@@ -99,8 +99,9 @@ class SqlApiPath(ApiPath):
         return self.dump(dump_schema, values[0])
 
     async def update_one(
-        self, *, data=None, filters=None, table=None,
-        body_schema='body_schema', dump_schema='response_schema', conn=None
+        self, *, data=None, filters=None, query=None, table=None,
+        body_schema='body_schema', query_schema='query_schema',
+        dump_schema='response_schema', conn=None
     ):
         """Update a single model
         """
@@ -109,7 +110,7 @@ class SqlApiPath(ApiPath):
             data = self.cleaned(
                 'body_schema', await self.json_data(), strict=False)
         if not filters:
-            filters = self.cleaned('path_schema', self.request.match_info)
+            filters = self.get_filters(query=query, query_schema=query_schema)
 
         if data:
             update = self.db.get_query(
@@ -128,12 +129,15 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return self.dump(dump_schema, values[0])
 
-    async def delete_one(self, *, filters=None, table=None, conn=None):
+    async def delete_one(
+        self, *, filters=None, query=None, table=None,
+        query_schema='query_schema', conn=None
+    ):
         """delete a single model
         """
         table = table if table is not None else self.db_table
         if not filters:
-            filters = self.cleaned('path_schema', self.request.match_info)
+            filters = self.get_filters(query=query, query_schema=query_schema)
         values = await self.db.db_delete(table, filters, conn=conn,
                                          consumer=self)
         if not values:
