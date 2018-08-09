@@ -79,7 +79,7 @@ class SqlApiPath(ApiPath):
                 **self.api_response_data({'message': 'Invalid JSON payload'})
             )
         data = [self.insert_data(d, body_schema=body_schema) for d in data]
-        values = await self.db.db_insert(table, data)
+        values = await self.db.db_insert(table, data, conn=conn)
         return self.dump(dump_schema, values)
 
     async def get_one(
@@ -107,7 +107,9 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if data is None:
             data = self.cleaned(
-                'body_schema', await self.json_data(), strict=False)
+                body_schema, await self.json_data(), strict=False)
+        if not data:
+            self.raiseValidationError('No matching fields to update')
         if not filters:
             filters = self.cleaned('path_schema', self.request.match_info)
         update = self.db.get_query(

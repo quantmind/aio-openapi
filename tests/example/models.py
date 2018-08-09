@@ -53,7 +53,11 @@ class TaskOrderableQuery(TaskQuery, orderable('title'), Query):
 
 
 @dataclass
-class TaskUpdate(TaskAdd):
+class TaskUpdate:
+    title: str = data_field()
+    unique_title: str = data_field()
+    severity: int = integer_field()
+    story_points: Decimal = decimal_field()
     done: datetime = date_time_field()
 
 
