@@ -1,5 +1,6 @@
 from datetime import datetime
 from dataclasses import make_dataclass
+from typing import Dict
 from decimal import Decimal
 
 import sqlalchemy as sa
@@ -12,9 +13,12 @@ from . import fields
 CONVERTERS = {}
 
 
-def dataclass_from_table(name, table):
+def dataclass_from_table(name, table, *, exclude=None):
     columns = []
+    exclude = set(exclude or ())
     for col in table.columns:
+        if col.name in exclude:
+            continue
         ctype = type(col.type)
         converter = CONVERTERS.get(ctype)
         if not converter:
@@ -48,9 +52,10 @@ def number(col):
     )
 
 
-@converter(sa.String, sa.Text)
+@converter(sa.String, sa.Text, sa.CHAR, sa.VARCHAR)
 def string(col):
-    return (str, fields.data_field(**info(col)))
+    return (str, fields.str_field(
+        max_length=col.type.length or 0, **info(col)))
 
 
 @converter(sa.DateTime)
@@ -66,6 +71,14 @@ def en(col):
     )
 
 
+@converter(sa.JSON)
+def js(col):
+    return (
+        Dict,
+        fields.json_field(**info(col))
+    )
+
+
 @converter(UUIDType)
 def uiid(col):
     return (
@@ -75,7 +88,9 @@ def uiid(col):
 
 
 def info(col):
-    return dict(
+    data = dict(
         description=col.doc,
         required=not col.nullable
     )
+    data.update(col.info)
+    return data
