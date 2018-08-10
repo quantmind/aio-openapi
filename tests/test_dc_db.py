@@ -1,9 +1,13 @@
-from .example.db import meta
+from datetime import date
+import typing
 
 from openapi.db.container import Database
 from openapi.data.db import dataclass_from_table
 from openapi.data.fields import VALIDATOR, UUIDValidator
 from openapi.data.validate import validate
+
+from .example.db import meta
+
 
 db = Database()
 meta(db.metadata)
@@ -41,3 +45,21 @@ def test_validate():
     assert d.errors['title'] == 'Too long'
     d = validate(Tasks, dict(title=40))
     assert d.errors['title'] == 'Must be a string'
+
+
+def test_date():
+    Randoms = dataclass_from_table('Randoms', db.randoms)
+    d = validate(Randoms, dict(randomdate='jhgjg'))
+    assert d.errors['randomdate'] == 'jhgjg not valid format'
+    d = validate(Randoms, dict(randomdate=date.today()))
+    assert 'randomdate' not in d.errors
+
+
+def test_json_list():
+    Randoms = dataclass_from_table('Randoms', db.randoms)
+    fields = Randoms.__dataclass_fields__
+    assert fields['jsonlist'].type is typing.List
+    d = validate(Randoms, dict(jsonlist='jhgjg'))
+    assert d.errors['jsonlist'] == 'jhgjg not valid'
+    d = validate(Randoms, dict(jsonlist=['bla', 'foo']))
+    assert 'jsonlist' not in d.errors
