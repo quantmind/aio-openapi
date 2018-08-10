@@ -38,6 +38,11 @@ def converter(*types):
     return _
 
 
+@converter(sa.Boolean)
+def bl(col):
+    return (bool, fields.bool_field(**info(col)))
+
+
 @converter(sa.Integer)
 def integer(col):
     return (int, fields.number_field(precision=0, **info(col)))
