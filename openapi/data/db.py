@@ -1,5 +1,5 @@
 import typing
-from datetime import datetime
+from datetime import datetime, date
 from dataclasses import make_dataclass
 from decimal import Decimal
 
@@ -59,8 +59,13 @@ def string(col):
 
 
 @converter(sa.DateTime)
-def dt(col):
+def dt_ti(col):
     return (datetime, fields.date_time_field(**info(col)))
+
+
+@converter(sa.Date)
+def dt(col):
+    return (date, fields.date_field(**info(col)))
 
 
 @converter(sa.Enum)
@@ -73,8 +78,12 @@ def en(col):
 
 @converter(sa.JSON)
 def js(col):
+    val = None
+    if col.default:
+        arg = col.default.arg
+        val = arg() if col.default.is_callable else arg
     return (
-        typing.Dict,
+        JsonTypes.get(type(val), typing.Dict),
         fields.json_field(**info(col))
     )
 
@@ -94,3 +103,9 @@ def info(col):
     )
     data.update(col.info)
     return data
+
+
+JsonTypes = {
+    list: typing.List,
+    dict: typing.Dict
+}
