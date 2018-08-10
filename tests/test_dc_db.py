@@ -1,10 +1,11 @@
-from datetime import date
+from datetime import date, datetime
 import typing
 
 from openapi.db.container import Database
 from openapi.data.db import dataclass_from_table
 from openapi.data.fields import VALIDATOR, UUIDValidator
 from openapi.data.validate import validate
+from openapi.data.dump import dump
 
 from .example.db import meta
 
@@ -53,6 +54,12 @@ def test_date():
     assert d.errors['randomdate'] == 'jhgjg not valid format'
     d = validate(Randoms, dict(randomdate=date.today()))
     assert 'randomdate' not in d.errors
+    v = dump(Randoms, d.data)
+    assert v['randomdate'] == date.today().isoformat()
+    v = dump(Randoms, {'randomdate': datetime.now()})
+    assert v['randomdate'] == date.today().isoformat()
+    v = dump(Randoms, {'randomdate': date.today().isoformat()})
+    assert v['randomdate'] == date.today().isoformat()
 
 
 def test_json_list():
