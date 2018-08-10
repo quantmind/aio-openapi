@@ -40,7 +40,7 @@ def converter(*types):
 
 @converter(sa.Boolean)
 def bl(col):
-    return (int, fields.bool_field(**info(col)))
+    return (bool, fields.bool_field(**info(col)))
 
 
 @converter(sa.Integer)
