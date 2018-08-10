@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
 from typing import List, Dict
@@ -54,6 +54,7 @@ class SchemaParser:
         int: {'type': 'integer', fields.FORMAT: 'int32'},
         float: {'type': 'number', fields.FORMAT: 'float'},
         bool: {'type': 'boolean'},
+        date: {'type': 'string', fields.FORMAT: 'date'},
         datetime: {'type': 'string', fields.FORMAT: 'date-time'},
         Decimal: {'type': 'number'}
     }
@@ -136,9 +137,10 @@ class SchemaParser:
         return {'$ref': SCHEMA_BASE_REF + schema.__name__}
 
     def _list2json(self, field_type):
+        args = field_type.__args__
         return {
             'type': 'array',
-            'items': self.field2json(field_type.__args__[0])
+            'items': self.field2json(args[0]) if args else {'type': 'object'}
         }
 
     def _map2json(self, field_type):
