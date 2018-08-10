@@ -140,7 +140,7 @@ class SchemaParser:
         args = field_type.__args__
         return {
             'type': 'array',
-            'item': self.field2json(args[0]) if args else {'type': 'object'}
+            'items': self.field2json(args[0]) if args else {'type': 'object'}
         }
 
     def _map2json(self, field_type):

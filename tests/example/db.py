@@ -51,6 +51,7 @@ def meta(meta=None):
                   default=datetime.now),
         sa.Column('price', sa.Numeric(precision=100, scale=4), nullable=False),
         sa.Column('tenor', sa.String(3), nullable=False),
+        sa.Column('tick', sa.Boolean),
         sa.Column('info', sa.JSON),
         sa.Column('jsonlist', sa.JSON, default=[]),
         sa.Column('task_id', sa.ForeignKey('tasks.id', ondelete='CASCADE'),
