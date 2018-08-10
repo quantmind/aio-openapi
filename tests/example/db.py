@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
@@ -25,7 +25,8 @@ def meta(meta=None):
 
     sa.Table(
         'tasks', meta,
-        UUIDColumn('id', make_default=True),
+        UUIDColumn(
+            'id', make_default=True, doc='Unique ID'),
         sa.Column(
             'title', sa.String(64), nullable=False, info=dict(min_length=3)),
         sa.Column('done', sa.DateTime),
@@ -45,11 +46,13 @@ def meta(meta=None):
             nullable=False,
             default=uuid.uuid4
         ),
+        sa.Column('randomdate', sa.Date, nullable=False, default=date.today),
         sa.Column('timestamp', sa.DateTime, nullable=False,
                   default=datetime.now),
         sa.Column('price', sa.Numeric(precision=100, scale=4), nullable=False),
         sa.Column('tenor', sa.String(3), nullable=False),
         sa.Column('info', sa.JSON),
+        sa.Column('jsonlist', sa.JSON, default=[]),
         sa.Column('task_id', sa.ForeignKey('tasks.id', ondelete='CASCADE'),
                   nullable=False)
     )

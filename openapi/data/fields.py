@@ -1,6 +1,6 @@
 import decimal
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, date
 from dataclasses import dataclass, field, Field
 
 from email_validator import validate_email, EmailNotValidError
@@ -103,6 +103,11 @@ def email_field(**kw):
 
 def enum_field(EnumClass, **kw):
     kw.setdefault('validator', EnumValidator(EnumClass))
+    return data_field(**kw)
+
+
+def date_field(**kw):
+    kw.setdefault('validator', DateValidator())
     return data_field(**kw)
 
 
@@ -244,6 +249,28 @@ class Choice(Validator):
     def __call__(self, field, value, data=None):
         if value not in self.choices:
             raise ValidationError(field.name, '%s not valid' % value)
+        return value
+
+
+class DateValidator(Validator):
+
+    def dump(self, value):
+        if isinstance(value, datetime):
+            return value.date().isoformat()
+        elif isinstance(value, date):
+            return value.isoformat()
+        return value
+
+    def __call__(self, field, value, data=None):
+        if isinstance(value, str):
+            try:
+                value = parse_date(value).date()
+            except ValueError:
+                pass
+        if not isinstance(value, date):
+            raise ValidationError(
+                field.name, '%s not valid format' % value
+            )
         return value
 
 
