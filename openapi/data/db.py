@@ -13,11 +13,13 @@ from . import fields
 CONVERTERS = {}
 
 
-def dataclass_from_table(name, table, *, exclude=None):
+def dataclass_from_table(name, table, *, exclude=None, include=None):
     columns = []
     exclude = set(exclude or ())
     for col in table.columns:
         if col.name in exclude:
+            continue
+        if include and col.name not in include:
             continue
         ctype = type(col.type)
         converter = CONVERTERS.get(ctype)

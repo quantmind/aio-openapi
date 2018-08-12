@@ -70,3 +70,9 @@ def test_json_list():
     assert d.errors['jsonlist'] == 'jhgjg not valid'
     d = validate(Randoms, dict(jsonlist=['bla', 'foo']))
     assert 'jsonlist' not in d.errors
+
+
+def test_include():
+    Randoms = dataclass_from_table('Randoms', db.randoms, include=('price',))
+    fields = Randoms.__dataclass_fields__
+    assert len(fields) == 1
