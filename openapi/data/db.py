@@ -18,11 +18,9 @@ def dataclass_from_table(
     """Create a dataclass from an sqlalchemy table
     """
     columns = []
-    exclude = set(exclude or ())
+    include = set(include or table.columns.keys()) - set(exclude or ())
     for col in table.columns:
-        if col.name in exclude:
-            continue
-        if include and col.name not in include:
+        if col.name not in include:
             continue
         ctype = type(col.type)
         converter = CONVERTERS.get(ctype)
