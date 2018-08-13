@@ -1,4 +1,5 @@
 from typing import Dict
+from dataclasses import asdict
 
 from .fields import DUMP
 from ..utils import iter_items
@@ -10,9 +11,12 @@ def is_nothing(value):
     return not value
 
 
-def dump(schema: object, data: object) -> Dict:
-    """Validate a dictionary of data with a given dataclass
+def dump(schema: object, data: Dict=None) -> Dict:
+    """Dump a dictionary of data with a given dataclass dump functions
+    If the data is not given, the schema object is assumed to be
+    an instance of a dataclass.
     """
+    data = asdict(schema) if data is None else data
     cleaned = {}
     fields = schema.__dataclass_fields__
     for name, value in iter_items(data):
