@@ -370,9 +370,12 @@ class BoolValidator(Validator):
 class JSONValidator(Validator):
 
     def __call__(self, field, value, data=None):
-        if isinstance(value, str):
-            try:
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                raise ValidationError(field.name, '%s not valid' % value)
-        return value
+        try:
+            return self.dump(value)
+        except json.JSONDecodeError:
+            raise ValidationError(field.name, '%s not valid' % value)
+
+    def dump(self, value):
+        return json.loads(
+            value if isinstance(value, str) else json.dumps(value)
+        )
