@@ -3,7 +3,7 @@ import typing
 
 from openapi.db.container import Database
 from openapi.data.db import dataclass_from_table
-from openapi.data.fields import VALIDATOR, UUIDValidator
+from openapi.data.fields import VALIDATOR, UUIDValidator, REQUIRED
 from openapi.data.validate import validate
 from openapi.data.dump import dump
 
@@ -70,3 +70,17 @@ def test_json_list():
     assert d.errors['jsonlist'] == 'jhgjg not valid'
     d = validate(Randoms, dict(jsonlist=['bla', 'foo']))
     assert 'jsonlist' not in d.errors
+
+
+def test_include():
+    Randoms = dataclass_from_table('Randoms', db.randoms, include=('price',))
+    fields = Randoms.__dataclass_fields__
+    assert len(fields) == 1
+
+
+def test_require():
+    Randoms = dataclass_from_table('Randoms', db.randoms, required=False)
+    fields = Randoms.__dataclass_fields__
+    assert fields
+    for field in fields.values():
+        assert field.metadata[REQUIRED] is False
