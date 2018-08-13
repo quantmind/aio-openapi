@@ -7,7 +7,7 @@ from email_validator import validate_email, EmailNotValidError
 
 from dateutil.parser import parse as parse_date
 
-from ..json import loads, dumps, JSONDecodeError
+from .. import json
 
 from ..utils import compact_dict
 
@@ -370,17 +370,12 @@ class BoolValidator(Validator):
 class JSONValidator(Validator):
 
     def __call__(self, field, value, data=None):
-        if isinstance(value, str):
-            try:
-                value = loads(value)
-            except JSONDecodeError:
-                raise ValidationError(field.name, '%s not valid' % value)
-        return value
+        try:
+            return self.dump(value)
+        except json.JSONDecodeError:
+            raise ValidationError(field.name, '%s not valid' % value)
 
     def dump(self, value):
-        if isinstance(value, str):
-            return loads(value)
-        elif isinstance(value, dict):
-            return loads(dumps(value))
-        else:
-            raise ValueError('%s not valid JSON' % value)
+        return json.loads(
+            value if isinstance(value, str) else json.dumps(value)
+        )
