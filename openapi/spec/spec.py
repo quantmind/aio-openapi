@@ -8,7 +8,10 @@ from aiohttp import hdrs
 from aiohttp import web
 from dataclasses import dataclass, asdict, is_dataclass, field
 
-from .exceptions import InvalidTypeException
+from .exceptions import (
+    InvalidTypeException, InvalidFieldException, InvalidPathException,
+    InvalidMethodException, InvalidTagException
+)
 from .path import ApiPath
 from .utils import load_yaml_from_docstring, trim_docstring
 from ..data import fields
@@ -77,32 +80,37 @@ class SchemaParser:
             params.append(entry)
         return params
 
-    def field2json(self, field):
+    def field2json(self, field, validate_info=True):
         field = fields.as_field(field)
         mapping = self._fields_mapping.get(field.type, None)
         enum = None
         if not mapping:
             if is_subclass(field.type, Enum):
-                mapping = dict(type='string')
                 enum = [e.name for e in field.type]
+                json_property = {'type': 'string', 'enum': enum}
             elif is_subclass(field.type, List):
-                return self._list2json(field.type)
+                json_property = self._list2json(field.type)
             elif is_subclass(field.type, Dict):
-                return self._map2json(field.type)
+                json_property = self._map2json(field.type)
             elif is_dataclass(field.type):
-                return self.get_schema_ref(field.type)
+                json_property = self.get_schema_ref(field.type)
             else:
                 raise InvalidTypeException(field.type)
 
-        json_property = {'type': mapping['type']}
+            mapping = {}
+        else:
+            json_property = {'type': mapping['type']}
+
         meta = field.metadata
-        if meta.get(fields.DESCRIPTION):
-            json_property['description'] = meta.get(fields.DESCRIPTION)
+        field_description = meta.get(fields.DESCRIPTION)
+        if not field_description:
+            if validate_info:
+                raise InvalidFieldException(field, 'Missing description')
+        else:
+            json_property['description'] = field_description
         fmt = meta.get(fields.FORMAT) or mapping.get(fields.FORMAT, None)
         if fmt:
             json_property[fields.FORMAT] = fmt
-        if enum:
-            json_property['enum'] = enum
         validator = meta.get(fields.VALIDATOR)
         # add additional parameters fields from validators
         if isinstance(validator, fields.Validator):
@@ -140,7 +148,8 @@ class SchemaParser:
         args = field_type.__args__
         return {
             'type': 'array',
-            'items': self.field2json(args[0]) if args else {'type': 'object'}
+            'items':
+                self.field2json(args[0], False) if args else {'type': 'object'}
         }
 
     def _map2json(self, field_type):
@@ -151,7 +160,7 @@ class SchemaParser:
         if args:
             if len(args) != 2 or args[0] != str:
                 raise InvalidTypeException(field_type)
-            spec['additionalProperties'] = self.field2json(args[1])
+            spec['additionalProperties'] = self.field2json(args[1], False)
         return spec
 
 
@@ -174,7 +183,7 @@ class OpenApiSpec:
     """Open API document builder
     """
     def __init__(self, info, default_content_type=None,
-                 default_responses=None):
+                 default_responses=None, allowed_tags=None):
         self.schemas = {}
         self.parameters = {}
         self.responses = {}
@@ -189,6 +198,7 @@ class OpenApiSpec:
             paths=OrderedDict()
         )
         self.schemas_to_parse = set()
+        self.allowed_tags = allowed_tags
 
     @property
     def paths(self):
@@ -240,9 +250,24 @@ class OpenApiSpec:
                     handler, app, public, private
                 )
 
+        self._validate_tags()
+
+    def _validate_tags(self):
+        for tag_name, tag_obj in self.tags.items():
+            if self.allowed_tags and tag_name not in self.allowed_tags:
+                raise InvalidTagException(tag_name, 'Tag not allowed')
+            if 'description' not in tag_obj:
+                raise InvalidTagException(
+                    tag_name, 'Missing tag description'
+                )
+
     def _build_path_object(self, handler, path_obj, public, private):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
-        tags = self._extend_tags(path_obj.pop('tags', None))
+        doc_tags = path_obj.pop('tags', None)
+        if not doc_tags:
+            raise InvalidPathException(handler, 'Missing tags docstring')
+
+        tags = self._extend_tags(doc_tags)
         if handler.path_schema:
             p = SchemaParser()
             path_obj['parameters'] = p.parameters(handler.path_schema)
@@ -269,6 +294,8 @@ class OpenApiSpec:
             self._get_response_object(op_attrs, method_doc)
             self._get_request_body_object(op_attrs, method_doc)
             self._get_query_parameters(op_attrs, method_doc)
+            method_info = self._get_method_info(method_handler, method_doc)
+            method_doc.update(method_info)
             method_doc['tags'] = list(mtags)
             path_obj[method] = method_doc
 
@@ -284,6 +311,19 @@ class OpenApiSpec:
         elif schema is not None:
             info['$ref'] = f'{SCHEMA_BASE_REF}{schema.__name__}'
         return info
+
+    def _get_method_info(self, method_handler, method_doc):
+        summary = method_doc.get('summary')
+        if not summary:
+            raise InvalidMethodException(
+                method_handler, 'Missing method summary'
+            )
+        description = method_doc.get('description')
+        if not description:
+            raise InvalidMethodException(
+                method_handler, 'Missing method description'
+            )
+        return {'summary': summary, 'description': description}
 
     def _get_response_object(self, op_attrs, doc):
         response_schema = op_attrs.get('response_schema', None)
