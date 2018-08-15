@@ -12,15 +12,20 @@ from .models import (
 
 
 routes = web.RouteTableDef()
+invalid_path_routes = web.RouteTableDef()
+invalid_method_description_routes = web.RouteTableDef()
+invalid_method_summary_routes = web.RouteTableDef()
+invalid_method_description_routes = web.RouteTableDef()
+invalid_tag_missing_description_routes = web.RouteTableDef()
 
 
 @routes.view('/tasks')
 class TasksPath(SqlApiPath):
     """
     ---
-    summary: Create and query tasks
+    summary: Create and query Tasks
     tags:
-        - task
+        - Task
     """
     table = 'tasks'
 
@@ -32,7 +37,8 @@ class TasksPath(SqlApiPath):
     async def get(self):
         """
         ---
-        summary: retrieve a list of tasks
+        summary: Retrieve Tasks
+        description: Retrieve a list of Tasks
         responses:
             200:
                 description: Authenticated tasks
@@ -44,7 +50,8 @@ class TasksPath(SqlApiPath):
     async def post(self):
         """
         ---
-        summary: create a new task
+        summary: Create a Task
+        description: Create a new Task
         responses:
             201:
                 description: the task was successfully added
@@ -58,7 +65,8 @@ class TasksPath(SqlApiPath):
     async def delete(self):
         """
         ---
-        summary: Delete a group of tasks
+        summary: Delete Tasks
+        description: Delete a group of Tasks
         responses:
             204:
                 description: Tasks successfully deleted
@@ -73,9 +81,10 @@ class TaskPath(SqlApiPath):
     ---
     summary: Create and query tasks
     tags:
-        - name: task
-          description: simple description
-        - name: random
+        - name: Task
+          description: Simple description
+        - name: Random
+          description: Random description
     """
     table = 'tasks'
     path_schema = TaskPathSchema
@@ -84,7 +93,8 @@ class TaskPath(SqlApiPath):
     async def get(self):
         """
         ---
-        summary: get an existing Task by ID
+        summary: Retrieve a Task
+        description: Retrieve a Task by ID
         responses:
             200:
                 description: the task
@@ -96,7 +106,8 @@ class TaskPath(SqlApiPath):
     async def patch(self):
         """
         ---
-        summary: update an existing Task by ID
+        summary: Update a Task
+        description: Update an existing Task by ID
         responses:
             200:
                 description: the updated task
@@ -108,7 +119,8 @@ class TaskPath(SqlApiPath):
     async def delete(self):
         """
         ---
-        summary: Delete an existing task
+        summary: Delete a Task
+        description: Delete an existing task
         responses:
             204:
                 description: Task successfully deleted
@@ -120,9 +132,10 @@ class TaskPath(SqlApiPath):
 @routes.view('/bulk/tasks')
 class TaskBulkPath(SqlApiPath):
     """
+    ---
     summary: Bulk manage tasks
     tags:
-        - task
+        - Task
     """
     table = 'tasks'
 
@@ -130,10 +143,11 @@ class TaskBulkPath(SqlApiPath):
     async def post(self):
         """
         ---
-        summary: bulk create tasks
+        summary: Create Tasks
+        description: Create a group of Tasks
         responses:
             201:
-                description: created tasks
+                description: Created tasks
         """
         data = await self.create_list()
         return self.json_response(data, status=201)
@@ -142,15 +156,27 @@ class TaskBulkPath(SqlApiPath):
 @routes.view('/transaction/tasks')
 class TaskTransactionsPath(SqlApiPath):
     """
+    ---
     summary: Manage tasks with transactions
     tags:
-        - task
-        - transaction
+        - Task
+        - name: Transaction
+          description: Endpoints that creates a new transaction
     """
     table = 'tasks'
 
     @op(body_schema=TaskAdd, response_schema=Task)
     async def post(self):
+        """
+        ---
+        summary: Create Task
+        description: Create a Task using transatcion
+        responses:
+            201:
+                description: Created Task
+            500:
+                description: Forced raised error
+        """
         data = await self.json_data()
         async with self.db.transaction() as conn:
             should_raise = data.pop('should_raise', False)
@@ -166,7 +192,8 @@ class TaskTransactionsPath(SqlApiPath):
     async def get(self):
         """
         ---
-        summary: retrieve a list of tasks
+        summary: Retrieve Tasks
+        description: Retrieve a list of Tasks using transaction
         responses:
             200:
                 description: Authenticated tasks
@@ -179,10 +206,11 @@ class TaskTransactionsPath(SqlApiPath):
 @routes.view('/transaction/tasks/{id}')
 class TaskTransactionPath(SqlApiPath):
     """
-    summary: Manage tasks with transactions
+    ---
+    summary: Manage Tasks with transactions
     tags:
-        - task
-        - transaction
+        - Task
+        - Transaction
     """
     table = 'tasks'
     path_schema = TaskPathSchema
@@ -191,7 +219,8 @@ class TaskTransactionPath(SqlApiPath):
     async def get(self):
         """
         ---
-        summary: get an existing Task by ID
+        summary: Retrieve Task
+        description: Retrieve an existing Task by ID using transaction
         responses:
             200:
                 description: the task
@@ -204,7 +233,8 @@ class TaskTransactionPath(SqlApiPath):
     async def patch(self):
         """
         ---
-        summary: update an existing Task by ID
+        summary: Update Task
+        description: Update an existing Task by ID using transaction
         responses:
             200:
                 description: the updated task
@@ -224,7 +254,8 @@ class TaskTransactionPath(SqlApiPath):
     async def delete(self):
         """
         ---
-        summary: Delete an existing task
+        summary: Delete Task
+        description: Delete an existing task using transaction
         responses:
             204:
                 description: Task successfully deleted
@@ -244,10 +275,11 @@ class TaskTransactionPath(SqlApiPath):
 @routes.view('/transaction/bulk/tasks')
 class TaskBulkTransactionPath(SqlApiPath):
     """
+    ---
     summary: Bulk manage tasks with transactions
     tags:
-        - task
-        - transaction
+        - Task
+        - Transaction
     """
     table = 'tasks'
 
@@ -255,7 +287,8 @@ class TaskBulkTransactionPath(SqlApiPath):
     async def delete(self):
         """
         ---
-        summary: Delete a group of tasks
+        summary: Delete Tasks
+        description: Bulk delete a group of Tasks using transaction
         responses:
             204:
                 description: Tasks successfully deleted
@@ -270,7 +303,8 @@ class TaskBulkTransactionPath(SqlApiPath):
     async def post(self):
         """
         ---
-        summary: bulk create tasks
+        summary: Create Tasks
+        description: Bulk create Tasks using transaction
         responses:
             201:
                 description: created tasks
@@ -285,7 +319,7 @@ class TaskPath2(SqlApiPath):
     """
     ---
     tags:
-        - name: task
+        - Task
     """
     table = 'tasks'
     path_schema = TaskPathSchema2
@@ -298,7 +332,8 @@ class TaskPath2(SqlApiPath):
     async def get(self):
         """
         ---
-        summary: get an existing Task by ID
+        summary: Retrieve a Task
+        description: Retrieve an existing Task by ID
         responses:
             200:
                 description: the task
@@ -310,7 +345,8 @@ class TaskPath2(SqlApiPath):
     async def patch(self):
         """
         ---
-        summary: update an existing Task by ID
+        summary: Update a Task
+        description: Update an existing Task by ID
         responses:
             200:
                 description: the updated task
@@ -322,10 +358,69 @@ class TaskPath2(SqlApiPath):
     async def delete(self):
         """
         ---
-        summary: Delete an existing task
+        summary: Delete a Task
+        description: Delete an existing Task
         responses:
             204:
                 description: Task successfully deleted
         """
         await self.delete_one(filters=self.get_filters())
         return web.Response(status=204)
+
+
+@invalid_path_routes.view('/tasks')
+class NoTagsTaskPath(SqlApiPath):
+    """
+    ---
+    """
+    pass
+
+
+@invalid_method_summary_routes.view('/tasks')
+class NoSummaryMethodPath(SqlApiPath):
+    """
+    ---
+    tags:
+        - Tag
+    """
+    @op(response_schema=[Task])
+    def get(self):
+        """
+        ---
+        description: Valid method description
+        responses:
+            200:
+                description: Valid response description
+        """
+        pass
+
+
+@invalid_method_description_routes.view('/tasks')
+class NoDescriptionMethodPath(SqlApiPath):
+    """
+    ---
+    tags:
+        - Tag
+    """
+    @op(response_schema=[Task])
+    def get(self):
+        """
+        ---
+        summary: Valid method summary
+        responses:
+            200:
+                description: Valid response description
+        """
+        pass
+
+
+@invalid_tag_missing_description_routes.view('/tasks')
+class NoTagDescriptionPath(SqlApiPath):
+    """"
+    ---
+    tags:
+        - name: Task
+          description: Simple description
+        - Random
+    """
+    pass

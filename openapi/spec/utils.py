@@ -57,3 +57,7 @@ def load_yaml_from_docstring(docstring):
     yaml_string = "\n".join(split_lines[cut_from:])
     yaml_string = dedent(yaml_string)
     return yaml.load(yaml_string)
+
+
+def docjoin(iterable):
+    return ', '.join(f'``{v}``' for v in iterable)

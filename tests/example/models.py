@@ -18,11 +18,17 @@ class TaskType(enum.Enum):
 
 @dataclass
 class TaskAdd:
-    title: str = data_field(required=True)
-    severity: int = integer_field()
-    type: TaskType = enum_field(TaskType, default=TaskType.todo)
-    unique_title: str = data_field()
-    story_points: Decimal = decimal_field(default=0.0)
+    title: str = data_field(
+        required=True, description='Task title'
+    )
+    severity: int = integer_field(description='Task severity')
+    type: TaskType = enum_field(
+        TaskType, default=TaskType.todo, description='Task type'
+    )
+    unique_title: str = data_field(description='Unique title of the Task')
+    story_points: Decimal = decimal_field(
+        default=0.0, description='Task story points'
+    )
 
     @classmethod
     def validate(cls, data, errors):
@@ -32,18 +38,20 @@ class TaskAdd:
 
 @dataclass
 class Task(TaskAdd):
-    id: str = uuid_field(required=True)
-    done: datetime = date_time_field()
-    story_points: Decimal = decimal_field()
+    id: str = uuid_field(required=True, description='Task ID')
+    done: datetime = date_time_field(description='Done timestamp')
+    story_points: Decimal = decimal_field(description='Story points')
 
 
 @dataclass
 class TaskQuery:
-    title: str = data_field()
-    done: bool = data_field()
-    type: TaskType = enum_field(TaskType)
-    severity: int = integer_field(ops=('lt', 'le', 'gt', 'ge', 'ne'))
-    story_points: Decimal = decimal_field()
+    title: str = data_field(description='Task title')
+    done: bool = data_field(description='Done timestamp')
+    type: TaskType = enum_field(TaskType, description='Task type')
+    severity: int = integer_field(
+        ops=('lt', 'le', 'gt', 'ge', 'ne'), description='Task severity'
+    )
+    story_points: Decimal = decimal_field(description='Story points')
 
 
 @dataclass
@@ -53,14 +61,14 @@ class TaskOrderableQuery(TaskQuery, orderable('title'), Query):
 
 @dataclass
 class TaskUpdate(TaskAdd):
-    done: datetime = date_time_field()
+    done: datetime = date_time_field(description='Done timestamp')
 
 
 @dataclass
 class TaskPathSchema:
-    id: str = uuid_field(required=True)
+    id: str = uuid_field(required=True, description='Task ID')
 
 
 @dataclass
 class TaskPathSchema2:
-    task_id: str = uuid_field(required=True)
+    task_id: str = uuid_field(required=True, description='Task ID')

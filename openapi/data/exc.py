@@ -22,7 +22,7 @@ class FieldError(ErrorMessage):
 class ValidationErrors(ErrorMessage):
     """Error message and list of errors for data fields
     """
-    errors: List[FieldError]
+    errors: List[FieldError] = data_field(description='List of field errors')
 
 
 def error_response_schema(status):
