@@ -8,7 +8,7 @@ import pytest
 
 from openapi.spec import SchemaParser
 from openapi.spec.exceptions import (
-    InvalidTypeException, InvalidFieldException,
+    InvalidTypeException, InvalidSpecException,
 )
 from openapi.data.fields import (
     as_field, data_field, number_field, date_time_field, bool_field
@@ -150,10 +150,8 @@ def test_field2json_missing_description():
         no_desc_field: str = data_field()
 
     parser = SchemaParser()
-    with pytest.raises(InvalidFieldException) as exc_info:
+    with pytest.raises(InvalidSpecException):
         parser.get_schema_ref(MyClass)
-
-    assert exc_info.value.field.name == 'no_desc_field'
 
 
 def test_enum2json():

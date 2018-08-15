@@ -5,9 +5,7 @@ from openapi.rest import rest
 #  from openapi_spec_validator import validate_spec
 
 from openapi.spec import OpenApi, OpenApiSpec
-from openapi.spec.exceptions import (
-    InvalidPathException, InvalidMethodException, InvalidTagException
-)
+from openapi.spec.exceptions import InvalidSpecException
 from ..example import endpoints
 
 
@@ -67,7 +65,16 @@ async def test_invalid_path():
     open_api = OpenApi()
     spec = OpenApiSpec(asdict(open_api))
 
-    with pytest.raises(InvalidPathException):
+    with pytest.raises(InvalidSpecException):
+        spec.build(app)
+
+
+async def test_invalid_method_missing_summary():
+    app = create_spec_app(endpoints.invalid_method_summary_routes)
+    open_api = OpenApi()
+    spec = OpenApiSpec(asdict(open_api))
+
+    with pytest.raises(InvalidSpecException):
         spec.build(app)
 
 
@@ -76,7 +83,7 @@ async def test_invalid_method_missing_description():
     open_api = OpenApi()
     spec = OpenApiSpec(asdict(open_api))
 
-    with pytest.raises(InvalidMethodException):
+    with pytest.raises(InvalidSpecException):
         spec.build(app)
 
 
@@ -97,10 +104,8 @@ async def test_allowed_tags_invalid():
         asdict(open_api),
         allowed_tags=set(('Task', 'Transaction'))
     )
-    with pytest.raises(InvalidTagException) as exc_info:
+    with pytest.raises(InvalidSpecException):
         spec.build(app)
-
-    assert exc_info.value.tag == 'Random'
 
 
 async def test_tags_missing_description():
@@ -108,9 +113,7 @@ async def test_tags_missing_description():
     open_api = OpenApi()
     spec = OpenApiSpec(
         asdict(open_api),
-        allowed_tags=set(('Task', 'Transaction'))
+        allowed_tags=set(('Task', 'Transaction', 'Random'))
     )
-    with pytest.raises(InvalidTagException) as exc_info:
+    with pytest.raises(InvalidSpecException):
         spec.build(app)
-
-    assert exc_info.value.tag == 'Random'

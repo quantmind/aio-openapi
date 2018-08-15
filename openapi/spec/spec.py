@@ -8,10 +8,7 @@ from aiohttp import hdrs
 from aiohttp import web
 from dataclasses import dataclass, asdict, is_dataclass, field
 
-from .exceptions import (
-    InvalidTypeException, InvalidFieldException, InvalidPathException,
-    InvalidMethodException, InvalidTagException
-)
+from .exceptions import InvalidTypeException, InvalidSpecException
 from .path import ApiPath
 from .utils import load_yaml_from_docstring, trim_docstring
 from ..data import fields
@@ -83,7 +80,6 @@ class SchemaParser:
     def field2json(self, field, validate_info=True):
         field = fields.as_field(field)
         mapping = self._fields_mapping.get(field.type, None)
-        enum = None
         if not mapping:
             if is_subclass(field.type, Enum):
                 enum = [e.name for e in field.type]
@@ -105,7 +101,9 @@ class SchemaParser:
         field_description = meta.get(fields.DESCRIPTION)
         if not field_description:
             if validate_info:
-                raise InvalidFieldException(field, 'Missing description')
+                raise InvalidSpecException(
+                    f'Missing description for field {field.name}'
+                )
         else:
             json_property['description'] = field_description
         fmt = meta.get(fields.FORMAT) or mapping.get(fields.FORMAT, None)
@@ -255,17 +253,17 @@ class OpenApiSpec:
     def _validate_tags(self):
         for tag_name, tag_obj in self.tags.items():
             if self.allowed_tags and tag_name not in self.allowed_tags:
-                raise InvalidTagException(tag_name, 'Tag not allowed')
+                raise InvalidSpecException(f'Tag {tag_name} not allowed')
             if 'description' not in tag_obj:
-                raise InvalidTagException(
-                    tag_name, 'Missing tag description'
+                raise InvalidSpecException(
+                    f'Missing tag {tag_name} description'
                 )
 
     def _build_path_object(self, handler, path_obj, public, private):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
         doc_tags = path_obj.pop('tags', None)
         if not doc_tags:
-            raise InvalidPathException(handler, 'Missing tags docstring')
+            raise InvalidSpecException(f'Missing tags docstring for {handler}')
 
         tags = self._extend_tags(doc_tags)
         if handler.path_schema:
@@ -315,13 +313,13 @@ class OpenApiSpec:
     def _get_method_info(self, method_handler, method_doc):
         summary = method_doc.get('summary')
         if not summary:
-            raise InvalidMethodException(
-                method_handler, 'Missing method summary'
+            raise InvalidSpecException(
+                f'Missing method summary for {method_handler}'
             )
         description = method_doc.get('description')
         if not description:
-            raise InvalidMethodException(
-                method_handler, 'Missing method description'
+            raise InvalidSpecException(
+                f'Missing method description for {method_handler}'
             )
         return {'summary': summary, 'description': description}
 
