@@ -4,6 +4,7 @@ from .data.fields import Choice, IntegerValidator
 from .cli import OpenApiClient
 from .data.fields import data_field, bool_field
 from .spec import OpenApi
+from .spec.utils import docjoin
 from .spec.pagination import MAX_PAGINATION_LIMIT
 
 
@@ -38,7 +39,8 @@ def orderable(*orderable_fields):
         order_by: str = data_field(
             validator=Choice(orderable_fields),
             description=(
-                'Order results by given column (default ascending order)'
+                'Order results by given column (default ascending order). '
+                f'Possible values are {docjoin(orderable_fields)}'
             )
         )
         order_desc: bool = bool_field(
