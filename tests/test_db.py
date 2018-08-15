@@ -239,9 +239,9 @@ async def test_spec_root(cli):
     spec = await jsonBody(response)
     assert 'paths' in spec
     assert 'tags' in spec
-    assert len(spec['tags']) == 2
-    assert spec['tags'][1]['name'] == 'task'
-    assert spec['tags'][1]['description'] == 'simple description'
+    assert len(spec['tags']) == 3
+    assert spec['tags'][1]['name'] == 'Task'
+    assert spec['tags'][1]['description'] == 'Simple description'
 
 
 async def test_transaction_create(cli):
