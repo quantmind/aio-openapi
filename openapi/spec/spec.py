@@ -45,6 +45,7 @@ class OpenApi:
     security: Dict[str, Dict] = field(default_factory=dict)
     contact: Contact = Contact()
     license: License = License()
+    allowed_tags: set = None
 
 
 class SchemaParser:
@@ -181,7 +182,7 @@ class OpenApiSpec:
     """Open API document builder
     """
     def __init__(self, info, default_content_type=None,
-                 default_responses=None, allowed_tags=None):
+                 default_responses=None):
         self.schemas = {}
         self.parameters = {}
         self.responses = {}
@@ -196,7 +197,7 @@ class OpenApiSpec:
             paths=OrderedDict()
         )
         self.schemas_to_parse = set()
-        self.allowed_tags = allowed_tags
+        self.allowed_tags = info.pop('allowed_tags', None)
 
     @property
     def paths(self):
