@@ -149,7 +149,7 @@ def test_field2json_missing_description():
         desc_field: str = data_field(description='Valid field')
         no_desc_field: str = data_field()
 
-    parser = SchemaParser()
+    parser = SchemaParser(validate_docs=True)
     with pytest.raises(InvalidSpecException):
         parser.get_schema_ref(MyClass)
 

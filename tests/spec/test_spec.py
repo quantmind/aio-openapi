@@ -63,7 +63,7 @@ async def test_spec_422(test_app):
 async def test_invalid_path():
     app = create_spec_app(endpoints.invalid_path_routes)
     open_api = OpenApi()
-    spec = OpenApiSpec(asdict(open_api))
+    spec = OpenApiSpec(asdict(open_api), validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
         spec.build(app)
@@ -72,7 +72,7 @@ async def test_invalid_path():
 async def test_invalid_method_missing_summary():
     app = create_spec_app(endpoints.invalid_method_summary_routes)
     open_api = OpenApi()
-    spec = OpenApiSpec(asdict(open_api))
+    spec = OpenApiSpec(asdict(open_api), validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
         spec.build(app)
@@ -81,7 +81,7 @@ async def test_invalid_method_missing_summary():
 async def test_invalid_method_missing_description():
     app = create_spec_app(endpoints.invalid_method_description_routes)
     open_api = OpenApi()
-    spec = OpenApiSpec(asdict(open_api))
+    spec = OpenApiSpec(asdict(open_api), validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
         spec.build(app)
@@ -102,6 +102,7 @@ async def test_allowed_tags_invalid():
     open_api = OpenApi()
     spec = OpenApiSpec(
         asdict(open_api),
+        validate_docs=True,
         allowed_tags=set(('Task', 'Transaction'))
     )
     with pytest.raises(InvalidSpecException):
@@ -113,6 +114,7 @@ async def test_tags_missing_description():
     open_api = OpenApi()
     spec = OpenApiSpec(
         asdict(open_api),
+        validate_docs=True,
         allowed_tags=set(('Task', 'Transaction', 'Random'))
     )
     with pytest.raises(InvalidSpecException):
