@@ -2,11 +2,11 @@ from collections import OrderedDict
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Iterable
+from dataclasses import dataclass, asdict, is_dataclass, field
 
 from aiohttp import hdrs
 from aiohttp import web
-from dataclasses import dataclass, asdict, is_dataclass, field
 
 from .exceptions import InvalidTypeException, InvalidSpecException
 from .path import ApiPath
@@ -59,8 +59,9 @@ class SchemaParser:
         Decimal: {'type': 'number'}
     }
 
-    def __init__(self, group=None):
+    def __init__(self, group=None, validate_docs=False):
         self.group = group or SchemaGroup()
+        self.validate_docs = validate_docs
 
     def parameters(self, Schema, default_in='path'):
         params = []
@@ -77,7 +78,7 @@ class SchemaParser:
             params.append(entry)
         return params
 
-    def field2json(self, field, validate_info=True):
+    def field2json(self, field, validate_docs=True):
         field = fields.as_field(field)
         mapping = self._fields_mapping.get(field.type, None)
         if not mapping:
@@ -100,9 +101,9 @@ class SchemaParser:
         meta = field.metadata
         field_description = meta.get(fields.DESCRIPTION)
         if not field_description:
-            if validate_info:
+            if validate_docs and self.validate_docs:
                 raise InvalidSpecException(
-                    f'Missing description for field {field.name}'
+                    f'Missing description for field "{field.name}"'
                 )
         else:
             json_property['description'] = field_description
@@ -167,12 +168,14 @@ class SchemaGroup:
     def __init__(self):
         self.parsed_schemas = {}
 
-    def parse(self, schemas):
+    def parse(self, schemas, validate_docs=False):
         for schema in set(schemas):
             if schema.__name__ in self.parsed_schemas:
                 continue
 
-            parsed_schema = SchemaParser(self).schema2json(schema)
+            parsed_schema = SchemaParser(
+                self, validate_docs=validate_docs
+            ).schema2json(schema)
             self.parsed_schemas[schema.__name__] = parsed_schema
         return self.parsed_schemas
 
@@ -180,8 +183,13 @@ class SchemaGroup:
 class OpenApiSpec:
     """Open API document builder
     """
-    def __init__(self, info, default_content_type=None,
-                 default_responses=None, allowed_tags=None):
+    def __init__(
+            self,
+            info: OpenApi=None,
+            default_content_type: str=None,
+            default_responses: Iterable=None,
+            allowed_tags: Iterable=None,
+            validate_docs: bool=False):
         self.schemas = {}
         self.parameters = {}
         self.responses = {}
@@ -192,15 +200,24 @@ class OpenApiSpec:
         self.default_responses = default_responses or {}
         self.doc = dict(
             openapi=OPENAPI,
-            info=info,
+            info=asdict(info or OpenApi()),
             paths=OrderedDict()
         )
         self.schemas_to_parse = set()
         self.allowed_tags = allowed_tags
+        self.validate_docs = validate_docs
 
     @property
     def paths(self):
         return self.doc['paths']
+
+    @property
+    def title(self):
+        return self.doc['info']['title']
+
+    @property
+    def version(self):
+        return self.doc['info']['version']
 
     def build(self, app, public=True, private=False):
         """Build the ``doc`` dictionary by adding paths
@@ -230,7 +247,7 @@ class OpenApiSpec:
             ),
             servers=self.servers
         ))
-        return self
+        return doc
 
     def _build_paths(self, app, public, private):
         """Loop through app paths and add
@@ -244,30 +261,37 @@ class OpenApiSpec:
             handler = route.handler
             if (issubclass(handler, ApiPath) and
                     self._include(handler.private, public, private)):
-                paths[path] = self._build_path_object(
-                    handler, app, public, private
-                )
+                try:
+                    paths[path] = self._build_path_object(
+                        handler, app, public, private
+                    )
+                except InvalidSpecException as exc:
+                    raise InvalidSpecException(
+                        f'Invalid spec in route "{path}": {exc}'
+                    ) from None
 
-        self._validate_tags()
+        if self.validate_docs:
+            self._validate_tags()
 
     def _validate_tags(self):
         for tag_name, tag_obj in self.tags.items():
             if self.allowed_tags and tag_name not in self.allowed_tags:
-                raise InvalidSpecException(f'Tag {tag_name} not allowed')
+                raise InvalidSpecException(f'Tag "{tag_name}" not allowed')
             if 'description' not in tag_obj:
                 raise InvalidSpecException(
-                    f'Missing tag {tag_name} description'
+                    f'Missing tag "{tag_name}" description'
                 )
 
     def _build_path_object(self, handler, path_obj, public, private):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
         doc_tags = path_obj.pop('tags', None)
-        if not doc_tags:
-            raise InvalidSpecException(f'Missing tags docstring for {handler}')
+        if not doc_tags and self.validate_docs:
+            raise InvalidSpecException(
+                f'Missing tags docstring for "{handler}"')
 
         tags = self._extend_tags(doc_tags)
         if handler.path_schema:
-            p = SchemaParser()
+            p = SchemaParser(validate_docs=self.validate_docs)
             path_obj['parameters'] = p.parameters(handler.path_schema)
         for method in METHODS:
             method_handler = getattr(handler, method, None)
@@ -311,16 +335,17 @@ class OpenApiSpec:
         return info
 
     def _get_method_info(self, method_handler, method_doc):
-        summary = method_doc.get('summary')
-        if not summary:
-            raise InvalidSpecException(
-                f'Missing method summary for {method_handler}'
-            )
-        description = method_doc.get('description')
-        if not description:
-            raise InvalidSpecException(
-                f'Missing method description for {method_handler}'
-            )
+        summary = method_doc.get('summary', '')
+        description = method_doc.get('description', '')
+        if self.validate_docs:
+            if not summary:
+                raise InvalidSpecException(
+                    f'Missing method summary for "{method_handler}"'
+                )
+            if not description:
+                raise InvalidSpecException(
+                    f'Missing method description for "{method_handler}"'
+                )
         return {'summary': summary, 'description': description}
 
     def _get_response_object(self, op_attrs, doc):
@@ -359,7 +384,8 @@ class OpenApiSpec:
     def _get_query_parameters(self, op_attrs, doc):
         schema = op_attrs.get('query_schema', None)
         if schema:
-            doc['parameters'] = SchemaParser().parameters(schema, 'query')
+            doc['parameters'] = SchemaParser(
+                validate_docs=self.validate_docs).parameters(schema, 'query')
 
     def _add_schemas_from_operation(self, operation_obj):
         for schema in SCHEMAS_TO_SCHEMA:
@@ -396,6 +422,5 @@ async def spec_root(request):
     app = request.app
     spec = app.get('spec_doc')
     if not spec:
-        spec = OpenApiSpec(asdict(app['spec']))
-        app['spec_doc'] = spec.build(app)
-    return web.json_response(spec.doc)
+        app['spec_doc'] = app['spec'].build(app)
+    return web.json_response(app['spec_doc'])
