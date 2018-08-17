@@ -1,19 +1,33 @@
 from dataclasses import dataclass
+import typing
 
 from .data.fields import Choice, IntegerValidator
 from .cli import OpenApiClient
 from .data.fields import data_field, bool_field
-from .spec import OpenApi
+from .spec import OpenApi, OpenApiSpec
 from .spec.utils import docjoin
 from .spec.pagination import MAX_PAGINATION_LIMIT
 
 
-def rest(setup_app=None, base_path=None, commands=None, **kwargs):
+def rest(
+        openapi: dict=None,
+        setup_app: object=None,
+        base_path: str=None,
+        commands: typing.List=None,
+        allowed_tags: typing.Set=None,
+        validate_docs: bool=False
+):
     """Create the OpenApi application server
     """
-    spec = OpenApi(**kwargs)
     return OpenApiClient(
-        spec, base_path=base_path, commands=commands, setup_app=setup_app
+        OpenApiSpec(
+            OpenApi(**(openapi or {})),
+            allowed_tags=allowed_tags,
+            validate_docs=validate_docs
+        ),
+        base_path=base_path,
+        commands=commands,
+        setup_app=setup_app
     )
 
 

@@ -2,11 +2,11 @@ from collections import OrderedDict
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Iterable
+from dataclasses import dataclass, asdict, is_dataclass, field
 
 from aiohttp import hdrs
 from aiohttp import web
-from dataclasses import dataclass, asdict, is_dataclass, field
 
 from .exceptions import InvalidTypeException, InvalidSpecException
 from .path import ApiPath
@@ -78,7 +78,7 @@ class SchemaParser:
             params.append(entry)
         return params
 
-    def field2json(self, field, validate_info=True):
+    def field2json(self, field, validate_docs=True):
         field = fields.as_field(field)
         mapping = self._fields_mapping.get(field.type, None)
         if not mapping:
@@ -101,7 +101,7 @@ class SchemaParser:
         meta = field.metadata
         field_description = meta.get(fields.DESCRIPTION)
         if not field_description:
-            if validate_info and self.validate_docs:
+            if validate_docs and self.validate_docs:
                 raise InvalidSpecException(
                     f'Missing description for field "{field.name}"'
                 )
@@ -183,9 +183,13 @@ class SchemaGroup:
 class OpenApiSpec:
     """Open API document builder
     """
-    def __init__(self, info, default_content_type=None,
-                 default_responses=None, allowed_tags=None,
-                 validate_docs=False):
+    def __init__(
+            self,
+            info: OpenApi=None,
+            default_content_type: str=None,
+            default_responses: Iterable=None,
+            allowed_tags: Iterable=None,
+            validate_docs: bool=False):
         self.schemas = {}
         self.parameters = {}
         self.responses = {}
@@ -196,7 +200,7 @@ class OpenApiSpec:
         self.default_responses = default_responses or {}
         self.doc = dict(
             openapi=OPENAPI,
-            info=info,
+            info=asdict(info or OpenApi()),
             paths=OrderedDict()
         )
         self.schemas_to_parse = set()
@@ -206,6 +210,14 @@ class OpenApiSpec:
     @property
     def paths(self):
         return self.doc['paths']
+
+    @property
+    def title(self):
+        return self.doc['info']['title']
+
+    @property
+    def version(self):
+        return self.doc['info']['version']
 
     def build(self, app, public=True, private=False):
         """Build the ``doc`` dictionary by adding paths
@@ -235,7 +247,7 @@ class OpenApiSpec:
             ),
             servers=self.servers
         ))
-        return self
+        return doc
 
     def _build_paths(self, app, public, private):
         """Loop through app paths and add
@@ -410,6 +422,5 @@ async def spec_root(request):
     app = request.app
     spec = app.get('spec_doc')
     if not spec:
-        spec = OpenApiSpec(asdict(app['spec']))
-        app['spec_doc'] = spec.build(app)
-    return web.json_response(spec.doc)
+        app['spec_doc'] = app['spec'].build(app)
+    return web.json_response(app['spec_doc'])
