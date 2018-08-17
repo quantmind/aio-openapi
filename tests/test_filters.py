@@ -1,10 +1,8 @@
-from dataclasses import asdict
-
 import pytest
 
 from multidict import MultiDict
 
-from openapi.spec import OpenApi, OpenApiSpec
+from openapi.spec import OpenApiSpec
 from openapi.testing import jsonBody
 
 
@@ -43,9 +41,7 @@ async def assert_query(cli, params, expected):
 
 
 async def test_spec(test_app):
-    open_api = OpenApi()
-
-    spec = OpenApiSpec(asdict(open_api))
+    spec = OpenApiSpec()
     spec.build(test_app)
     query = spec.paths['/tasks']['get']['parameters']
     filters = [q['name'] for q in query]

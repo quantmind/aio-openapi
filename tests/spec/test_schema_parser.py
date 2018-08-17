@@ -108,11 +108,11 @@ def test_schema2json():
 
 def test_field2json():
     parser = SchemaParser([])
-    str_json = parser.field2json(str, validate_info=False)
-    int_json = parser.field2json(int, validate_info=False)
-    float_json = parser.field2json(float, validate_info=False)
-    bool_json = parser.field2json(bool, validate_info=False)
-    datetime_json = parser.field2json(datetime, validate_info=False)
+    str_json = parser.field2json(str)
+    int_json = parser.field2json(int)
+    float_json = parser.field2json(float)
+    bool_json = parser.field2json(bool)
+    datetime_json = parser.field2json(datetime)
 
     assert str_json == {'type': 'string'}
     assert int_json == {'type': 'integer', 'format': 'int32'}
@@ -123,12 +123,8 @@ def test_field2json():
 
 def test_field2json_format():
     parser = SchemaParser([])
-    str_json = parser.field2json(
-        as_field(str, format='uuid'), validate_info=False
-    )
-    int_json = parser.field2json(
-        as_field(int, format='int64'), validate_info=False
-    )
+    str_json = parser.field2json(as_field(str, format='uuid'))
+    int_json = parser.field2json(as_field(int, format='int64'))
 
     assert str_json == {'type': 'string', 'format': 'uuid'}
     assert int_json == {'type': 'integer', 'format': 'int64'}
@@ -149,7 +145,7 @@ def test_field2json_missing_description():
         desc_field: str = data_field(description='Valid field')
         no_desc_field: str = data_field()
 
-    parser = SchemaParser()
+    parser = SchemaParser(validate_docs=True)
     with pytest.raises(InvalidSpecException):
         parser.get_schema_ref(MyClass)
 
@@ -161,7 +157,7 @@ def test_enum2json():
         FIELD_3 = 2
 
     parser = SchemaParser([])
-    json_type = parser.field2json(MyEnum, validate_info=False)
+    json_type = parser.field2json(MyEnum)
     assert json_type == {
         'type': 'string', 'enum': ['FIELD_1', 'FIELD_2', 'FIELD_3']
     }
