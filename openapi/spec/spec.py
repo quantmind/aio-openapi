@@ -361,7 +361,7 @@ class OpenApiSpec:
                     error_response_schema(response)
                 )
             responses[response] = {
-                'description': data['description'],
+                'description': data.get('description', ''),
                 'content': {
                     'application/json': {
                         'schema': rschema
