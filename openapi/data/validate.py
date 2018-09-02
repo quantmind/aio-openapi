@@ -78,8 +78,9 @@ def collect_value(field, name, value):
     if validator:
         value = validator(field, value)
 
-    type_ = getattr(field.type, '__origin__', None) or field.type
-    if not isinstance(value, type_):
+    types = getattr(field.type, '__args__', None) or (field.type,)
+    types = tuple((getattr(t, '__origin__', None) or t) for t in types)
+    if not isinstance(value, types):
         try:
             value = field.type(value)
         except (TypeError, ValueError):

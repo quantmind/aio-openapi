@@ -36,6 +36,19 @@ pytest --cov
 * Migrations with [alembic][]
 * SqlAlchemy tables as python [dataclasses][]
 
+## Websockets
+
+This library provides a simple distributed websocket utility for creating
+websocket remote procedure calls (RPC) and pub/sub.
+```python
+from aiohttp import web
+
+from openapi.ws import Sockets
+
+app = web.Application()
+...
+app['web_sockets] = Sockets(app)
+```
 
 [aiohttp]: https://aiohttp.readthedocs.io/en/stable/
 [asyncpg]: https://github.com/MagicStack/asyncpg
