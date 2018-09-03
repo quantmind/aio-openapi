@@ -100,8 +100,9 @@ def getLogger():
     if level != 'NONE':
         name = os.environ.get('APP_NAME') or 'openapi'
         logger = logging.getLogger(name)
-        logger.setLevel(getattr(logging, level))
-        logger.addHandler(logging.StreamHandler())
+        if not logger.hasHandlers():
+            logger.setLevel(getattr(logging, level))
+            logger.addHandler(logging.StreamHandler())
         return logger
 
 
