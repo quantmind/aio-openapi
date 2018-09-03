@@ -117,6 +117,10 @@ class Channels:
             name = f'{self.namespace}{name}'
         return name
 
+    async def start(self):
+        if self.broker:
+            await self.broker.start()
+
     async def close(self):
         """Close channels and underlying broker handler
         """

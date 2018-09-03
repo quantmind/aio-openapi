@@ -128,10 +128,14 @@ class Sockets:
     def __init__(self, app):
         self.sockets = set()
         self.channels = Channels(app.get('broker'))
+        app.on_startup.append(self.start)
         app.on_shutdown.append(self.close)
 
     def add(self, ws):
         self.sockets.add(ws)
+
+    async def start(self, app):
+        await self.channels.start()
 
     async def close(self, app):
         await asyncio.gather(*[ws.response.close() for ws in self.sockets])

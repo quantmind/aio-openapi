@@ -7,12 +7,12 @@ import pytest
 from openapi import ws
 from openapi.ws.utils import redis_to_py_pattern
 
-from .example.ws import LocalPubSub
-
 
 @pytest.fixture
-def channels():
-    return ws.Channels(LocalPubSub(), namespace='test_')
+async def channels():
+    channels = ws.Channels(ws.LocalBroker(), namespace='test_')
+    await channels.start()
+    return channels
 
 
 async def test_channels_properties(channels):
