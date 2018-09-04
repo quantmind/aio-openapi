@@ -67,7 +67,7 @@ class Subscribe:
 
         Send it to client
         """
-        await self.ws.write(dict(
+        await self.write(dict(
             channel=channel.name,
             event=match,
             data=data

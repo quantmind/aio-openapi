@@ -55,12 +55,15 @@ class WsPath(ApiPath):
                 'message': 'Unable to open websocket connection'
             }))
         await response.prepare(self.request)
-        self.ws = Websocket(response, self)
+        self.response = response
+        self.started = time.time()
+        key = '%s - %s' % (self.request.remote, self.started)
+        self.socket_id = hashlib.sha224(key.encode('utf-8')).hexdigest()
         #
         # Add to set of sockets if available
         sockets = self.sockets
         if sockets:
-            sockets.add(self.ws)
+            sockets.add(self)
         #
         async for msg in response:
             if msg.type == web.WSMsgType.TEXT:
@@ -100,7 +103,7 @@ class WsPath(ApiPath):
                     dict(method=f'{rpc.method} method not available')
                 )
             response = await method(rpc.payload)
-            await self.ws.write(dict(
+            await self.write(dict(
                 id=rpc.id,
                 method=rpc.method,
                 response=response
@@ -120,7 +123,16 @@ class WsPath(ApiPath):
         error = dict(message=message)
         if errors:
             error['errors'] = errors
-        await self.ws.write(compact(error=error, **kw))
+        await self.write(compact(error=error, **kw))
+
+    async def write(self, msg: Dict) -> None:
+        try:
+            text = self.encode_message(msg)
+            await self.response.send_str(text)
+        except RuntimeError:
+            # TODO: is this the best way to avoid spamming exception
+            #       when the websocket is closed by the client?
+            pass
 
 
 class Sockets:
@@ -138,31 +150,6 @@ class Sockets:
         await self.channels.start()
 
     async def close(self, app):
-        await asyncio.gather(*[ws.response.close() for ws in self.sockets])
+        await asyncio.gather(*[view.response.close() for view in self.sockets])
         await self.channels.close()
         self.sockets.clear()
-
-
-class Websocket:
-    """Wraps a websocker response and request with additional
-    capabilities such as channel management
-    """
-    def __init__(self, response, view):
-        self.response = response
-        self.view = view
-        self.started = time.time()
-        key = '%s - %s' % (self.request.remote, self.started)
-        self.id = hashlib.sha224(key.encode('utf-8')).hexdigest()
-
-    @property
-    def request(self):
-        return self.view.request
-
-    async def write(self, msg: Dict) -> None:
-        try:
-            text = self.view.encode_message(msg)
-            await self.response.send_str(text)
-        except RuntimeError:
-            # TODO: is this the best way to avoid spamming exception
-            #       when the websocket is closed by the client?
-            pass

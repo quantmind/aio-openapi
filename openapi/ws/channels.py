@@ -159,8 +159,6 @@ class Channels:
                 self
             )
             self.connection_error = False
-        else:
-            return True
 
     async def _connect(self, next_time):
         try:
