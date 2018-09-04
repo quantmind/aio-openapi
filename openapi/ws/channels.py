@@ -33,7 +33,8 @@ class Channels:
         self.broker = broker
         self.namespace = (namespace or '').lower()
         self.channels = OrderedDict()
-        self.status_channel = self.channel(status_channel or DEFAULT_CHANNEL)
+        self.status_channel = self.get_channel(
+            status_channel or DEFAULT_CHANNEL)
         self.status = self.statusType.initialised
         if broker:
             broker.set_channels(self)
@@ -65,8 +66,8 @@ class Channels:
             callback: Callable) -> Channel:
         """Register a callback to ``channel_name`` and ``event``
         """
-        channel = self.channel(channel_name)
-        event = channel.register(event, callback)
+        channel = self.get_channel(channel_name)
+        channel.register(event, callback)
         await self.connect()
         await channel.connect()
         return channel
@@ -79,7 +80,7 @@ class Channels:
         """Safely unregister a callback from the list of event
         callbacks for channel_name
         """
-        channel = self.channel(channel_name, create=False)
+        channel = self.get_channel(channel_name, create=False)
         if channel:
             channel.unregister(event, callback)
             if not channel:
@@ -128,7 +129,7 @@ class Channels:
         if self.broker:
             await self.broker.close()
 
-    def channel(self, name, create=True):
+    def get_channel(self, name, create=True):
         name = name.lower()
         channel = self.channels.get(name)
         if channel is None and create:
