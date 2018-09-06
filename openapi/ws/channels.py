@@ -95,7 +95,7 @@ class Channels:
             self.status = self.statusType.connecting
             await self._connect(next_time)
 
-    async def publish(self, channel_name, event, data=None):
+    async def publish(self, channel_name, event=None, data=None):
         """Publish a new ``event`` on a ``channel_name``
         """
         await self.connect()

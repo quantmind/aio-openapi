@@ -46,9 +46,9 @@ class LocalBroker(Broker):
             self.messages = asyncio.Queue()
             self.worker = asyncio.ensure_future(self._work())
 
-    async def publish(self, body, key):
+    async def publish(self, body, channel, event):
         asyncio.get_event_loop().call_later(
-            0.01, self.messages.put_nowait, (body, key)
+            0.01, self.messages.put_nowait, (body, channel, event)
         )
 
     async def bind(self, key):

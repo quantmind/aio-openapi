@@ -1,5 +1,12 @@
 import aiohttp
 
+from openapi.testing import jsonBody
+
+
+async def test_invalid_ws_protocol(cli):
+    resp = await cli.get('/stream')
+    await jsonBody(resp, 400)
+
 
 async def test_invalid_protocol(cli):
     async with cli.ws_connect('/stream') as ws:

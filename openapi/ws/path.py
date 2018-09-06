@@ -137,11 +137,12 @@ class WsPath(ApiPath):
 
 class Sockets:
 
-    def __init__(self, app):
+    def __init__(self, app, **kwargs):
         self.sockets = set()
-        self.channels = Channels(app.get('broker'))
+        self.channels = Channels(app.get('broker'), **kwargs)
         app.on_startup.append(self.start)
         app.on_shutdown.append(self.close)
+        app['channels'] = self.channels
 
     def add(self, ws):
         self.sockets.add(ws)
@@ -150,6 +151,6 @@ class Sockets:
         await self.channels.start()
 
     async def close(self, app):
-        await asyncio.gather(*[view.response.close() for view in self.sockets])
         await self.channels.close()
+        await asyncio.gather(*[view.response.close() for view in self.sockets])
         self.sockets.clear()
