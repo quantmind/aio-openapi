@@ -16,20 +16,21 @@ class Broker(abc.ABC):
         Start broker
         """
 
-    async def close(self):
+    async def close(self) -> None:
         """
         Close broker
         """
 
     @abc.abstractmethod
-    async def publish(self, body: Dict, routing_key: str):
-        """Publish a new payload to a routing key
+    async def publish(self, channel: str, body: Dict) -> None:
+        """Publish a new payload to a channel/exchange
         """
         pass
 
     @abc.abstractmethod
-    async def bind(self, routing_key: str):
-        """Bind the broker to a routing key"""
+    async def bind(self, channel: str) -> None:
+        """Bind the broker to a channel/exchange
+        """
         pass
 
 
@@ -46,9 +47,9 @@ class LocalBroker(Broker):
             self.messages = asyncio.Queue()
             self.worker = asyncio.ensure_future(self._work())
 
-    async def publish(self, body, channel, event):
+    async def publish(self, channel, body):
         asyncio.get_event_loop().call_later(
-            0.01, self.messages.put_nowait, (body, channel, event)
+            0.01, self.messages.put_nowait, (channel, body)
         )
 
     async def bind(self, key):
@@ -63,7 +64,7 @@ class LocalBroker(Broker):
 
     async def _work(self):
         while True:
-            body, key = await self.messages.get()
+            key, body = await self.messages.get()
             if self._stop:
                 break
             if self.channels and key in self.binds:

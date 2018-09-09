@@ -9,7 +9,6 @@ from aiohttp import web
 
 from ..data import fields
 from ..data.validate import validated_schema, ValidationErrors
-from ..spec.path import ApiPath
 from ..utils import compact
 from .. import json
 from .channels import Channels
@@ -29,8 +28,8 @@ class ProtocolError(RuntimeError):
     pass
 
 
-class WsPath(ApiPath):
-    """Api Path for Websocket RPC protocol
+class WsPathMixin:
+    """Api Path mixin for Websocket RPC protocol
     """
     SOCKETS_KEY = 'web_sockets'
 

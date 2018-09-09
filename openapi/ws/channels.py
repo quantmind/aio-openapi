@@ -101,7 +101,7 @@ class Channels:
         await self.connect()
         msg = compact(event=event, channel=channel_name, data=data)
         try:
-            await self.broker.publish(msg, self.prefixed(channel_name))
+            await self.broker.publish(self.prefixed(channel_name), msg)
         except ConnectionRefusedError:
             self.connection_error = True
             logger.critical(
