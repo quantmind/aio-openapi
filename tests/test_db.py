@@ -27,6 +27,7 @@ def test_createdb(cli):
 def test_migration_upgrade(cli):
     app = cli.app
     db = app['db']
+    assert repr(db)
     db.drop_all()
 
     runner = CliRunner()
