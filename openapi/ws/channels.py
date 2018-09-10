@@ -147,7 +147,7 @@ class Channels:
     async def _subscribe(self, channel_name):
         """Subscribe to the remote server
         """
-        await self.broker.bind(self.prefixed(channel_name))
+        await self.broker.subscribe(self.prefixed(channel_name))
 
     async def _unsubscribe(self, channel_name):
         pass

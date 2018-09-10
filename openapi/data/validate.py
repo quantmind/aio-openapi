@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, field_ops
@@ -78,12 +78,19 @@ def collect_value(field, name, value):
     if validator:
         value = validator(field, value)
 
-    types = getattr(field.type, '__args__', None) or (field.type,)
-    types = tuple((getattr(t, '__origin__', None) or t) for t in types)
-    if not isinstance(value, types):
-        try:
-            value = field.type(value)
-        except (TypeError, ValueError):
+    Type = getattr(field.type, '_gorg', None)
+    if Type in (List, Tuple):
+        # hack - we need to formalize this and allow for nested validators
+        if not isinstance(value, (list, tuple)):
             raise ValidationError(name, 'not a valid value')
+        value = list(value)
+    else:
+        types = getattr(field.type, '__args__', None) or (field.type,)
+        types = tuple((getattr(t, '__origin__', None) or t) for t in types)
+        if not isinstance(value, types):
+            try:
+                value = field.type(value)
+            except (TypeError, ValueError):
+                raise ValidationError(name, 'not a valid value')
 
     return value

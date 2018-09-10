@@ -4,7 +4,7 @@ from typing import Dict
 
 
 class Broker(abc.ABC):
-    """Abstract class for pubsub
+    """Abstract class for pubsub brokers
     """
     channels = None
 
@@ -28,7 +28,13 @@ class Broker(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def bind(self, channel: str) -> None:
+    async def subscribe(self, channel: str) -> None:
+        """Bind the broker to a channel/exchange
+        """
+        pass
+
+    @abc.abstractmethod
+    async def unsubscribe(self, channel: str) -> None:
         """Bind the broker to a channel/exchange
         """
         pass
@@ -52,8 +58,11 @@ class LocalBroker(Broker):
             0.01, self.messages.put_nowait, (channel, body)
         )
 
-    async def bind(self, key):
+    async def subscribe(self, key):
         self.binds.add(key)
+
+    async def unsubscribe(self, key):
+        self.binds.discard(key)
 
     async def close(self):
         self._stop = True
