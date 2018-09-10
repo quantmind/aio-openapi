@@ -15,6 +15,10 @@ class Database:
         self._engine = None
         self._metadata = sa.MetaData()
 
+    def __repr__(self):
+        return self._dsn
+    __str__ = __repr__
+
     @property
     def metadata(self):
         return self._metadata

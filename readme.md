@@ -36,7 +36,67 @@ pytest --cov
 * Migrations with [alembic][]
 * SqlAlchemy tables as python [dataclasses][]
 
+## Websockets
 
+This library provides a simple distributed websocket utility for creating
+websocket remote procedure calls (RPC) and pub/sub.
+```python
+from aiohttp import web
+
+from openapi.ws import Sockets
+
+app = web.Application()
+...
+app['web_sockets'] = Sockets(app)
+```
+### RPC protocol
+
+The RPC protocol has the following structure for incoming messages
+```
+{
+    "id": "abc",
+    "method": "rpc_method_name":
+    "payload": {
+        ...
+    }
+}
+```
+The ``id`` is used by clients to link the request with the corresponding response.
+The response for an RPC call is eitrher a success
+```
+{
+    "id": "abc",
+    "method": "rpc_method_name":
+    "result": {
+        ...
+    }
+}
+```
+or error
+```
+{
+    "id": "abc",
+    "method": "rpc_method_name":
+    "error": {
+        ...
+    }
+}
+```
+### Publish/Subscribe
+
+To subscribe to messages, one need to use the ``Subscribe`` mixin with the subscribe RPC handler.
+Messages take the form:
+```
+{
+    "channel": "channel_name",
+    "event": "event_name":
+    "data": {
+        ...
+    }
+}
+```
+
+PP
 [aiohttp]: https://aiohttp.readthedocs.io/en/stable/
 [asyncpg]: https://github.com/MagicStack/asyncpg
 [dataclasses]: https://docs.python.org/3/library/dataclasses.html
