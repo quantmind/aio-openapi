@@ -354,7 +354,9 @@ class IntegerValidator(BoundedNumberValidator):
 class DecimalValidator(NumberValidator):
     def __call__(self, field, value, data=None):
         try:
-            value = decimal.Decimal(str(value))
+            if isinstance(value, float):
+                value = str(value)
+            value = decimal.Decimal(value)
         except (TypeError, decimal.InvalidOperation):
             raise ValidationError(field.name, '%s not valid Decimal' % value)
         return super().__call__(field, value, data=None)
