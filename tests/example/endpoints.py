@@ -44,7 +44,7 @@ class TasksPath(SqlApiPath):
                 description: Authenticated tasks
         """
         data = await self.get_list()
-        return web.json_response(data)
+        return self.json_response(data)
 
     @op(response_schema=Task, body_schema=TaskAdd)
     async def post(self):
@@ -59,7 +59,7 @@ class TasksPath(SqlApiPath):
                 description: Failed validation
         """
         data = await self.create_one()
-        return web.json_response(data, status=201)
+        return self.json_response(data, status=201)
 
     @op(query_schema=TaskQuery)
     async def delete(self):
