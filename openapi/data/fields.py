@@ -1,16 +1,14 @@
 import decimal
+from datetime import date, datetime
+from numbers import Number
 from uuid import UUID
-from datetime import datetime, date
-from dataclasses import dataclass, field, Field
 
-from email_validator import validate_email, EmailNotValidError
-
+from dataclasses import Field, dataclass, field
 from dateutil.parser import parse as parse_date
+from email_validator import EmailNotValidError, validate_email
 
 from .. import json
-
 from ..utils import compact_dict
-
 
 DEFAULT = 'default'
 REQUIRED = 'required'
@@ -326,13 +324,20 @@ class NumberValidator(BoundedNumberValidator):
 
     def __call__(self, field, value, data=None):
         try:
-            value = round(value, self.precision)
+            if not isinstance(value, Number):
+                raise TypeError
+
+            if self.precision is not None:
+                value = round(value, self.precision)
+
         except (ValueError, TypeError):
             raise ValidationError(field.name, '%s not valid number' % value)
         return super().__call__(field, value, data=data)
 
     def dump(self, value):
-        return round(value, self.precision)
+        if self.precision is not None:
+            return round(value, self.precision)
+        return value
 
 
 class IntegerValidator(BoundedNumberValidator):
@@ -349,7 +354,7 @@ class IntegerValidator(BoundedNumberValidator):
 class DecimalValidator(NumberValidator):
     def __call__(self, field, value, data=None):
         try:
-            value = decimal.Decimal(value)
+            value = decimal.Decimal(str(value))
         except (TypeError, decimal.InvalidOperation):
             raise ValidationError(field.name, '%s not valid Decimal' % value)
         return super().__call__(field, value, data=None)

@@ -190,9 +190,17 @@ def test_DecimalValidator_valid():
     assert validator(field, 10) == 10
     assert validator(field, -10) == -10
     assert validator(field, 5.55) == Decimal('5.55')
-    # assert validator(field, 5.555) == Decimal(5.55)
-    # assert validator(field, '5.555') == Decimal(5.55)
-    # assert validator(field, (5, 555)) == Decimal(5.55)
+    assert validator(field, 5.555) == Decimal('5.56')
+    assert validator(field, '5.555') == Decimal('5.56')
+
+
+def test_DecimalValidator_precision_None():
+    field = decimal_field()
+    validator = DecimalValidator(min_value=-10, max_value=10)
+    assert validator(field, 10) == 10
+    assert validator(field, -10) == -10
+    assert validator(field, 5.555) == Decimal('5.555')
+    assert validator(field, 5.555555555555555) == Decimal('5.555555555555555')
 
 
 def test_DecimalValidator_invalid():
@@ -208,10 +216,10 @@ def test_DecimalValidator_invalid():
 
 def test_DecimalValidator_dump():
     validator = DecimalValidator(min_value=-10, max_value=10, precision=2)
-    assert validator.dump(10) == 10
-    assert validator.dump(-10) == -10
-    assert validator.dump(5.55) == 5.55
-    assert validator.dump(5.556) == 5.56
+    assert validator.dump(Decimal(10)) == Decimal('10')
+    assert validator.dump(Decimal(-10)) == Decimal('-10')
+    assert validator.dump(Decimal('5.55')) == Decimal('5.55')
+    assert validator.dump(Decimal('5.556')) == Decimal('5.56')
 
 
 def test_email_validator_valid():
