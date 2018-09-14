@@ -96,7 +96,6 @@ Messages take the form:
 }
 ```
 
-PP
 [aiohttp]: https://aiohttp.readthedocs.io/en/stable/
 [asyncpg]: https://github.com/MagicStack/asyncpg
 [dataclasses]: https://docs.python.org/3/library/dataclasses.html
