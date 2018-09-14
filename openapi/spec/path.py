@@ -25,8 +25,8 @@ class ApiPath(web.View):
         return data
 
     def get_filters(self, *, query=None, query_schema='query_schema'):
-        combined = MultiDict(self.request.query)
-        combined.update(query or {})
+        combined = MultiDict(query or ())
+        combined.update(self.request.query)
         try:
             params = self.cleaned(query_schema, combined, multiple=True)
         except web.HTTPNotImplemented:
