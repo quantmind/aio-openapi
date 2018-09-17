@@ -68,10 +68,28 @@ def upgrade(ctx, revision, drop_tables):
     """Upgrade to a later version
     """
     if drop_tables:
-        ctx.obj['app']['db'].drop_all_schemas()
-        click.echo("tables dropped")
+        _drop_tables(ctx)
     migration(ctx).upgrade(revision)
-    click.echo("upgraded sucessfuly")
+    click.echo(f"upgraded sucessfuly to {revision}")
+
+
+@db.command()
+@click.option('--revision', default='heads')
+@click.option('--drop-tables', default=False, is_flag=True,
+              help="Drop tables before applying migrations")
+@click.pass_context
+def downgrade(ctx, revision, drop_tables):
+    """Downgrade to a previous version
+    """
+    if drop_tables:
+        _drop_tables(ctx)
+    migration(ctx).downgrade(revision)
+    click.echo(f"downgraded successfully to {revision}")
+
+
+def _drop_tables(ctx):
+    ctx.obj['app']['db'].drop_all_schemas()
+    click.echo("tables dropped")
 
 
 @db.command()
@@ -81,6 +99,17 @@ def show(ctx, revision):
     """Show revision ID and creation date
     """
     return migration(ctx).show(revision)
+
+
+@db.command()
+@click.option('--verbose/--quiet', default=False)
+@click.pass_context
+def current(ctx, verbose):
+    """Show revision ID and creation date
+    """
+    res = migration(ctx).current(verbose)
+    click.echo(res)
+    return res
 
 
 @db.command()
