@@ -54,7 +54,7 @@ def integer(col, required):
 @converter(sa.Numeric)
 def number(col, required):
     return (
-        Decimal, fields.number_field(
+        Decimal, fields.decimal_field(
             precision=col.type.scale, **info(col, required)
         )
     )
