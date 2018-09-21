@@ -5,6 +5,8 @@ import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
 
 from openapi.db.columns import UUIDColumn
+from openapi.data import fields
+
 from .models import TaskType
 
 original_init = UUIDType.__init__
@@ -15,6 +17,10 @@ def patch_init(self, binary=True, native=True, **kw):
 
 
 UUIDType.__init__ = patch_init
+
+
+def title_field(**kwargs):
+    return fields.str_field(**kwargs)
 
 
 def meta(meta=None):
@@ -28,7 +34,9 @@ def meta(meta=None):
         UUIDColumn(
             'id', make_default=True, doc='Unique ID'),
         sa.Column(
-            'title', sa.String(64), nullable=False, info=dict(min_length=3)),
+            'title', sa.String(64), nullable=False,
+            info=dict(min_length=3, data_field=title_field)
+        ),
         sa.Column('done', sa.DateTime),
         sa.Column('severity', sa.Integer),
         sa.Column('type', sa.Enum(TaskType)),

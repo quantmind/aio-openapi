@@ -43,74 +43,96 @@ def converter(*types):
 
 @converter(sa.Boolean)
 def bl(col, required):
-    return (bool, fields.bool_field(**info(col, required)))
+    data_field = col.info.get('data_field', fields.bool_field)
+    return (
+        bool,
+        data_field(**info(col, required))
+    )
 
 
 @converter(sa.Integer)
 def integer(col, required):
-    return (int, fields.number_field(precision=0, **info(col, required)))
+    data_field = col.info.get('data_field', fields.number_field)
+    return (
+        int,
+        data_field(precision=0, **info(col, required))
+    )
 
 
 @converter(sa.Numeric)
 def number(col, required):
+    data_field = col.info.get('data_field', fields.decimal_field)
     return (
-        Decimal, fields.decimal_field(
-            precision=col.type.scale, **info(col, required)
-        )
+        Decimal,
+        data_field(precision=col.type.scale, **info(col, required))
     )
 
 
 @converter(sa.String, sa.Text, sa.CHAR, sa.VARCHAR)
 def string(col, required):
-    return (str, fields.str_field(
-        max_length=col.type.length or 0, **info(col, required)))
+    data_field = col.info.get('data_field', fields.str_field)
+    return (
+        str,
+        data_field(max_length=col.type.length or 0, **info(col, required))
+    )
 
 
 @converter(sa.DateTime)
 def dt_ti(col, required):
-    return (datetime, fields.date_time_field(**info(col, required)))
+    data_field = col.info.get('data_field', fields.date_time_field)
+    return (
+        datetime,
+        data_field(**info(col, required))
+    )
 
 
 @converter(sa.Date)
 def dt(col, required):
-    return (date, fields.date_field(**info(col, required)))
+    data_field = col.info.get('data_field', fields.date_field)
+    return (
+        date,
+        data_field(**info(col, required))
+    )
 
 
 @converter(sa.Enum)
 def en(col, required):
+    data_field = col.info.get('data_field', fields.enum_field)
     return (
         col.type.enum_class,
-        fields.enum_field(col.type.enum_class, **info(col, required))
+        data_field(col.type.enum_class, **info(col, required))
     )
 
 
 @converter(sa.JSON)
 def js(col, required):
+    data_field = col.info.get('data_field', fields.json_field)
     val = None
     if col.default:
         arg = col.default.arg
         val = arg() if col.default.is_callable else arg
     return (
         JsonTypes.get(type(val), typing.Dict),
-        fields.json_field(**info(col, required))
+        data_field(**info(col, required))
     )
 
 
 @converter(UUIDType)
 def uuid(col, required):
+    data_field = col.info.get('data_field', fields.uuid_field)
     return (
         str,
-        fields.uuid_field(**info(col, required))
+        data_field(**info(col, required))
     )
 
 
 def info(col, required):
-
     data = dict(
         description=col.doc,
         required=not col.nullable if required is not False else False
     )
     data.update(col.info)
+    data.pop('data_field', None)
     return data
 
 
