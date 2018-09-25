@@ -43,6 +43,12 @@ class Channels:
     def registered(self):
         return tuple(self.channels)
 
+    def __repr__(self) -> str:
+        return f'Channels [{self.broker}]'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
     def __len__(self) -> int:
         return len(self.channels)
 
@@ -167,7 +173,7 @@ class Channels:
             await self._subscribe(self.status_channel.name)
             self.status = StatusType.connected
             logger.warning(
-                '%s ready and listening for events on %s - all good',
+                '%s ready and listening for events on channel "%s" - all good',
                 self,
                 self.status_channel.name
             )

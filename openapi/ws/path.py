@@ -101,7 +101,7 @@ class WsPathMixin:
                 raise ValidationErrors(
                     dict(method=f'{rpc.method} method not available')
                 )
-            response = await method(rpc.payload)
+            response = await method(rpc.payload or {})
             await self.write(dict(
                 id=rpc.id,
                 method=rpc.method,
