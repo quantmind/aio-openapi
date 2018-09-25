@@ -16,7 +16,7 @@ MAX_RECONNECT_LAG = 20
 
 
 def backoff(value):
-    return min(value*1.2, MAX_RECONNECT_LAG) if value else MIN_RECONNECT_LAG
+    return min(value * 1.2, MAX_RECONNECT_LAG) if value else MIN_RECONNECT_LAG
 
 
 class Channels:

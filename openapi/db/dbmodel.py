@@ -53,7 +53,13 @@ class CrudDB(Database):
         exp = table.insert(records).returning(*table.columns)
         return compile_query(exp)
 
-    def get_query(self, table, query, consumer=None, params=None):
+    def get_query(
+            self,
+            table,
+            query,
+            consumer=None,
+            params=None,
+    ):
         filters = []
         columns = table.c
         params = params or {}

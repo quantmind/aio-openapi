@@ -51,10 +51,8 @@ async def test_spec_422(test_app):
     spec.build(test_app)
     tasks = spec.doc['paths']['/tasks']
     resp = tasks['post']['responses']
-    assert (
-        resp[422]['content']['application/json']['schema']['$ref'] ==
-        '#/components/schemas/ValidationErrors'
-    )
+    path = resp[422]['content']['application/json']['schema']['$ref']
+    assert path == '#/components/schemas/ValidationErrors'
 
 
 async def test_invalid_path():

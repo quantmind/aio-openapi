@@ -42,7 +42,7 @@ def test_validate():
     assert not d.errors
     d = validate(Tasks, dict(title='te'))
     assert d.errors['title'] == 'Too short'
-    d = validate(Tasks, dict(title='t'*100))
+    d = validate(Tasks, dict(title='t' * 100))
     assert d.errors['title'] == 'Too long'
     d = validate(Tasks, dict(title=40))
     assert d.errors['title'] == 'Must be a string'

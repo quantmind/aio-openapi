@@ -262,9 +262,9 @@ class OpenApiSpec:
             route_info = route.get_info()
             path = route_info.get('path', route_info.get('formatter', None))
             handler = route.handler
-            include = (
-                is_subclass(handler, ApiPath) and
-                self._include(handler.private, public, private)
+            is_subklass = is_subclass(handler, ApiPath)
+            include = is_subklass and self._include(
+                handler.private, public, private
             )
             if include:
                 try:
@@ -416,10 +416,7 @@ class OpenApiSpec:
         return names
 
     def _include(self, is_private, public, private):
-        return (
-            (is_private and private) or
-            (not is_private and public)
-        )
+        return (is_private and private) or (not is_private and public)
 
 
 async def spec_root(request):

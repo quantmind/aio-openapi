@@ -1,11 +1,13 @@
 from aiohttp import web
 
 from multidict import MultiDict
+from sqlalchemy.sql import Select
 
 from openapi.json import loads, dumps
 from ..data.dump import dump, dump_list
 from ..data.validate import validate
 from ..data.exc import ValidationErrors
+from ..spec.pagination import Pagination, DEF_PAGINATION_LIMIT
 from ..utils import compact, as_list
 
 
@@ -23,6 +25,49 @@ class ApiPath(web.View):
             path = self.cleaned('path_schema', self.request.match_info)
             data.update(path)
         return data
+
+    def get_order_clause(self, table, query, order_by, order_desc):
+        if not order_by:
+            return query
+
+        order_by_column = getattr(table.c, order_by)
+        if order_desc:
+            order_by_column = order_by_column.desc()
+        return query.order_by(order_by_column)
+
+    def limit_and_order_query(
+            self,
+            query,
+            table,
+            limit=DEF_PAGINATION_LIMIT,
+            offset=0,
+            order_by=None,
+            order_desc=False,
+    ):
+        if isinstance(query, Select):
+            query = self.get_order_clause(table, query, order_by, order_desc)
+            query = query.offset(offset)
+            query = query.limit(limit)
+        return query
+
+    def get_link_headers(self, url, limit_params):
+        pag = Pagination(url)
+        params = (
+            limit_params['total'],
+            limit_params['limit'],
+            limit_params['offset'],
+        )
+        headers = pag.headers(*params)
+        if headers:
+            return {'Link': ', '.join(headers.values())}
+
+    def get_limit_params(self, params):
+        return dict(
+            limit=params.pop('limit', DEF_PAGINATION_LIMIT),
+            offset=params.pop('offset', 0),
+            order_by=params.pop('order_by', None),
+            order_desc=params.pop('order_desc', False),
+        )
 
     def get_filters(self, *, query=None, query_schema='query_schema'):
         combined = MultiDict(query or ())

@@ -37,12 +37,28 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        query = self.db.get_query(table, table.select(), self, filters)
+        limit_params = self.get_limit_params(filters)
+        query = self.db.get_query(
+            table,
+            table.select(),
+            self,
+            filters,
+        )
+        count_query = query.alias('inner').count()
 
+        if limit_params:
+            query = self.limit_and_order_query(
+                query, table, **limit_params
+            )
+
+        count_sql, count_args = compile_query(count_query)
         sql, args = compile_query(query)
         async with self.db.ensure_connection(conn) as conn:
+            total = await conn.fetchrow(count_sql, *count_args)
             values = await conn.fetch(sql, *args)
-        return self.dump(dump_schema, values)
+        limit_params['total'] = total['tbl_row_count']
+        headers = self.get_link_headers(self.request.url, limit_params)
+        return self.dump(dump_schema, values), headers
 
     async def create_one(
         self, *, data=None, table=None, body_schema='body_schema',
