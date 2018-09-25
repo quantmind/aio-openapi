@@ -2,7 +2,7 @@ import re
 import enum
 import asyncio
 import logging
-from typing import List
+from typing import Set
 from functools import wraps
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -29,7 +29,7 @@ class Event:
     name: str
     pattern: str
     regex: object
-    callbacks: List
+    callbacks: Set
 
 
 def safe_execution(method):
@@ -123,6 +123,13 @@ class Channel:
             entry.callbacks.append(callback)
 
         return entry
+
+    def get_subscribed(self, handler):
+        events = []
+        for event in self.callbacks.values():
+            if handler in event.callbacks:
+                events.append(event.name)
+        return events
 
     def unregister(self, event, callback):
         pattern = self.channels.event_pattern(event)

@@ -1,6 +1,6 @@
 import asyncio
 from collections import OrderedDict
-from typing import Union, Dict, Iterator, Callable
+from typing import Dict, Iterator, Callable
 
 from .channel import Channel, StatusType, logger
 from .utils import redis_to_py_pattern
@@ -37,7 +37,7 @@ class Channels:
             status_channel or DEFAULT_CHANNEL)
         self.status = self.statusType.initialised
         if broker:
-            broker.set_channels(self)
+            broker.on_connection_lost(self.connection_lost)
 
     @property
     def registered(self):
@@ -58,7 +58,7 @@ class Channels:
     def __iter__(self) -> Iterator:
         return iter(self.channels.values())
 
-    async def __call__(self, channel_name: str, message: Union[str, Dict]):
+    async def __call__(self, channel_name: str, message: Dict):
         if channel_name.startswith(self.namespace):
             name = channel_name[len(self.namespace):]
             channel = self.channels.get(name)
@@ -148,12 +148,23 @@ class Channels:
         """
         return redis_to_py_pattern(event or '*')
 
+    def get_subscribed(self, handler):
+        subscribed = {}
+        for channel in self.channels.values():
+            events = channel.get_subscribed(handler)
+            if events:
+                subscribed[channel.name] = events
+        return subscribed
+
     # INTERNALS
+
+    def connection_lost(self):
+        self.status = StatusType.disconnected
 
     async def _subscribe(self, channel_name):
         """Subscribe to the remote server
         """
-        await self.broker.subscribe(self.prefixed(channel_name))
+        await self.broker.subscribe(self.prefixed(channel_name), handler=self)
 
     async def _unsubscribe(self, channel_name):
         pass
