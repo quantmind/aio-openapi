@@ -52,7 +52,7 @@ class Subscribe:
         """
         await self.channels.register(
             payload['channel'], payload.get('event'), self.new_message)
-        return dict(subscribed=self.channels.registered)
+        return dict(subscribed=self.channels.get_subscribed(self.new_message))
 
     @ws_rpc(body_schema=SubscribeSchema)
     async def ws_rpc_unsubscribe(self, payload):
@@ -60,7 +60,7 @@ class Subscribe:
         """
         await self.channels.unregister(
             payload['channel'], payload.get('event'), self.new_message)
-        return dict(subscribed=self.channels.registered)
+        return dict(subscribed=self.channels.get_subscribed(self.new_message))
 
     async def new_message(self, channel, match, data):
         """A new message has arrived from channels

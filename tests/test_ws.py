@@ -110,7 +110,7 @@ async def test_rpc_subscribe(cli):
         assert msg.type == aiohttp.WSMsgType.TEXT
         data = msg.json()
         assert data['id'] == 'abc'
-        assert data['response'] == dict(subscribed=['server', 'test'])
+        assert data['response'] == dict(subscribed={'test': ['*']})
         await ws.send_json(
             dict(
                 id='abcd', method='subscribe',
@@ -121,7 +121,8 @@ async def test_rpc_subscribe(cli):
         assert msg.type == aiohttp.WSMsgType.TEXT
         data = msg.json()
         assert data['id'] == 'abcd'
-        assert data['response'] == dict(subscribed=['server', 'test', 'foo'])
+        assert data['response'] == dict(
+            subscribed={'test': ['*'], 'foo': ['*']})
 
 
 async def test_rpc_unsubscribe(cli):
@@ -141,7 +142,9 @@ async def test_rpc_unsubscribe(cli):
         )
         msg = await ws.receive()
         data = msg.json()
-        assert data['response'] == dict(subscribed=['server', 'test', 'foo'])
+        assert data['response'] == dict(
+            subscribed={'test': ['*'], 'foo': ['*']}
+        )
         await ws.send_json(
             dict(
                 id='xyz', method='unsubscribe',
@@ -150,7 +153,7 @@ async def test_rpc_unsubscribe(cli):
         )
         msg = await ws.receive()
         data = msg.json()
-        assert data['response'] == dict(subscribed=['server', 'foo'])
+        assert data['response'] == dict(subscribed={'foo': ['*']})
 
 
 async def test_rpc_pubsub(cli):
