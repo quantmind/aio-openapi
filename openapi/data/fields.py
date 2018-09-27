@@ -294,7 +294,7 @@ class DateTimeValidator(Validator):
             )
         if self.timezone and not value.tzinfo:
             raise ValidationError(
-                field.name, 'Timezone infoirmation required'
+                field.name, 'Timezone information required'
             )
         return value
 
