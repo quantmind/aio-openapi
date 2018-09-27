@@ -82,7 +82,7 @@ def dt_ti(col, required):
     data_field = col.info.get('data_field', fields.date_time_field)
     return (
         datetime,
-        data_field(**info(col, required))
+        data_field(timezone=col.type.timezone, **info(col, required))
     )
 
 

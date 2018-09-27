@@ -111,6 +111,7 @@ class Channel:
     def register(self, event, callback):
         """Register a ``callback`` for ``event``
         """
+        event = event or '*'
         pattern = self.channels.event_pattern(event)
         entry = self.callbacks.get(pattern)
         if not entry:

@@ -17,7 +17,6 @@ async def channels():
 
 async def test_channels_properties(channels):
     assert channels.broker
-    assert channels.broker.channels == channels
     assert len(channels.status_channel) == 0
     assert channels.status == channels.statusType.initialised
     assert len(channels) == 1

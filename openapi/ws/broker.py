@@ -1,16 +1,11 @@
 import abc
 import asyncio
-from typing import Dict
+from typing import Dict, Callable
 
 
 class Broker(abc.ABC):
     """Abstract class for pubsub brokers
     """
-    channels = None
-
-    def set_channels(self, channels) -> None:
-        self.channels = channels
-
     async def start(self) -> None:
         """
         Start broker
@@ -28,7 +23,7 @@ class Broker(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def subscribe(self, channel: str) -> None:
+    async def subscribe(self, channel: str, handler: Callable=None) -> None:
         """Bind the broker to a channel/exchange
         """
         pass
@@ -39,6 +34,9 @@ class Broker(abc.ABC):
         """
         pass
 
+    def on_connection_lost(self, lost):
+        pass
+
 
 class LocalBroker(Broker):
 
@@ -47,6 +45,7 @@ class LocalBroker(Broker):
         self.messages = None
         self.worker = None
         self._stop = False
+        self._handlers = set()
 
     async def start(self):
         if not self.worker:
@@ -58,8 +57,10 @@ class LocalBroker(Broker):
             0.01, self.messages.put_nowait, (channel, body)
         )
 
-    async def subscribe(self, key):
+    async def subscribe(self, key: str, handler: Callable=None) -> None:
         self.binds.add(key)
+        if handler:
+            self._handlers.add(handler)
 
     async def unsubscribe(self, key):
         self.binds.discard(key)
@@ -76,5 +77,6 @@ class LocalBroker(Broker):
             key, body = await self.messages.get()
             if self._stop:
                 break
-            if self.channels and key in self.binds:
-                await self.channels(key, body)
+            if key in self.binds:
+                for handler in self._handlers:
+                    await handler(key, body)

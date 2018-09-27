@@ -109,8 +109,8 @@ def date_field(**kw):
     return data_field(**kw)
 
 
-def date_time_field(**kw):
-    kw.setdefault('validator', DateTimeValidator())
+def date_time_field(timezone=False, **kw):
+    kw.setdefault('validator', DateTimeValidator(timezone=timezone))
     return data_field(**kw)
 
 
@@ -274,6 +274,9 @@ class DateValidator(Validator):
 
 class DateTimeValidator(Validator):
 
+    def __init__(self, timezone=False):
+        self.timezone = timezone
+
     def dump(self, value):
         if isinstance(value, datetime):
             return value.isoformat()
@@ -288,6 +291,10 @@ class DateTimeValidator(Validator):
         if not isinstance(value, datetime):
             raise ValidationError(
                 field.name, '%s not valid format' % value
+            )
+        if self.timezone and not value.tzinfo:
+            raise ValidationError(
+                field.name, 'Timezone infoirmation required'
             )
         return value
 
