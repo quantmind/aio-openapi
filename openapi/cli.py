@@ -4,7 +4,6 @@ import asyncio
 
 from aiohttp import web
 import click
-import dotenv
 import uvloop
 
 from .utils import get_debug_flag, getLogger
@@ -79,15 +78,7 @@ class OpenApiClient(click.Group):
 
     def main(self, *args, **kwargs):
         os.environ['OPENAPI_RUN_FROM_CLI'] = 'true'
-        self.load_dotenv()
         return super().main(*args, **kwargs)
-
-    def load_dotenv(self, path=None):
-        if path is not None:
-            return dotenv.load_dotenv(path)
-        path = dotenv.find_dotenv('.env', usecwd=True)
-        if path:
-            dotenv.load_dotenv(path)
 
     def get_server_version(self, ctx, param, value):
         if not value or ctx.resilient_parsing:
