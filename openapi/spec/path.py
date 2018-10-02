@@ -50,6 +50,12 @@ class ApiPath(web.View):
             elif schema == 'path_schema':
                 raise web.HTTPNotFound()
             self.raiseValidationError(errors=validated.errors)
+
+        # Hacky hacky hack hack
+        # Later we'll want to implement proper multicolumn search and so
+        # this will be removed and will be included directly in the schema
+        if hasattr(Schema, 'search_fields'):
+            validated.data['search_fields'] = Schema.search_fields
         return validated.data
 
     def dump(self, schema, data):

@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.sql import and_, Select
 
 from ..db.container import Database
@@ -16,6 +17,18 @@ class CrudDB(Database):
         if order_desc:
             order_by_column = order_by_column.desc()
         return query.order_by(order_by_column)
+
+    @classmethod
+    def get_search_clause(cls, table, query, search, search_columns):
+        if not search:
+            return query
+
+        columns = [getattr(table.c, col) for col in search_columns]
+        return query.where(
+            or_(
+                *(col.ilike(f'%{search}%') for col in columns)
+            )
+        )
 
     async def db_select(self, table, filters, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
@@ -48,6 +61,8 @@ class CrudDB(Database):
         offset = params.pop('offset', 0)
         order_by = params.pop('order_by', None)
         order_desc = params.pop('order_desc', False)
+        search = params.pop('search', None)
+        search_columns = params.pop('search_fields', [])
         for key, value in params.items():
             bits = key.split(':')
             field = bits[0]
@@ -73,6 +88,14 @@ class CrudDB(Database):
             # pagination
             query = query.offset(offset)
             query = query.limit(limit)
+
+            # search
+            query = self.get_search_clause(
+                table,
+                query,
+                search,
+                search_columns
+            )
 
         return query
 
