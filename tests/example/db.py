@@ -41,7 +41,7 @@ def meta(meta=None):
         sa.Column('severity', sa.Integer),
         sa.Column('type', sa.Enum(TaskType)),
         sa.Column('unique_title', sa.String, nullable=True, unique=True),
-        sa.Column('story_points', sa.Numeric(2)),
+        sa.Column('story_points', sa.Numeric),
         sa.Column('random', sa.String(64))
     )
 
