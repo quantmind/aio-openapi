@@ -6,7 +6,7 @@ from ..utils import iter_items
 
 
 def is_nothing(value):
-    if value is 0 or value is False:
+    if value == 0 or value is False:
         return False
     return not value
 
