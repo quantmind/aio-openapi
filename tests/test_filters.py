@@ -9,10 +9,12 @@ from openapi.testing import jsonBody
 tests = [
     {
         'title': 'test1',
+        'unique_title': 'thefirsttest',
         'severity': 1
     },
     {
         'title': 'test2',
+        'unique_title': 'anothertest1',
         'severity': 3
     },
     {
@@ -49,6 +51,7 @@ async def test_spec(test_app):
         'title',
         'done',
         'type',
+        'search',
         'severity',
         'severity:lt',
         'severity:le',
@@ -79,4 +82,53 @@ async def test_filters(cli, fixtures):
 async def test_multiple(cli, fixtures):
     test1, test2, test3 = fixtures
     params = MultiDict((('severity', 1), ('severity', 3)))
+    await assert_query(cli, params, [test1, test2])
+
+
+async def test_search(cli, fixtures):
+    test1, test2, test3 = fixtures
+    params = {
+        'search': 'test',
+    }
+    await assert_query(cli, params, [test1, test2, test3])
+
+
+async def test_search_match_one(cli, fixtures):
+    test1, test2, test3 = fixtures
+    params = {
+        'search': 'est2',
+    }
+    await assert_query(cli, params, [test2])
+
+
+async def test_search_match_one_with_title(cli, fixtures):
+    test1, test2, test3 = fixtures
+    params = {
+        'title': 'test2',
+        'search': 'est2',
+    }
+    await assert_query(cli, params, [test2])
+
+
+async def test_search_match_none_with_title(cli, fixtures):
+    params = {
+        'title': 'test1',
+        'search': 'est2',
+    }
+    await assert_query(cli, params, [])
+
+
+async def test_search_either_end(cli, fixtures):
+    test1, test2, test3 = fixtures
+    params = {
+        'search': 'est',
+    }
+    await assert_query(cli, params, [test1, test2, test3])
+
+
+async def test_multicolumn_search(cli, fixtures):
+    test1, test2, test3 = fixtures
+    params = {
+        'search': 'est1',
+    }
     await assert_query(cli, params, [test1, test2])

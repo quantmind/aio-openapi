@@ -1,12 +1,15 @@
-from dataclasses import dataclass
 import typing
 
-from .data.fields import Choice, IntegerValidator
+from dataclasses import dataclass
+
 from .cli import OpenApiClient
-from .data.fields import data_field, bool_field
+from .data.fields import (
+    Choice, IntegerValidator, bool_field, data_field,
+    str_field,
+)
 from .spec import OpenApi, OpenApiSpec
-from .spec.utils import docjoin
 from .spec.pagination import MAX_PAGINATION_LIMIT
+from .spec.utils import docjoin
 
 
 def rest(
@@ -63,3 +66,16 @@ def orderable(*orderable_fields):
             )
         )
     return Orderable
+
+
+def searchable(*searchable_fields):
+    @dataclass
+    class Searchable:
+        search_fields = list(searchable_fields)
+        search: str = str_field(
+            description=(
+                'Search query string'
+            ),
+            required=False
+        )
+    return Searchable

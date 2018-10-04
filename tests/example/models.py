@@ -8,7 +8,7 @@ from openapi.data.fields import (
     data_field, date_time_field, decimal_field, enum_field, integer_field,
     uuid_field,
 )
-from openapi.rest import Query, orderable
+from openapi.rest import Query, orderable, searchable
 
 
 class TaskType(enum.Enum):
@@ -55,7 +55,12 @@ class TaskQuery:
 
 
 @dataclass
-class TaskOrderableQuery(TaskQuery, orderable('title'), Query):
+class TaskOrderableQuery(
+        TaskQuery,
+        orderable('title'),
+        searchable('title', 'unique_title'),
+        Query
+):
     pass
 
 

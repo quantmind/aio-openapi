@@ -1,9 +1,11 @@
 import os
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from click.testing import CliRunner
 
+from openapi.json import dumps
 from openapi.testing import jsonBody, equal_dict
 from openapi.utils import error_dict
 
@@ -368,3 +370,20 @@ async def test_update_unique_error(cli):
     )
     duplicated_body = await jsonBody(duplicated_response, status=422)
     assert duplicated_body['message'] == 'unique_title already exists'
+
+
+async def test_decimal_zero_returned(cli):
+    task = {
+        'title': 'task',
+        'unique_title': 'task1',
+        'story_points': Decimal(0)
+    }
+    resp = await cli.post('/tasks', data=dumps(task))
+    body = await jsonBody(resp, status=201)
+
+    assert 'story_points' in body
+
+    get_resp = await cli.get(f"/tasks/{body['id']}")
+    get_body = await jsonBody(get_resp, status=200)
+
+    assert get_body['story_points'] == Decimal(0)
