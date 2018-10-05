@@ -142,6 +142,7 @@ class SqlApiPath(ApiPath):
                                          consumer=self)
         if not values:
             raise web.HTTPNotFound()
+        return values
 
     async def delete_list(
             self, *, filters=None, query=None, table=None, conn=None):
