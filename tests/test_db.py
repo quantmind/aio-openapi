@@ -242,9 +242,9 @@ async def test_spec_root(cli):
     spec = await jsonBody(response)
     assert 'paths' in spec
     assert 'tags' in spec
-    assert len(spec['tags']) == 3
-    assert spec['tags'][1]['name'] == 'Task'
-    assert spec['tags'][1]['description'] == 'Simple description'
+    assert len(spec['tags']) == 4
+    assert spec['tags'][2]['name'] == 'Task'
+    assert spec['tags'][2]['description'] == 'Simple description'
 
 
 async def test_transaction_create(cli):
@@ -387,3 +387,21 @@ async def test_decimal_zero_returned(cli):
     get_body = await jsonBody(get_resp, status=200)
 
     assert get_body['story_points'] == Decimal(0)
+
+
+async def test_multicolumn_unique_constraint(cli):
+    row = {
+        'x': 1,
+        'y': 2
+    }
+    resp = await cli.post(
+        '/multikey',
+        json=row
+    )
+    await jsonBody(resp, status=201)
+
+    resp = await cli.post(
+        '/multikey',
+        json=row
+    )
+    await jsonBody(resp, status=422)

@@ -77,3 +77,9 @@ class TaskPathSchema:
 @dataclass
 class TaskPathSchema2:
     task_id: str = uuid_field(required=True, description='Task ID')
+
+
+@dataclass
+class MultiKey:
+    x: int
+    y: int
