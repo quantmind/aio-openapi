@@ -7,7 +7,7 @@ from .compile import compile_query
 from ..db.dbmodel import CrudDB
 from ..spec.path import ApiPath
 
-unique_regex = re.compile(r'Key \((?P<column>\w+)\)=\((?P<value>.+)\)')
+unique_regex = re.compile(r'Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)')
 
 
 class SqlApiPath(ApiPath):
@@ -142,6 +142,7 @@ class SqlApiPath(ApiPath):
                                          consumer=self)
         if not values:
             raise web.HTTPNotFound()
+        return values
 
     async def delete_list(
             self, *, filters=None, query=None, table=None, conn=None):

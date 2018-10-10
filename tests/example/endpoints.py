@@ -8,6 +8,7 @@ from openapi.exc import JsonHttpException
 from .models import (
     Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate, TaskPathSchema2,
     TaskOrderableQuery,
+    MultiKey,
 )
 
 
@@ -424,3 +425,26 @@ class NoTagDescriptionPath(SqlApiPath):
         - Random
     """
     pass
+
+
+@routes.view('/multikey')
+class MultiKeyPath(SqlApiPath):
+    """
+    ---
+    summary: Create rows in multikey constraint table
+    tags:
+        - MultiKey
+    """
+    table = 'multi_key_unique'
+
+    @op(response_schema=MultiKey, body_schema=MultiKey)
+    async def post(self):
+        """
+        ---
+        summary: Create row in multi-column constrained table
+        responses:
+            201:
+                description: New row
+        """
+        data = await self.create_one()
+        return self.json_response(data, status=201)

@@ -66,4 +66,11 @@ def meta(meta=None):
                   nullable=False)
     )
 
+    sa.Table(
+        'multi_key_unique', meta,
+        sa.Column('x', sa.Integer, nullable=False),
+        sa.Column('y', sa.Integer, nullable=False),
+        sa.UniqueConstraint('x', 'y')
+    )
+
     return meta
