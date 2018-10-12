@@ -36,6 +36,9 @@ class Migration:
     def downgrade(self, revision):
         alembic_cmd.downgrade(self.cfg, revision)
 
+    def current(self, verbose=False):
+        alembic_cmd.current(self.cfg, verbose=verbose)
+
     def merge(self, message, branch_label=None, rev_id=None, revisions=None):
         alembic_cmd.merge(self.cfg, message=message,
                           branch_label=branch_label,
