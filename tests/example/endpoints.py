@@ -20,6 +20,16 @@ invalid_method_description_routes = web.RouteTableDef()
 invalid_tag_missing_description_routes = web.RouteTableDef()
 
 
+@routes.get('/status')
+async def status(request):
+    return web.json_response({})
+
+
+@routes.get('/error')
+async def error(request):
+    1 / 0  # noqa
+
+
 @routes.view('/tasks')
 class TasksPath(SqlApiPath):
     """

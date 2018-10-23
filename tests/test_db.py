@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
+import pytest
 from click.testing import CliRunner
 
 from openapi.json import dumps
@@ -46,6 +47,27 @@ def test_migration_upgrade(cli):
     assert result.exit_code == 0
 
     assert 'title' in db.metadata.tables['tasks'].c
+
+
+@pytest.mark.skip('Need to fix this up, but we need the commands now')
+def test_migration_downgrade(cli):
+    app = cli.app
+    db = app['db']
+    assert repr(db)
+    db.drop_all()
+
+    runner = CliRunner()
+    runner.invoke(cli.app['cli'], ['db', 'init'])
+    runner.invoke(cli.app['cli'], ['db', 'current'])
+    runner.invoke(cli.app['cli'], ['db', 'migrate', '-m', 'test'])
+
+    result = runner.invoke(cli.app['cli'], ['db', 'upgrade'])
+    assert result.exit_code == 0
+
+    result = runner.invoke(cli.app['cli'], ['db', 'downgrade'])
+    assert result.exit_code == 0
+
+    assert 'title' not in db.metadata.tables['tasks'].c
 
 
 async def test_migration_init(cli):

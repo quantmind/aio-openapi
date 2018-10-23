@@ -1,7 +1,5 @@
 """Testing utilities
 """
-import json
-
 from openapi.json import loads, dumps
 
 
@@ -9,7 +7,7 @@ async def jsonBody(response, status=200):
     assert response.content_type == 'application/json'
     data = await response.json(loads=loads)
     if response.status != status:   # pragma    no cover
-        print(json.dumps({
+        print(dumps({
             'status': response.status,
             'data': data
         }, indent=4))
