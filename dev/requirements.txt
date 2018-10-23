@@ -22,6 +22,8 @@ pyyaml
 pyjwt
 phonenumbers
 email_validator
+raven==6.9.0
+raven-aiohttp==0.7.0
 #
 # required for python 3.6
 dataclasses

@@ -10,7 +10,7 @@ from aiohttp import test_utils
 
 from sqlalchemy_utils import database_exists, drop_database, create_database
 
-from openapi import db
+from openapi import db, sentry
 from openapi.json import dumps
 from openapi.rest import rest
 from . import example
@@ -71,3 +71,10 @@ async def cli(loop, test_app):
 @pytest.fixture(autouse=True)
 def clean_db(test_app):
     test_app['db'].drop_all()
+
+
+@pytest.fixture(autouse=True, name='sentry')
+def sentry_():
+    sentry.setup("https://pass:@example.com/example", "dad")
+    yield sentry
+    sentry.disable()
