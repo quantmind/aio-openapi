@@ -1,7 +1,8 @@
 class InvalidTypeException(Exception):
 
-    def __init__(self, field_type):
-        super().__init__(f'Cannot parse type {field_type}')
+    def __init__(self, field):
+        super().__init__(
+            f'Cannot parse field {field.name} of type {field.type}')
 
 
 class InvalidSpecException(Exception):

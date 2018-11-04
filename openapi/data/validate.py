@@ -78,12 +78,14 @@ def collect_value(field, name, value):
     if validator:
         value = validator(field, value)
 
-    Type = getattr(field.type, '_gorg', None)
-    if Type in (List, Tuple):
+    if field.type in (List, Tuple):
         # hack - we need to formalize this and allow for nested validators
         if not isinstance(value, (list, tuple)):
             raise ValidationError(name, 'not a valid value')
         value = list(value)
+    elif field.type == Dict:
+        if not isinstance(value, dict):
+            raise ValidationError(name, 'not a valid value')
     else:
         types = getattr(field.type, '__args__', None) or (field.type,)
         types = tuple((getattr(t, '__origin__', None) or t) for t in types)

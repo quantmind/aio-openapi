@@ -13,12 +13,12 @@ from .spec.utils import docjoin
 
 
 def rest(
-        openapi: dict=None,
-        setup_app: object=None,
-        base_path: str=None,
-        commands: typing.List=None,
-        allowed_tags: typing.Set=None,
-        validate_docs: bool=False
+        openapi: dict = None,
+        setup_app: typing.Callable = None,
+        base_path: str = None,
+        commands: typing.List = None,
+        allowed_tags: typing.Set = None,
+        validate_docs: bool = False
 ):
     """Create the OpenApi application server
     """

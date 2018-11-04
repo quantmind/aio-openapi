@@ -2,9 +2,9 @@
 flake8
 coverage
 mypy
-pytest==3.6.4
+pytest
 pytest-cov
 pytest-aiohttp
-pytest-mock==1.10.0
+pytest-mock
 twine
 agile-toolkit
