@@ -60,13 +60,7 @@ meta = dict(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Utilities'
-    ],
-    project_urls={
-        'CI: circleci': 'https://circleci.com/gh/lendingblock/aio-openapi',
-        'Coverage: codecov': 'https://codecov.io/gh/lendingblock/aio-openapi',
-        'GitHub: issues': 'https://github.com/lendingblock/aio-openapi/issues',
-        'GitHub: repo': 'https://github.com/lendingblock/aio-openapi',
-    },
+    ]
 )
 
 

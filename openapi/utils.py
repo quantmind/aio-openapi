@@ -107,7 +107,7 @@ def getLogger():
 
 
 def is_subclass(value, Type):
-    origin = getattr(value, '__origin__', value)
+    origin = getattr(value, '__origin__', None) or value
     return isclass(origin) and issubclass(origin, Type)
 
 
