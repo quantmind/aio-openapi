@@ -11,7 +11,7 @@ def is_nothing(value):
     return not value
 
 
-def dump(schema: object, data: Dict=None) -> Dict:
+def dump(schema: object, data: Dict = None) -> Dict:
     """Dump a dictionary of data with a given dataclass dump functions
     If the data is not given, the schema object is assumed to be
     an instance of a dataclass.

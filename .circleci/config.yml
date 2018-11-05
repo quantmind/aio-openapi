@@ -1,8 +1,20 @@
 version: 2
 jobs:
-  tests:
+  test36:
     docker:
       - image: circleci/python:3.6
+      - image: postgres:10
+    steps:
+      - checkout
+      - run:
+          name: install
+          command: sudo ./dev/install.sh
+      - run:
+          name: test
+          command: pytest
+  tests:
+    docker:
+      - image: circleci/python:3.7
       - image: postgres:10
     steps:
       - checkout
@@ -44,9 +56,11 @@ workflows:
   build-deploy:
     jobs:
       - tests
+      - test36
       - deploy-release:
           requires:
             - tests
+            - test36
           filters:
             branches:
               only: deploy

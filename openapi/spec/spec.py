@@ -2,7 +2,7 @@ from collections import OrderedDict
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, TypeVar
 from dataclasses import dataclass, asdict, is_dataclass, field
 
 from aiohttp import hdrs
@@ -15,12 +15,13 @@ from ..data import fields
 from ..data.exc import (
     ValidationErrors, ErrorMessage, FieldError, error_response_schema
 )
-from ..utils import compact, is_subclass
+from ..utils import compact, is_subclass, as_class
 
 OPENAPI = '3.0.1'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
 SCHEMAS_TO_SCHEMA = ('response_schema', 'body_schema')
 SCHEMA_BASE_REF = '#/components/schemas/'
+STR_TYPES = (str, TypeVar)
 
 
 @dataclass
@@ -56,7 +57,8 @@ class SchemaParser:
         bool: {'type': 'boolean'},
         date: {'type': 'string', fields.FORMAT: 'date'},
         datetime: {'type': 'string', fields.FORMAT: 'date-time'},
-        Decimal: {'type': 'number'}
+        Decimal: {'type': 'number'},
+        TypeVar: {'type': 'string'}
     }
 
     def __init__(self, group=None, validate_docs=False):
@@ -80,19 +82,19 @@ class SchemaParser:
 
     def field2json(self, field, validate_docs=True):
         field = fields.as_field(field)
-        mapping = self._fields_mapping.get(field.type, None)
+        mapping = self._fields_mapping.get(as_class(field.type), None)
         if not mapping:
             if is_subclass(field.type, Enum):
                 enum = [e.name for e in field.type]
                 json_property = {'type': 'string', 'enum': enum}
             elif is_subclass(field.type, List):
-                json_property = self._list2json(field.type)
+                json_property = self._list2json(field)
             elif is_subclass(field.type, Dict):
-                json_property = self._map2json(field.type)
+                json_property = self._map2json(field)
             elif is_dataclass(field.type):
                 json_property = self.get_schema_ref(field.type)
             else:
-                raise InvalidTypeException(field.type)
+                raise InvalidTypeException(field)
 
             mapping = {}
         else:
@@ -143,23 +145,24 @@ class SchemaParser:
 
         return {'$ref': SCHEMA_BASE_REF + schema.__name__}
 
-    def _list2json(self, field_type):
-        args = field_type.__args__
+    def _list2json(self, field):
+        args = field.type.__args__
         return {
             'type': 'array',
             'items':
                 self.field2json(args[0], False) if args else {'type': 'object'}
         }
 
-    def _map2json(self, field_type):
-        args = field_type.__args__
+    def _map2json(self, field):
+        args = field.type.__args__
         spec = {
             'type': 'object'
         }
         if args:
-            if len(args) != 2 or args[0] != str:
-                raise InvalidTypeException(field_type)
-            spec['additionalProperties'] = self.field2json(args[1], False)
+            if len(args) != 2 or as_class(args[0]) not in STR_TYPES:
+                raise InvalidTypeException(field)
+            if as_class(args[1]) not in STR_TYPES:
+                spec['additionalProperties'] = self.field2json(args[1], False)
         return spec
 
 
@@ -185,11 +188,11 @@ class OpenApiSpec:
     """
     def __init__(
             self,
-            info: OpenApi=None,
-            default_content_type: str=None,
-            default_responses: Iterable=None,
-            allowed_tags: Iterable=None,
-            validate_docs: bool=False):
+            info: OpenApi = None,
+            default_content_type: str = None,
+            default_responses: Iterable = None,
+            allowed_tags: Iterable = None,
+            validate_docs: bool = False):
         self.schemas = {}
         self.parameters = {}
         self.responses = {}
@@ -259,8 +262,11 @@ class OpenApiSpec:
             route_info = route.get_info()
             path = route_info.get('path', route_info.get('formatter', None))
             handler = route.handler
-            if (issubclass(handler, ApiPath) and
-                    self._include(handler.private, public, private)):
+            include = (
+                is_subclass(handler, ApiPath) and
+                self._include(handler.private, public, private)
+            )
+            if include:
                 try:
                     paths[path] = self._build_path_object(
                         handler, app, public, private

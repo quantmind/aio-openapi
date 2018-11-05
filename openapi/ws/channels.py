@@ -27,8 +27,8 @@ class Channels:
     def __init__(
             self,
             broker: Broker,
-            namespace: str=None,
-            status_channel: str=None) -> None:
+            namespace: str = None,
+            status_channel: str = None) -> None:
         self.connection_error = False
         self.broker = broker
         self.namespace = (namespace or '').lower()

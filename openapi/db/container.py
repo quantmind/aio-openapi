@@ -9,13 +9,13 @@ from ..exc import ImproperlyConfigured
 class Database:
     """A container for tables in a database
     """
-    def __init__(self, dsn: str=None):
+    def __init__(self, dsn: str = None) -> None:
         self._dsn = dsn
         self._pool = None
         self._engine = None
         self._metadata = sa.MetaData()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self._dsn
     __str__ = __repr__
 

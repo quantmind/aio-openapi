@@ -106,8 +106,13 @@ def getLogger():
         return logger
 
 
-def is_subclass(value, Klass):
-    return isclass(value) and issubclass(value, Klass)
+def is_subclass(value, Type):
+    origin = getattr(value, '__origin__', None) or value
+    return isclass(origin) and issubclass(origin, Type)
+
+
+def as_class(value):
+    return value if isclass(value) else type(value)
 
 
 def as_list(errors: Dict) -> List:

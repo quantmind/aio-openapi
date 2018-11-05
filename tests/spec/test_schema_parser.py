@@ -171,7 +171,7 @@ def test_list2json():
     parser = SchemaParser([])
     with patch.object(parser, 'field2json'):
         list_field = MyClass.__dataclass_fields__['list_field']
-        list_json = parser._list2json(list_field.type)
+        list_json = parser._list2json(list_field)
 
         assert list_json['type'] == 'array'
         assert 'items' in list_json.keys()

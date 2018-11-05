@@ -1,4 +1,5 @@
 import os
+import sys
 from setuptools import setup, find_packages
 
 import openapi
@@ -28,6 +29,13 @@ def requirements(name):
     return install_requires, dependency_links
 
 
+install_requires = requirements('dev/requirements.txt')
+
+
+if sys.version_info < (3, 7):
+    install_requires.append('dataclasses')
+
+
 meta = dict(
     version=openapi.__version__,
     description=openapi.__doc__,
@@ -39,7 +47,7 @@ meta = dict(
     maintainer_email='admin@lendingblock.com',
     url='https://github.com/lendingblock/aio-openapi',
     python_requires='>=3.6.0',
-    install_requires=requirements('dev/requirements.txt'),
+    install_requires=install_requires,
     include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -52,13 +60,7 @@ meta = dict(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Utilities'
-    ],
-    project_urls={
-        'CI: circleci': 'https://circleci.com/gh/lendingblock/aio-openapi',
-        'Coverage: codecov': 'https://codecov.io/gh/lendingblock/aio-openapi',
-        'GitHub: issues': 'https://github.com/lendingblock/aio-openapi/issues',
-        'GitHub: repo': 'https://github.com/lendingblock/aio-openapi',
-    },
+    ]
 )
 
 
