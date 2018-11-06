@@ -29,7 +29,7 @@ def requirements(name):
     return install_requires, dependency_links
 
 
-install_requires = requirements('dev/requirements.txt')
+install_requires = requirements('dev/requirements.txt')[0]
 
 
 if sys.version_info < (3, 7):
