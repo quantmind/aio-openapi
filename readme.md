@@ -1,6 +1,7 @@
 # aio-openapi
 
 [![PyPI version](https://badge.fury.io/py/aio-openapi.svg)](https://badge.fury.io/py/aio-openapi)
+[![Python versions](https://img.shields.io/pypi/pyversions/aio-openapi.svg)](https://pypi.org/project/aio-openapi)
 
 [![CircleCI](https://circleci.com/gh/lendingblock/aio-openapi.svg?style=svg)](https://circleci.com/gh/lendingblock/aio-openapi)
 
@@ -28,13 +29,13 @@ pytest --cov
 
 ## Features
 
-* Asynchronous web routes with [aiohttp][]
-* Data validation, serialization and unserialization with python [dataclasses][]
+* Asynchronous web routes with [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
+* Data validation, serialization and unserialization with python [dataclasses](https://docs.python.org/3/library/dataclasses.html)
 * [OpenApi](https://www.openapis.org/) v 3 auto documentation
 * [SqlAlchemy](https://www.sqlalchemy.org/) expression language
-* Asynchronous DB interaction with [asyncpg][]
-* Migrations with [alembic][]
-* SqlAlchemy tables as python [dataclasses][]
+* Asynchronous DB interaction with [asyncpg](https://github.com/MagicStack/asyncpg)
+* Migrations with [alembic](http://alembic.zzzcomputing.com/en/latest/)
+* SqlAlchemy tables as python dataclasses
 
 ## Websockets
 
@@ -95,8 +96,3 @@ Messages take the form:
     }
 }
 ```
-
-[aiohttp]: https://aiohttp.readthedocs.io/en/stable/
-[asyncpg]: https://github.com/MagicStack/asyncpg
-[dataclasses]: https://docs.python.org/3/library/dataclasses.html
-[alembic]: http://alembic.zzzcomputing.com/en/latest/

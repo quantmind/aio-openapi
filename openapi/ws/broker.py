@@ -23,7 +23,7 @@ class Broker(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def subscribe(self, channel: str, handler: Callable=None) -> None:
+    async def subscribe(self, channel: str, handler: Callable = None) -> None:
         """Bind the broker to a channel/exchange
         """
         pass
@@ -57,7 +57,7 @@ class LocalBroker(Broker):
             0.01, self.messages.put_nowait, (channel, body)
         )
 
-    async def subscribe(self, key: str, handler: Callable=None) -> None:
+    async def subscribe(self, key: str, handler: Callable = None) -> None:
         self.binds.add(key)
         if handler:
             self._handlers.add(handler)
