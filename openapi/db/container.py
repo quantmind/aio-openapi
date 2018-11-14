@@ -1,9 +1,14 @@
+import os
 import asyncpg
 
 import sqlalchemy as sa
 
 from ..utils import asynccontextmanager
 from ..exc import ImproperlyConfigured
+
+
+DBPOOL_MIN_SIZE = int(os.environ.get('DBPOOL_MIN_SIZE') or '10')
+DBPOOL_MAX_SIZE = int(os.environ.get('DBPOOL_MAX_SIZE') or '10')
 
 
 class Database:
@@ -41,7 +46,11 @@ class Database:
         return super().__getattribute__(name)
 
     async def connect(self) -> None:
-        self._pool = await asyncpg.create_pool(self._dsn)
+        self._pool = await asyncpg.create_pool(
+            self._dsn,
+            min_size=DBPOOL_MIN_SIZE,
+            max_size=DBPOOL_MAX_SIZE,
+        )
 
     @asynccontextmanager
     async def connection(self) -> asyncpg.Connection:
