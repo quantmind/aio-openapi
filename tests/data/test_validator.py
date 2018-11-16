@@ -5,7 +5,7 @@ import pytest
 from openapi.data.validate import validated_schema, ValidationErrors
 from openapi.data.fields import ListValidator, NumberValidator
 
-from ..example.models import TaskAdd
+from ..example.models import TaskAdd, Permission, Role
 
 
 def test_validated_schema():
@@ -34,3 +34,30 @@ def test_openapi_listvalidator():
     validator.openapi(props)
     assert props['minimum'] == -1
     assert props['maximum'] == 1
+
+
+def test_permission():
+    data = dict(
+        paths=['bla'],
+        methods=['get'],
+        body=dict(a='test')
+    )
+    d = validated_schema(Permission, data)
+    assert d.action == 'allow'
+    assert d.paths == ['bla']
+    assert d.body == dict(a='test')
+
+
+def test_role():
+    data = dict(
+        name='test',
+        permissions=[
+            dict(
+                paths=['bla'],
+                methods=['get'],
+                body=dict(a='test')
+            )
+        ]
+    )
+    d = validated_schema(Role, data)
+    assert isinstance(d.permissions[0], dict)

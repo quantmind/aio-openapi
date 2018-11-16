@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, field_ops
-from ..utils import mapping_copy
+from ..utils import mapping_copy, is_subclass
 
 
 @dataclass
@@ -78,12 +78,12 @@ def collect_value(field, name, value):
     if validator:
         value = validator(field, value)
 
-    if field.type in (List, Tuple):
+    if is_subclass(field.type, List) or is_subclass(field.type, Tuple):
         # hack - we need to formalize this and allow for nested validators
         if not isinstance(value, (list, tuple)):
             raise ValidationError(name, 'not a valid value')
         value = list(value)
-    elif field.type == Dict:
+    elif is_subclass(field.type, Dict):
         if not isinstance(value, dict):
             raise ValidationError(name, 'not a valid value')
     else:
