@@ -36,7 +36,7 @@ def add_context_processor(processor):
 
 def captureException(*args, **kwargs):
     """shortcut"""
-    data = kwargs.get('data') or {}
+    data = kwargs.setdefault('data', {})
     data['environment'] = environment
     return client.captureException(*args, **kwargs)
 

@@ -1,4 +1,5 @@
 import enum
+from typing import List, Dict
 from datetime import datetime
 from decimal import Decimal
 
@@ -6,7 +7,7 @@ from dataclasses import dataclass
 
 from openapi.data.fields import (
     data_field, date_time_field, decimal_field, enum_field, integer_field,
-    uuid_field,
+    uuid_field, json_field
 )
 from openapi.rest import Query, orderable, searchable
 
@@ -83,3 +84,19 @@ class TaskPathSchema2:
 class MultiKey:
     x: int
     y: int
+
+
+@dataclass
+class Permission:
+    paths: List[str] = data_field(description='Permition paths')
+    methods: List[str] = data_field(description='Permition methods')
+    body: Dict[str, str] = json_field(description='Permission body')
+    action: str = data_field(default='allow', description='Permition action')
+
+
+@dataclass
+class Role:
+    name: str = data_field(required=True, description='Role name')
+    permissions: List[Permission] = data_field(
+        required=True, description='List of permissions'
+    )
