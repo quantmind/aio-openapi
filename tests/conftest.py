@@ -73,8 +73,9 @@ def clean_db(test_app):
     test_app['db'].drop_all()
 
 
-@pytest.fixture(autouse=True, name='sentry')
-def sentry_():
+@pytest.fixture(name='sentry')
+async def sentry_():
     sentry.setup("https://pass:@example.com/example", "dad")
     yield sentry
+    await sentry.close()
     sentry.disable()
