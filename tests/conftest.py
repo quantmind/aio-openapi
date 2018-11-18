@@ -10,7 +10,9 @@ from aiohttp import test_utils
 
 from sqlalchemy_utils import database_exists, drop_database, create_database
 
-from openapi import db, sentry
+from asynctest import CoroutineMock
+
+from openapi import db
 from openapi.json import dumps
 from openapi.rest import rest
 from . import example
@@ -73,9 +75,10 @@ def clean_db(test_app):
     test_app['db'].drop_all()
 
 
-@pytest.fixture(name='sentry')
-async def sentry_():
-    sentry.setup("https://pass:@example.com/example", "dad")
-    yield sentry
-    await sentry.close()
-    sentry.disable()
+@pytest.fixture(autouse=True)
+def sentry_mock(mocker):
+    mock = CoroutineMock()
+    mocker.patch(
+        'raven_aiohttp.AioHttpTransport._do_send', mock
+    )
+    return mock
