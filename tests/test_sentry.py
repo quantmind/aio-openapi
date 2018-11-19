@@ -1,25 +1,19 @@
 import zlib
 import json
 
-from asynctest import CoroutineMock
+from openapi.testing import jsonBody
 
 
-async def test_sentry(cli, sentry, mocker):
-    mock = CoroutineMock()
-    mocker.patch(
-        'raven_aiohttp.AioHttpTransport._do_send', mock
-    )
+async def test_sentry(cli, sentry_mock, mocker):
     resp = await cli.get('/error')
-    assert resp.status == 500
+    await jsonBody(resp, 500)
 
-    try:
-        raise ValueError()
-    except ValueError:
-        sentry.captureException()
-
-    calls = [json.loads(zlib.decompress(a[0][1])) for a in mock.call_args_list]
-    assert len(calls) == 2
-    assert calls[0]['environment'] == calls[1]['environment'] == 'dad'
+    calls = [
+        json.loads(zlib.decompress(a[0][1]))
+        for a in sentry_mock.call_args_list
+    ]
+    assert len(calls) == 1
+    assert calls[0]['environment'] == 'test'
     middleware_call = calls[0]
     request_info = middleware_call['request']
     expected_keys = {

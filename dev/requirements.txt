@@ -22,4 +22,3 @@ pyyaml
 pyjwt
 phonenumbers
 email_validator
-raven-aiohttp==0.7.0
