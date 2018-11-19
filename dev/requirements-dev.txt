@@ -9,3 +9,4 @@ pytest-mock
 twine
 agile-toolkit
 asynctest
+raven-aiohttp
