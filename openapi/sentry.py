@@ -13,17 +13,7 @@ from .exc import ImproperlyConfigured
 def middleware(app, dsn, env='dev'):
     if not AioHttpTransport:  # pragma: no cover
         raise ImproperlyConfigured('Sentry middleware requires raven_aiohttp')
-
-    client = Client(
-        transport=AioHttpTransport,
-        ignore_exceptions=[web.HTTPException],
-    )
-    client.remote = RemoteConfig(transport=AioHttpTransport)
-    client._transport_cache = {
-        None: client.remote
-    }
-    client.set_dsn(dsn, AioHttpTransport)
-    app['sentry'] = client
+    app['sentry'] = Sentry(dsn, env)
     app.on_shutdown.append(close)
 
     @web.middleware
@@ -33,7 +23,6 @@ def middleware(app, dsn, env='dev'):
         except Exception:
             content = await request.content.read()
             data = {
-                'environment': env,
                 'request': {
                     'url': str(request.url).split('?')[0],
                     'method': request.method.lower(),
@@ -46,13 +35,38 @@ def middleware(app, dsn, env='dev'):
                     'id': request.get('user_id'),
                 }
             }
-            client.captureException(data=data)
+            app['sentry'].captureException(data=data)
             raise
 
     return middleware_handler
 
 
 async def close(app):
-    transport = app['sentry'].remote.get_transport()
-    if transport:
-        await transport.close()
+    await app['sentry'].close()
+
+
+class Sentry:
+
+    def __init__(self, dsn, env):
+        client = Client(
+            transport=AioHttpTransport,
+            ignore_exceptions=[web.HTTPException],
+        )
+        client.remote = RemoteConfig(transport=AioHttpTransport)
+        client._transport_cache = {
+            None: client.remote
+        }
+        client.set_dsn(dsn, AioHttpTransport)
+        self.env = env
+        self.client = client
+
+    def captureException(self, data=None):
+        if data is None:
+            data = {}
+        data['environment'] = self.env
+        self.client.captureException(data=data)
+
+    async def close(self):
+        transport = self.client.remote.get_transport()
+        if transport:
+            await transport.close()
