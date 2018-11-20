@@ -28,6 +28,7 @@ def json_error(status_codes=None):
             if 500 in status_codes:
                 status = 500
                 message = {'error': ERROR_500}
+                request.app.logger.exception(ERROR_500)
             else:
                 raise
         return web.json_response(message, status=status)
