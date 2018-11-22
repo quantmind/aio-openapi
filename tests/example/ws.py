@@ -1,3 +1,5 @@
+import asyncio
+
 from aiohttp import web
 
 from openapi import ws
@@ -19,3 +21,13 @@ class StreamPath(ws.WsPathMixin, pubsub.Publish, pubsub.Subscribe, ApiPath):
         """Echo parameters
         """
         return payload
+
+    async def ws_rpc_cancel(self, payload):
+        """Echo parameters
+        """
+        raise asyncio.CancelledError
+
+    async def ws_rpc_badjson(self, payload):
+        """Echo parameters
+        """
+        return ApiPath
