@@ -64,9 +64,12 @@ class WsPathMixin:
         if sockets:
             sockets.add(self)
         #
-        async for msg in response:
-            if msg.type == web.WSMsgType.TEXT:
-                await self.on_message(msg)
+        try:
+            async for msg in response:
+                if msg.type == web.WSMsgType.TEXT:
+                    await self.on_message(msg)
+        except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError):
+            pass
 
         return response
 
@@ -83,7 +86,7 @@ class WsPathMixin:
         """
         try:
             return json.dumps(msg)
-        except json.JSONDecodeError:
+        except TypeError:
             raise ProtocolError('JSON object expected') from None
 
     async def on_message(self, msg):
@@ -109,7 +112,11 @@ class WsPathMixin:
             ))
         except ProtocolError as exc:
             logger.error('Protocol error: %s', exc)
-            await self.error_message(str(exc))
+            await self.error_message(
+                str(exc),
+                id=id_,
+                method=rpc.method if rpc else None
+            )
         except ValidationErrors as exc:
             await self.error_message(
                 'Invalid RPC parameters',
@@ -125,13 +132,8 @@ class WsPathMixin:
         await self.write(compact(error=error, **kw))
 
     async def write(self, msg: Dict) -> None:
-        try:
-            text = self.encode_message(msg)
-            await self.response.send_str(text)
-        except RuntimeError:
-            # TODO: is this the best way to avoid spamming exception
-            #       when the websocket is closed by the client?
-            pass
+        text = self.encode_message(msg)
+        await self.response.send_str(text)
 
 
 class Sockets:

@@ -180,3 +180,25 @@ async def test_rpc_pubsub(cli):
         data = msg.json()
         assert data['channel'] == 'test'
         assert data['data'] == 'hello again'
+
+
+async def test_cancelled(cli):
+    async with cli.ws_connect('/stream') as ws:
+        await ws.send_json(
+            dict(id='abc', method='cancel')
+        )
+        msg = await ws.receive()
+        assert msg.type == aiohttp.WSMsgType.CLOSE
+
+
+async def test_badjson(cli):
+    async with cli.ws_connect('/stream') as ws:
+        await ws.send_json(
+            dict(id='abc', method='badjson')
+        )
+        msg = await ws.receive()
+        assert msg.type == aiohttp.WSMsgType.TEXT
+        data = msg.json()
+        assert data['id'] == 'abc'
+        assert data['error']
+        assert data['error']['message'] == 'JSON object expected'
