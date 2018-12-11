@@ -54,8 +54,8 @@ class TasksPath(SqlApiPath):
             200:
                 description: Authenticated tasks
         """
-        data = await self.get_list()
-        return self.json_response(data)
+        data, headers = await self.get_list()
+        return self.json_response(data, headers=headers)
 
     @op(response_schema=Task, body_schema=TaskAdd)
     async def post(self):
@@ -210,8 +210,8 @@ class TaskTransactionsPath(SqlApiPath):
                 description: Authenticated tasks
         """
         async with self.db.transaction() as conn:
-            data = await self.get_list(conn=conn)
-            return self.json_response(data=data)
+            data, headers = await self.get_list(conn=conn)
+            return self.json_response(data, headers=headers)
 
 
 @routes.view('/transaction/tasks/{id}')
