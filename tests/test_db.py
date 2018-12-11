@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 from click.testing import CliRunner
 
+from openapi.db.compile import compile_query
 from openapi.json import dumps
 from openapi.testing import jsonBody, equal_dict
 from openapi.utils import error_dict
@@ -427,3 +428,30 @@ async def test_multicolumn_unique_constraint(cli):
         json=row
     )
     await jsonBody(resp, status=422)
+
+
+async def test_json_column_with_decimals(db, cli):
+    task = {
+        'title': 'task',
+        'unique_title': 'task1',
+        'story_points': Decimal(0)
+    }
+    resp = await cli.post('/tasks', data=dumps(task))
+    body = await jsonBody(resp, status=201)
+
+    resp = await cli.post('/tasks', data=dumps(task))
+    info = {'the_price_again': Decimal('1.234')}
+    data = {
+        'price': Decimal('1.234'),
+        'tenor': '1d',
+        'info': info,
+        'jsonlist': [info, info],
+        'task_id': body['id']
+    }
+
+    async with db.transaction() as conn:
+        q, args = compile_query(
+            db.randoms.insert()
+            .values(data)
+        )
+        await conn.execute(q, *args)

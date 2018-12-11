@@ -12,7 +12,7 @@ from sqlalchemy_utils import database_exists, drop_database, create_database
 
 from asynctest import CoroutineMock
 
-from openapi import db
+from openapi import db as DB
 from openapi.json import dumps
 from openapi.rest import rest
 from . import example
@@ -24,7 +24,7 @@ DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/openapi'
 
 
 def setup_app(app):
-    db.setup_app(app)
+    DB.setup_app(app)
     example.setup_app(app)
 
 
@@ -44,6 +44,11 @@ def test_app(db_url):
     app = cli.web()
     app['db'].create_all()
     return app
+
+
+@pytest.fixture
+def db(test_app):
+    return test_app['db']
 
 
 @pytest.fixture(autouse=True)
