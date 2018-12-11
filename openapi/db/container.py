@@ -3,8 +3,8 @@ import asyncpg
 
 import sqlalchemy as sa
 
-from ..utils import asynccontextmanager
 from ..exc import ImproperlyConfigured
+from ..utils import asynccontextmanager
 
 
 DBPOOL_MIN_SIZE = int(os.environ.get('DBPOOL_MIN_SIZE') or '10')
