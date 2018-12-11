@@ -1,7 +1,13 @@
 from sqlalchemy.dialects.postgresql import pypostgresql
 from sqlalchemy.sql.dml import Insert as InsertObject, Update as UpdateObject
 
-dialect = pypostgresql.dialect(paramstyle='pyformat')
+from .. import json
+
+dialect = pypostgresql.dialect(
+    paramstyle='pyformat',
+    json_serializer=json.dumps,
+    json_deserializer=json.loads
+)
 
 dialect.implicit_returning = True
 dialect.supports_native_enum = True
