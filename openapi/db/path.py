@@ -2,7 +2,7 @@ import re
 
 from aiohttp import web
 from asyncpg.exceptions import UniqueViolationError
-from sqlalchemy.sql import Select, or_
+from sqlalchemy.sql import or_
 
 from .compile import compile_query
 from ..db.dbmodel import CrudDB
@@ -29,15 +29,6 @@ class SqlApiPath(ApiPath):
     def db_table(self):
         return self.db.metadata.tables[self.table]
 
-    def get_order_clause(self, table, query, order_by, order_desc):
-        if not order_by:
-            return query
-
-        order_by_column = getattr(table.c, order_by)
-        if order_desc:
-            order_by_column = order_by_column.desc()
-        return query.order_by(order_by_column)
-
     def get_search_clause(self, table, query, search, search_columns):
         if not search:
             return query
@@ -49,18 +40,7 @@ class SqlApiPath(ApiPath):
             )
         )
 
-    def get_link_headers(self, url, limit_params):
-        pag = Pagination(url)
-        params = (
-            limit_params['total'],
-            limit_params['limit'],
-            limit_params['offset'],
-        )
-        headers = pag.headers(*params)
-        if headers:
-            return {'Link': ', '.join(headers.values())}
-
-    def get_limit_params(self, params):
+    def get_special_params(self, params):
         return dict(
             limit=params.pop('limit', DEF_PAGINATION_LIMIT),
             offset=params.pop('offset', 0),
@@ -69,34 +49,6 @@ class SqlApiPath(ApiPath):
             search=params.pop('search', None),
             search_columns=params.pop('search_fields', []),
         )
-
-    def limit_order_search_query(
-            self,
-            query,
-            table,
-            limit=DEF_PAGINATION_LIMIT,
-            offset=0,
-            order_by=None,
-            order_desc=False,
-            search=None,
-            search_columns=None,
-    ):
-        if isinstance(query, Select):
-            # ordering
-            query = self.get_order_clause(table, query, order_by, order_desc)
-
-            # pagination
-            query = query.offset(offset)
-            query = query.limit(limit)
-
-            # search
-            query = self.get_search_clause(
-                table,
-                query,
-                search,
-                search_columns
-            )
-        return query
 
     async def get_list(
             self, *, filters=None, query=None, table=None,
@@ -108,23 +60,45 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        limit_params = self.get_limit_params(filters)
+        specials = self.get_special_params(filters)
         query = self.db.get_query(table, table.select(), self, filters)
+        #
         query_count = query.alias('inner').count()
+        #
+        # order by
+        if specials['order_by']:
+            order_by_column = getattr(table.c, specials['order_by'], None)
+            if order_by_column is not None:
+                if specials['order_desc']:
+                    order_by_column = order_by_column.desc()
+                query = query.order_by(order_by_column)
 
-        if limit_params:
-            query = self.limit_order_search_query(
-                query, table, **limit_params
-            )
+        # search
+        query = self.get_search_clause(
+            table,
+            query,
+            specials['search'],
+            specials['search_columns']
+        )
+
+        # pagination
+        offset = specials['offset']
+        limit = specials['limit']
+        if offset:
+            query = query.offset(offset)
+        if limit:
+            query = query.limit(limit)
 
         sql, args = compile_query(query)
         sql_count, args_count = compile_query(query_count)
         async with self.db.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql_count, *args_count)
             values = await conn.fetch(sql, *args)
-        limit_params['total'] = total['tbl_row_count']
-        headers = self.get_link_headers(self.request.url, limit_params)
-        return self.dump(dump_schema, values), headers
+        pagination = Pagination(self.request.url)
+        data = self.dump(dump_schema, values)
+        return pagination.paginated(
+            data, total['tbl_row_count'], offset, limit
+        )
 
     async def create_one(
         self, *, data=None, table=None, body_schema='body_schema',

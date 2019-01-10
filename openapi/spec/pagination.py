@@ -2,15 +2,47 @@ import os
 
 from multidict import MultiDict
 
+from aiohttp import web
+
+from openapi.json import dumps
+
 
 MAX_PAGINATION_LIMIT = int(os.environ.get('MAX_PAGINATION_LIMIT') or 100)
 DEF_PAGINATION_LIMIT = int(os.environ.get('DEF_PAGINATION_LIMIT') or 50)
+
+
+class PaginatedData:
+
+    def __init__(self, data, pagination, total, offset, limit):
+        self.data = data
+        self.pagination = pagination
+        self.total = total
+        self.offset = offset
+        self.limit = limit
+
+    def json_response(self, headers=None, **kwargs):
+        headers = headers or {}
+        links = self.header_links()
+        if links:
+            headers['Link'] = links
+        return web.json_response(
+            self.data, headers=headers, **kwargs, dumps=dumps
+        )
+
+    def header_links(self):
+        links = self.pagination.links(self.total, self.limit, self.offset)
+        return ', '.join(
+            f'<{value}> rel="{name}"' for name, value in links.items()
+        )
 
 
 class Pagination:
     def __init__(self, url):
         self.url = url
         self.query = MultiDict(url.query)
+
+    def paginated(self, data, total, offset, limit):
+        return PaginatedData(data, self, total, offset, limit)
 
     def first_link(self, total, limit, offset):
         n = self._count_part(offset, limit, 0)
@@ -62,19 +94,3 @@ class Pagination:
                 links['next'] = next_
             links['last'] = last
         return links
-
-    def headers(self, total, limit, offset):
-        headers = {}
-        first = self.first_link(total, limit, offset)
-        if first:
-            headers['first'] = f'<{first}> rel="first"'
-            prev = self.prev_link(total, limit, offset)
-            if prev != first:
-                headers['prev'] = f'<{prev}> rel="prev"'
-        next_ = self.next_link(total, limit, offset)
-        if next_:
-            last = self.last_link(total, limit, offset)
-            if last != next_:
-                headers['next'] = f'<{next_}> rel="next"'
-            headers['last'] = f'<{last}> rel="last"'
-        return headers

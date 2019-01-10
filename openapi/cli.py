@@ -46,9 +46,7 @@ class OpenApiClient(click.Group):
         """Return the web application
         """
         if self._web is None:
-            app = web.Application(
-                debug=get_debug_flag()
-            )
+            app = web.Application()
             app['cli'] = self
             app['spec'] = self.spec
             app['cwd'] = os.getcwd()
@@ -61,9 +59,7 @@ class OpenApiClient(click.Group):
     def get_serve_app(self):
         app = self.web()
         if self.base_path:
-            base = web.Application(
-                debug=get_debug_flag()
-            )
+            base = web.Application()
             base.add_subapp(self.base_path, app)
             app = base
         return app
@@ -106,7 +102,5 @@ def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
     app = ctx.obj['app']['cli'].get_serve_app()
-    if reload is None and app.debug:
-        reload = True
     access_log = getLogger()
     web.run_app(app, host=host, port=port, access_log=access_log)
