@@ -15,7 +15,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/test_pagination.py"
+                "tests/data/test_validator.py"
             ]
         }
     ]
