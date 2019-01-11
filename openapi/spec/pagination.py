@@ -2,9 +2,38 @@ import os
 
 from multidict import MultiDict
 
+from aiohttp import web
+
+from openapi.json import dumps
+
 
 MAX_PAGINATION_LIMIT = int(os.environ.get('MAX_PAGINATION_LIMIT') or 100)
 DEF_PAGINATION_LIMIT = int(os.environ.get('DEF_PAGINATION_LIMIT') or 50)
+
+
+class PaginatedData:
+
+    def __init__(self, data, pagination, total, offset, limit):
+        self.data = data
+        self.pagination = pagination
+        self.total = total
+        self.offset = offset
+        self.limit = limit
+
+    def json_response(self, headers=None, **kwargs):
+        headers = headers or {}
+        links = self.header_links()
+        if links:
+            headers['Link'] = links
+        return web.json_response(
+            self.data, headers=headers, **kwargs, dumps=dumps
+        )
+
+    def header_links(self):
+        links = self.pagination.links(self.total, self.limit, self.offset)
+        return ', '.join(
+            f'<{value}> rel="{name}"' for name, value in links.items()
+        )
 
 
 class Pagination:
@@ -12,10 +41,13 @@ class Pagination:
         self.url = url
         self.query = MultiDict(url.query)
 
+    def paginated(self, data, total, offset, limit):
+        return PaginatedData(data, self, total, offset, limit)
+
     def first_link(self, total, limit, offset):
         n = self._count_part(offset, limit, 0)
         if n:
-            offset -= n*limit
+            offset -= n * limit
         if offset > 0:
             return self.link(0, min(limit, offset))
 
@@ -33,7 +65,7 @@ class Pagination:
     def last_link(self, total, limit, offset):
         n = self._count_part(total, limit, offset)
         if n > 0:
-            return self.link(offset + n*limit, limit)
+            return self.link(offset + n * limit, limit)
 
     def link(self, offset, limit):
         query = self.query.copy()
@@ -43,7 +75,7 @@ class Pagination:
     def _count_part(self, total, limit, offset):
         n = (total - offset) // limit
         # make sure we account for perfect matching
-        if n*limit + offset == total:
+        if n * limit + offset == total:
             n -= 1
         return max(0, n)
 
@@ -55,10 +87,10 @@ class Pagination:
             prev = self.prev_link(total, limit, offset)
             if prev != first:
                 links['prev'] = prev
-        next = self.next_link(total, limit, offset)
-        if next:
+        next_ = self.next_link(total, limit, offset)
+        if next_:
             last = self.last_link(total, limit, offset)
-            if last != next:
-                links['next'] = next
+            if last != next_:
+                links['next'] = next_
             links['last'] = last
         return links

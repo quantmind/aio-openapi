@@ -1,35 +1,10 @@
-from sqlalchemy import or_
-from sqlalchemy.sql import and_, Select
+from sqlalchemy.sql import and_
 
 from ..db.container import Database
 from .compile import compile_query
-from ..spec.pagination import DEF_PAGINATION_LIMIT
 
 
 class CrudDB(Database):
-
-    @classmethod
-    def get_order_clause(cls, table, query, order_by, order_desc):
-        if not order_by:
-            return query
-
-        order_by_column = getattr(table.c, order_by)
-        if order_desc:
-            order_by_column = order_by_column.desc()
-        return query.order_by(order_by_column)
-
-    @classmethod
-    def get_search_clause(cls, table, query, search, search_columns):
-        if not search:
-            return query
-
-        columns = [getattr(table.c, col) for col in search_columns]
-        return query.where(
-            or_(
-                *(col.ilike(f'%{search}%') for col in columns)
-            )
-        )
-
     async def db_select(self, table, filters, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
         sql, args = compile_query(query)
@@ -57,12 +32,7 @@ class CrudDB(Database):
         filters = []
         columns = table.c
         params = params or {}
-        limit = params.pop('limit', DEF_PAGINATION_LIMIT)
-        offset = params.pop('offset', 0)
-        order_by = params.pop('order_by', None)
-        order_desc = params.pop('order_desc', False)
-        search = params.pop('search', None)
-        search_columns = params.pop('search_fields', [])
+
         for key, value in params.items():
             bits = key.split(':')
             field = bits[0]
@@ -80,23 +50,6 @@ class CrudDB(Database):
         if filters:
             filters = and_(*filters) if len(filters) > 1 else filters[0]
             query = query.where(filters)
-
-        if isinstance(query, Select):
-            # ordering
-            query = self.get_order_clause(table, query, order_by, order_desc)
-
-            # pagination
-            query = query.offset(offset)
-            query = query.limit(limit)
-
-            # search
-            query = self.get_search_clause(
-                table,
-                query,
-                search,
-                search_columns
-            )
-
         return query
 
     def default_filter_field(self, field, op, value):
