@@ -2,10 +2,12 @@ import re
 
 from aiohttp import web
 from asyncpg.exceptions import UniqueViolationError
+from sqlalchemy.sql import or_
 
 from .compile import compile_query
 from ..db.dbmodel import CrudDB
 from ..spec.path import ApiPath
+from ..spec.pagination import Pagination, DEF_PAGINATION_LIMIT
 
 unique_regex = re.compile(r'Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)')
 
@@ -27,6 +29,27 @@ class SqlApiPath(ApiPath):
     def db_table(self):
         return self.db.metadata.tables[self.table]
 
+    def get_search_clause(self, table, query, search, search_columns):
+        if not search:
+            return query
+
+        columns = [getattr(table.c, col) for col in search_columns]
+        return query.where(
+            or_(
+                *(col.ilike(f'%{search}%') for col in columns)
+            )
+        )
+
+    def get_special_params(self, params):
+        return dict(
+            limit=params.pop('limit', DEF_PAGINATION_LIMIT),
+            offset=params.pop('offset', 0),
+            order_by=params.pop('order_by', None),
+            order_desc=params.pop('order_desc', False),
+            search=params.pop('search', None),
+            search_columns=params.pop('search_fields', []),
+        )
+
     async def get_list(
             self, *, filters=None, query=None, table=None,
             query_schema='query_schema', dump_schema='response_schema',
@@ -37,12 +60,45 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
+        specials = self.get_special_params(filters)
         query = self.db.get_query(table, table.select(), self, filters)
+        #
+        query_count = query.alias('inner').count()
+        #
+        # order by
+        if specials['order_by']:
+            order_by_column = getattr(table.c, specials['order_by'], None)
+            if order_by_column is not None:
+                if specials['order_desc']:
+                    order_by_column = order_by_column.desc()
+                query = query.order_by(order_by_column)
+
+        # search
+        query = self.get_search_clause(
+            table,
+            query,
+            specials['search'],
+            specials['search_columns']
+        )
+
+        # pagination
+        offset = specials['offset']
+        limit = specials['limit']
+        if offset:
+            query = query.offset(offset)
+        if limit:
+            query = query.limit(limit)
 
         sql, args = compile_query(query)
+        sql_count, args_count = compile_query(query_count)
         async with self.db.ensure_connection(conn) as conn:
+            total = await conn.fetchrow(sql_count, *args_count)
             values = await conn.fetch(sql, *args)
-        return self.dump(dump_schema, values)
+        pagination = Pagination(self.request.url)
+        data = self.dump(dump_schema, values)
+        return pagination.paginated(
+            data, total['tbl_row_count'], offset, limit
+        )
 
     async def create_one(
         self, *, data=None, table=None, body_schema='body_schema',

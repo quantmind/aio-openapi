@@ -1,4 +1,5 @@
 from yarl import URL
+from openapi.testing import jsonBody
 from openapi.spec.pagination import Pagination
 
 
@@ -29,3 +30,57 @@ def test_last_link():
     assert links['prev'].query['offset'] == '25'
     assert links['next'].query['offset'] == '75'
     assert links['last'].query['offset'] == '100'
+
+
+async def test_pagination_next_link(cli):
+    response = await cli.post('/tasks', json=dict(title='bla'))
+    await jsonBody(response, 201)
+    response = await cli.post('/tasks', json=dict(title='foo'))
+    await jsonBody(response, 201)
+    response = await cli.get('/tasks')
+    data = await jsonBody(response)
+    assert 'Link' not in response.headers
+    assert len(data) == 2
+
+
+async def test_pagination_first_link(cli):
+    response = await cli.post('/tasks', json=dict(title='bla'))
+    await jsonBody(response, 201)
+    response = await cli.post('/tasks', json=dict(title='foo'))
+    await jsonBody(response, 201)
+    response = await cli.get(
+        '/tasks',
+        params={'limit': 10, 'offset': 20}
+    )
+    url = response.url
+    data = await jsonBody(response)
+    link = response.headers['Link']
+    assert link == (
+        f'<{url.parent}{url.path}?limit=10&offset=0> rel="first", '
+        f'<{url.parent}{url.path}?limit=10&offset=10> rel="prev"'
+    )
+    assert 'Link' in response.headers
+    assert len(data) == 0
+
+
+async def test_invalid_limit_offset(cli):
+    response = await cli.get(
+        '/tasks',
+        params={'limit': 'wtf'}
+    )
+    await jsonBody(response, 422)
+    response = await cli.get(
+        '/tasks',
+        params={'limit': 0}
+    )
+    await jsonBody(response, 422)
+    response = await cli.get(
+        '/tasks',
+        params={'offset': 'wtf'}
+    )
+    await jsonBody(response, 422)
+    response = await cli.get(
+        '/tasks',
+        params={'offset': -10}
+    )
+    await jsonBody(response, 422)
