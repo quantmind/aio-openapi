@@ -2,11 +2,15 @@ from aiohttp import web
 
 from multidict import MultiDict
 
+from yarl import URL
+
 from openapi.json import loads, dumps
+
 from ..data.dump import dump, dump_list
 from ..data.validate import validate
 from ..data.exc import ValidationErrors
 from ..utils import compact, as_list
+from . import hdrs
 
 
 class ApiPath(web.View):
@@ -97,6 +101,16 @@ class ApiPath(web.View):
         raw = compact(message=message, errors=as_list(errors or ()))
         data = self.dump(ValidationErrors, raw)
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
+
+    def full_url(self):
+        headers = self.request.headers
+        proto = headers.get(hdrs.X_FORWARDED_PROTO)
+        host = headers.get(hdrs.X_FORWARDED_HOST)
+        if proto and host:
+            url = URL.build(scheme=proto, host=host)
+            return url.join(self.request.rel_url)
+        else:
+            return self.request.url
 
     @classmethod
     def api_response_data(cls, data):
