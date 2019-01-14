@@ -84,3 +84,25 @@ async def test_invalid_limit_offset(cli):
         params={'offset': -10}
     )
     await jsonBody(response, 422)
+
+
+async def test_pagination_with_forwarded_host(cli):
+    response = await cli.post('/tasks', json=dict(title='bla'))
+    await jsonBody(response, 201)
+    response = await cli.post('/tasks', json=dict(title='foo'))
+    await jsonBody(response, 201)
+    response = await cli.get(
+        '/tasks',
+        headers={
+            'X-Forwarded-Proto': 'https',
+            'X-Forwarded-Host': 'whenbeer.pub'
+        },
+        params={'limit': 10, 'offset': 20}
+    )
+    data = await jsonBody(response)
+    assert len(data) == 0
+    link = response.headers['Link']
+    assert link == (
+        f'<https://whenbeer.pub/tasks?limit=10&offset=0> rel="first", '
+        f'<https://whenbeer.pub/tasks?limit=10&offset=10> rel="prev"'
+    )

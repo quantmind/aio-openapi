@@ -94,7 +94,7 @@ class SqlApiPath(ApiPath):
         async with self.db.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql_count, *args_count)
             values = await conn.fetch(sql, *args)
-        pagination = Pagination(self.request.url)
+        pagination = Pagination(self.full_url())
         data = self.dump(dump_schema, values)
         return pagination.paginated(
             data, total['tbl_row_count'], offset, limit
