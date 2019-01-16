@@ -25,6 +25,7 @@ class PaginatedData:
         links = self.header_links()
         if links:
             headers['Link'] = links
+        headers['X-Total-Count'] = f'{self.total}'
         return web.json_response(
             self.data, headers=headers, **kwargs, dumps=dumps
         )
