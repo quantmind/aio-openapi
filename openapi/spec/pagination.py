@@ -33,7 +33,7 @@ class PaginatedData:
     def header_links(self):
         links = self.pagination.links(self.total, self.limit, self.offset)
         return ', '.join(
-            f'<{value}> rel="{name}"' for name, value in links.items()
+            f'<{value}>; rel="{name}"' for name, value in links.items()
         )
 
 
