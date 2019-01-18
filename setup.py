@@ -7,7 +7,7 @@ import openapi
 
 def read(name):
     filename = os.path.join(os.path.dirname(__file__), name)
-    with open(filename) as fp:
+    with open(filename, encoding='utf8') as fp:
         return fp.read()
 
 
@@ -50,11 +50,11 @@ meta = dict(
     install_requires=install_requires,
     include_package_data=True,
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Environment :: Web Environment',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
+        'Programming Language :: JavaScript',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
