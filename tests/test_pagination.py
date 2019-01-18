@@ -56,8 +56,8 @@ async def test_pagination_first_link(cli):
     data = await jsonBody(response)
     link = response.headers['Link']
     assert link == (
-        f'<{url.parent}{url.path}?limit=10&offset=0> rel="first", '
-        f'<{url.parent}{url.path}?limit=10&offset=10> rel="prev"'
+        f'<{url.parent}{url.path}?limit=10&offset=0>; rel="first", '
+        f'<{url.parent}{url.path}?limit=10&offset=10>; rel="prev"'
     )
     assert 'Link' in response.headers
     assert len(data) == 0
@@ -103,7 +103,7 @@ async def test_pagination_with_forwarded_host(cli):
     assert len(data) == 0
     link = response.headers['Link']
     assert link == (
-        f'<https://whenbeer.pub/tasks?limit=10&offset=0> rel="first", '
-        f'<https://whenbeer.pub/tasks?limit=10&offset=10> rel="prev"'
+        f'<https://whenbeer.pub/tasks?limit=10&offset=0>; rel="first", '
+        f'<https://whenbeer.pub/tasks?limit=10&offset=10>; rel="prev"'
     )
     assert response.headers['X-total-count'] == '2'
