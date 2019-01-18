@@ -1,4 +1,3 @@
-"""Minimal OpenAPI asynchronous server application
-"""
+"""Minimal OpenAPI asynchronous server application"""
 
-__version__ = '1.2.3'
+__version__ = '1.2.4'
