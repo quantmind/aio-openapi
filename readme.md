@@ -36,6 +36,32 @@ pytest --cov
 * Asynchronous DB interaction with [asyncpg](https://github.com/MagicStack/asyncpg)
 * Migrations with [alembic](http://alembic.zzzcomputing.com/en/latest/)
 * SqlAlchemy tables as python dataclasses
+* [Click](https://github.com/pallets/click) command line interface
+
+## Web App
+
+to create an openapi RESTful application:
+```python
+def create_app():
+    app = rest(
+        openapi=settings.api_info(),
+        base_path='/v1,
+        allowed_tags=[...],
+        validate_docs=True,
+        setup_app=setup_app,
+        commands=[...]
+    )
+    return app
+
+
+def setup_app(app):
+    app.router.add_routes(...)
+    return app
+
+
+if __name__ == '__main__':
+    create_app().main()
+```
 
 ## Websockets
 
