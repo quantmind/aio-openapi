@@ -44,7 +44,10 @@ to create an openapi RESTful application:
 ```python
 def create_app():
     app = rest(
-        openapi=settings.api_info(),
+        openapi=dict(
+            title='A REST API',
+            ...
+        ),
         base_path='/v1,
         allowed_tags=[...],
         validate_docs=True,
