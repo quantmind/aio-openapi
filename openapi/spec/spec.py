@@ -252,13 +252,15 @@ class OpenApiSpec:
         ))
         return doc
 
+    def routes(self, app):
+        return app.router.routes()
+
     def _build_paths(self, app, public, private):
         """Loop through app paths and add
         schemas, parameters and paths objects to the spec
         """
         paths = self.paths
-        routes = app.router.routes()
-        for route in routes:
+        for route in self.routes(app):
             route_info = route.get_info()
             path = route_info.get('path', route_info.get('formatter', None))
             handler = route.handler
