@@ -18,12 +18,13 @@ def rest(
         base_path: str = None,
         commands: typing.List = None,
         allowed_tags: typing.Set = None,
-        validate_docs: bool = False
+        validate_docs: bool = False,
+        OpenApiSpecClass: typing.ClassVar = OpenApiSpec
 ):
     """Create the OpenApi application server
     """
     return OpenApiClient(
-        OpenApiSpec(
+        OpenApiSpecClass(
             OpenApi(**(openapi or {})),
             allowed_tags=allowed_tags,
             validate_docs=validate_docs
