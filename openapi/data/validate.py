@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, field_ops
 from ..utils import mapping_copy, is_subclass
@@ -30,7 +30,7 @@ def validate(schema, data, *, strict=True, multiple=False):
     errors = {}
     cleaned = {}
     data = mapping_copy(data)
-    for field in schema.__dataclass_fields__.values():
+    for field in fields(schema):
         try:
             required = field.metadata.get(REQUIRED)
             if strict and DEFAULT in field.metadata:
