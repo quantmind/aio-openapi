@@ -2,12 +2,28 @@
 
 [![PyPI version](https://badge.fury.io/py/aio-openapi.svg)](https://badge.fury.io/py/aio-openapi)
 [![Python versions](https://img.shields.io/pypi/pyversions/aio-openapi.svg)](https://pypi.org/project/aio-openapi)
-
 [![CircleCI](https://circleci.com/gh/lendingblock/aio-openapi.svg?style=svg)](https://circleci.com/gh/lendingblock/aio-openapi)
-
 [![codecov](https://codecov.io/gh/lendingblock/aio-openapi/branch/master/graph/badge.svg)](https://codecov.io/gh/lendingblock/aio-openapi)
 
-Asynchronous web middleware for Rest APIs with PostgreSql Database.
+This library is an asynchronous web middleware for [aiohttp][] for serving Rest APIs with [OpenAPI][] v 3
+specification and with optional [PostgreSql][] database.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Installation](#installation)
+- [Development](#development)
+- [Features](#features)
+- [Web App](#web-app)
+- [OpenAPI Documentation](#openapi-documentation)
+- [Database](#database)
+- [Websockets](#websockets)
+  - [RPC protocol](#rpc-protocol)
+  - [Publish/Subscribe](#publishsubscribe)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 
 ## Installation
 ```
@@ -31,7 +47,7 @@ pytest --cov
 
 * Asynchronous web routes with [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
 * Data validation, serialization and unserialization with python [dataclasses](https://docs.python.org/3/library/dataclasses.html)
-* [OpenApi](https://www.openapis.org/) v 3 auto documentation
+* [OpenApi][] v 3 auto documentation
 * [SqlAlchemy](https://www.sqlalchemy.org/) expression language
 * Asynchronous DB interaction with [asyncpg](https://github.com/MagicStack/asyncpg)
 * Migrations with [alembic](http://alembic.zzzcomputing.com/en/latest/)
@@ -123,6 +139,11 @@ class TasksPath(SqlApiPath):
         return self.json_response(data, status=201)
 ```
 
+## Database
+
+This library provides integration with [asyncpg][], an high performant asynchronous
+connector with [PostgreSql][] database.
+
 ## Websockets
 
 This library provides a simple distributed websocket utility for creating
@@ -182,3 +203,8 @@ Messages take the form:
     }
 }
 ```
+
+
+[aiohttp]: https://aiohttp.readthedocs.io/en/stable/
+[OpenApi]: https://www.openapis.org/
+[PostgreSql]: https://www.postgresql.org/

@@ -6,7 +6,7 @@ from aiohttp import web
 import click
 import uvloop
 
-from .utils import get_debug_flag, getLogger
+from .utils import get_debug_flag, get_logger
 from . import spec
 
 
@@ -61,6 +61,7 @@ class OpenApiClient(click.Group):
         if self.base_path:
             base = web.Application()
             base.add_subapp(self.base_path, app)
+            base['cli'] = self
             app = base
         return app
 
@@ -102,5 +103,5 @@ def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
     app = ctx.obj['app']['cli'].get_serve_app()
-    access_log = getLogger()
+    access_log = get_logger()
     web.run_app(app, host=host, port=port, access_log=access_log)
