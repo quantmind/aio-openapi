@@ -7,6 +7,7 @@ from .rpc import ws_rpc
 
 @dataclass
 class PublishSchema:
+    data: Union[str, List, Dict]
     channel: str = fields.data_field(
         required=True,
         description='Channel to publish message'
@@ -14,7 +15,6 @@ class PublishSchema:
     event: str = fields.data_field(
         description='Channel event'
     )
-    data: Union[str, List, Dict]
 
 
 @dataclass

@@ -45,7 +45,7 @@ class Task(TaskAdd):
 
 
 @dataclass
-class TaskQuery:
+class TaskQuery(Query):
     title: str = data_field(description='Task title')
     done: bool = data_field(description='Done timestamp')
     type: TaskType = enum_field(TaskType, description='Task type')
@@ -59,8 +59,7 @@ class TaskQuery:
 class TaskOrderableQuery(
         TaskQuery,
         orderable('title'),
-        searchable('title', 'unique_title'),
-        Query
+        searchable('title', 'unique_title')
 ):
     pass
 

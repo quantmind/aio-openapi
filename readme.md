@@ -37,10 +37,11 @@ pytest --cov
 * Migrations with [alembic](http://alembic.zzzcomputing.com/en/latest/)
 * SqlAlchemy tables as python dataclasses
 * [Click](https://github.com/pallets/click) command line interface
+* Optional [sentry](https://sentry.io) middleware
 
 ## Web App
 
-to create an openapi RESTful application:
+To create an openapi RESTful application:
 ```python
 def create_app():
     app = rest(
@@ -64,6 +65,62 @@ def setup_app(app):
 
 if __name__ == '__main__':
     create_app().main()
+```
+
+## OpenAPI Documentation
+
+The library provide tools for creating OpenAPI v 3 compliant endpoints and
+auto-document them.
+
+An example from test ``tests/example`` directory
+
+```python
+from aiohttp import web
+
+from openapi.db.path import SqlApiPath
+from openapi.spec import op
+
+
+routes = web.RouteTableDef()
+
+
+@routes.view('/tasks')
+class TasksPath(SqlApiPath):
+    """
+    ---
+    summary: Create and query Tasks
+    tags:
+        - Task
+    """
+    table = 'tasks'
+
+    @op(query_schema=TaskOrderableQuery, response_schema=[Task])
+    async def get(self):
+        """
+        ---
+        summary: Retrieve Tasks
+        description: Retrieve a list of Tasks
+        responses:
+            200:
+                description: Authenticated tasks
+        """
+        paginated = await self.get_list()
+        return paginated.json_response()
+
+    @op(response_schema=Task, body_schema=TaskAdd)
+    async def post(self):
+        """
+        ---
+        summary: Create a Task
+        description: Create a new Task
+        responses:
+            201:
+                description: the task was successfully added
+            422:
+                description: Failed validation
+        """
+        data = await self.create_one()
+        return self.json_response(data, status=201)
 ```
 
 ## Websockets
