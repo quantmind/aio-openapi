@@ -95,7 +95,7 @@ def iter_items(data):
     return iter(data)
 
 
-def getLogger():
+def get_logger():
     level = (os.environ.get('LOG_LEVEL') or 'info').upper()
     if level != 'NONE':
         name = os.environ.get('APP_NAME') or 'openapi'

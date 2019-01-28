@@ -20,7 +20,7 @@ def rest(
         allowed_tags: typing.Set = None,
         validate_docs: bool = False,
         OpenApiSpecClass: typing.ClassVar = OpenApiSpec
-):
+) -> OpenApiClient:
     """Create the OpenApi application server
     """
     return OpenApiClient(

@@ -11,9 +11,13 @@ def migration(ctx):
     return Migration(ctx.obj['app'])
 
 
+def get_db(ctx):
+    return ctx.obj['app']['db']
+
+
 @click.group()
 def db():
-    """Perform database migrations."""
+    """Perform database migrations and utilities"""
     pass
 
 
@@ -120,7 +124,7 @@ def current(ctx, verbose):
 def create(ctx, dbname, force):
     """Creates a new database
     """
-    engine = ctx.obj['app']['db'].engine
+    engine = get_db(ctx).engine
     url = copy(engine.url)
     url.database = dbname
     store = str(url)
@@ -131,3 +135,12 @@ def create(ctx, dbname, force):
             return click.echo(f'database {dbname} already available')
     create_database(store)
     click.echo(f'database {dbname} created')
+
+
+@db.command()
+@click.pass_context
+def tables(ctx):
+    """List all tables managed by the app"""
+    meta = get_db(ctx).metadata
+    for name in sorted(meta.tables):
+        click.echo(name)
