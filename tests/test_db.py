@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
+
 from click.testing import CliRunner
 
 from openapi.db.compile import compile_query
@@ -83,6 +84,15 @@ def test_migrate(cli):
     runner.invoke(cli.app['cli'], ['db', 'init'])
     result = runner.invoke(cli.app['cli'], ['db', 'migrate', '-m', 'test'])
     assert result.exit_code == 0
+
+
+def test_tables(cli):
+    runner = CliRunner()
+    result = runner.invoke(cli.app['cli'], ['db', 'tables'])
+    assert result.exit_code == 0
+    assert result.output == '\n'.join(
+        ('multi_key_unique', 'randoms', 'tasks', '')
+    )
 
 
 async def test_get_list(cli):

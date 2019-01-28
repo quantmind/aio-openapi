@@ -21,6 +21,7 @@ specification and with optional [PostgreSql][] database.
 - [Websockets](#websockets)
   - [RPC protocol](#rpc-protocol)
   - [Publish/Subscribe](#publishsubscribe)
+- [Environment Variables](#environment-variables)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -48,30 +49,31 @@ pytest --cov
 * Asynchronous web routes with [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
 * Data validation, serialization and unserialization with python [dataclasses](https://docs.python.org/3/library/dataclasses.html)
 * [OpenApi][] v 3 auto documentation
-* [SqlAlchemy](https://www.sqlalchemy.org/) expression language
+* [SqlAlchemy][] expression language
 * Asynchronous DB interaction with [asyncpg](https://github.com/MagicStack/asyncpg)
-* Migrations with [alembic](http://alembic.zzzcomputing.com/en/latest/)
+* Migrations with [alembic][]
 * SqlAlchemy tables as python dataclasses
-* [Click](https://github.com/pallets/click) command line interface
+* Support [click][] command line interface
 * Optional [sentry](https://sentry.io) middleware
 
 ## Web App
 
-To create an openapi RESTful application:
+To create an openapi RESTful application follow this schema (lets call the file ``main.py``)
 ```python
+from openapi.rest import rest
+
 def create_app():
-    app = rest(
+    return rest(
         openapi=dict(
             title='A REST API',
             ...
         ),
-        base_path='/v1,
+        base_path='/v1',
         allowed_tags=[...],
         validate_docs=True,
         setup_app=setup_app,
         commands=[...]
     )
-    return app
 
 
 def setup_app(app):
@@ -82,6 +84,11 @@ def setup_app(app):
 if __name__ == '__main__':
     create_app().main()
 ```
+The ``create_app`` function creates the [aiohttp][] server application by invoking the ``rest`` function.
+This function adds the [click][] command in the `cli` mapping entry and add
+documentation for routes which support OpenAPI docs.
+The ``setup_app`` function is used to actually setup the custom application, usually by adding middleware, routes,
+shutdown callbacks, database integration and so forth.
 
 ## OpenAPI Documentation
 
@@ -139,10 +146,23 @@ class TasksPath(SqlApiPath):
         return self.json_response(data, status=201)
 ```
 
-## Database
+## Database Integration
 
 This library provides integration with [asyncpg][], an high performant asynchronous
 connector with [PostgreSql][] database.
+To add the database extension simply use the ``get_db`` function in the applicatiuon ``setup_app`` function:
+```python
+from openapi.db import get_db
+
+def setup_app(app):
+    db = get_db(app)
+    meta = db.metadata
+
+```
+This will enable database connection and command line tools (most of them from from [alembic][]):
+```
+python main.py db --help
+```
 
 ## Websockets
 
@@ -203,8 +223,17 @@ Messages take the form:
     }
 }
 ```
+## Environment Variables
 
+Several environment variables are used by the library to support testing and deployment.
+
+* ``DATASTORE``: PostgreSql connection string (same as [SqlAlchemy][] syntax)
+* ``DBPOOL_MIN_SIZE``: minimum size of database connection pool (default is 10)
+* ``DBPOOL_MAX_SIZE``: maximum size of database connection pool (default is 10)
 
 [aiohttp]: https://aiohttp.readthedocs.io/en/stable/
 [OpenApi]: https://www.openapis.org/
 [PostgreSql]: https://www.postgresql.org/
+[SqlAlchemy]: https://www.sqlalchemy.org/
+[click]: https://github.com/pallets/click
+[alembic]: http://alembic.zzzcomputing.com/en/latest/
