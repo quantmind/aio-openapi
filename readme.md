@@ -17,7 +17,7 @@ specification and with optional [PostgreSql][] database.
 - [Features](#features)
 - [Web App](#web-app)
 - [OpenAPI Documentation](#openapi-documentation)
-- [Database](#database)
+- [Database Integration](#database-integration)
 - [Websockets](#websockets)
   - [RPC protocol](#rpc-protocol)
   - [Publish/Subscribe](#publishsubscribe)
@@ -159,7 +159,7 @@ def setup_app(app):
     meta = db.metadata
 
 ```
-This will enable database connection and command line tools (most of them from from [alembic][]):
+This will enable database connection and command line tools (most of them from [alembic][]):
 ```
 python main.py db --help
 ```
