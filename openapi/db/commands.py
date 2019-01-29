@@ -74,11 +74,11 @@ def upgrade(ctx, revision, drop_tables):
     if drop_tables:
         _drop_tables(ctx)
     migration(ctx).upgrade(revision)
-    click.echo(f"upgraded sucessfuly to {revision}")
+    click.echo(f"upgraded successfully to {revision}")
 
 
 @db.command()
-@click.option('--revision', default='heads')
+@click.option('--revision', help='Revision id', required=True)
 @click.option('--drop-tables', default=False, is_flag=True,
               help="Drop tables before applying migrations")
 @click.pass_context
@@ -91,18 +91,13 @@ def downgrade(ctx, revision, drop_tables):
     click.echo(f"downgraded successfully to {revision}")
 
 
-def _drop_tables(ctx):
-    ctx.obj['app']['db'].drop_all_schemas()
-    click.echo("tables dropped")
-
-
 @db.command()
 @click.option('--revision', default='heads')
 @click.pass_context
 def show(ctx, revision):
     """Show revision ID and creation date
     """
-    return migration(ctx).show(revision)
+    click.echo(migration(ctx).show(revision))
 
 
 @db.command()
@@ -111,9 +106,7 @@ def show(ctx, revision):
 def current(ctx, verbose):
     """Show revision ID and creation date
     """
-    res = migration(ctx).current(verbose)
-    click.echo(res)
-    return res
+    click.echo(migration(ctx).current(verbose))
 
 
 @db.command()
@@ -138,11 +131,18 @@ def create(ctx, dbname, force):
 
 
 @db.command()
+@click.option(
+    '--db', default=False, is_flag=True,
+    help='List tables in database rather than in sqlalchemy metadata')
 @click.pass_context
-def tables(ctx):
+def tables(ctx, db):
     """List all tables managed by the app"""
-    meta = get_db(ctx).metadata
-    for name in sorted(meta.tables):
+    d = get_db(ctx)
+    if db:
+        tables = d.engine.table_names()
+    else:
+        tables = d.metadata.tables
+    for name in sorted(tables):
         click.echo(name)
 
 
@@ -151,7 +151,9 @@ def tables(ctx):
 def drop(ctx):
     """Drop all tables in database
     """
-    engine = get_db(ctx).engine
-    engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-    engine.execute("CREATE SCHEMA IF NOT EXISTS public")
+    _drop_tables(ctx)
+
+
+def _drop_tables(ctx):
+    get_db(ctx).drop_all_schemas()
     click.echo("tables dropped")
