@@ -1,98 +1,11 @@
-import os
 import uuid
 from datetime import datetime
 from decimal import Decimal
-
-import pytest
-
-from click.testing import CliRunner
 
 from openapi.db.compile import compile_query
 from openapi.json import dumps
 from openapi.testing import jsonBody, equal_dict
 from openapi.utils import error_dict
-
-
-def test_db(cli):
-    runner = CliRunner()
-    result = runner.invoke(cli.app['cli'], ['db', '--help'])
-    assert result.exit_code == 0
-    assert result.output.startswith('Usage: root db [OPTIONS]')
-
-
-def test_createdb(cli):
-    runner = CliRunner()
-    result = runner.invoke(cli.app['cli'], ['db', 'create', 'testing-aio-db'])
-    assert result.exit_code == 0
-    result = runner.invoke(
-        cli.app['cli'], ['db', 'create', 'testing-aio-db', '--force'])
-    assert result.exit_code == 0
-
-
-def test_migration_upgrade(cli):
-    app = cli.app
-    db = app['db']
-    assert repr(db)
-    db.drop_all()
-
-    runner = CliRunner()
-    runner.invoke(cli.app['cli'], ['db', 'init'])
-    runner.invoke(cli.app['cli'], ['db', 'migrate', '-m', 'test'])
-
-    result = runner.invoke(cli.app['cli'], ['db', 'upgrade'])
-    assert result.exit_code == 0
-
-    # delete column to check if tables will be droped and recreated
-    db.engine.execute("ALTER TABLE tasks DROP COLUMN title")
-
-    result = runner.invoke(cli.app['cli'], ['db', 'upgrade', '--drop-tables'])
-    assert result.exit_code == 0
-
-    assert 'title' in db.metadata.tables['tasks'].c
-
-
-@pytest.mark.skip('Need to fix this up, but we need the commands now')
-def test_migration_downgrade(cli):
-    app = cli.app
-    db = app['db']
-    assert repr(db)
-    db.drop_all()
-
-    runner = CliRunner()
-    runner.invoke(cli.app['cli'], ['db', 'init'])
-    runner.invoke(cli.app['cli'], ['db', 'current'])
-    runner.invoke(cli.app['cli'], ['db', 'migrate', '-m', 'test'])
-
-    result = runner.invoke(cli.app['cli'], ['db', 'upgrade'])
-    assert result.exit_code == 0
-
-    result = runner.invoke(cli.app['cli'], ['db', 'downgrade'])
-    assert result.exit_code == 0
-
-    assert 'title' not in db.metadata.tables['tasks'].c
-
-
-async def test_migration_init(cli):
-    runner = CliRunner()
-    result = runner.invoke(cli.app['cli'], ['db', 'init'])
-    assert result.exit_code == 0
-    assert os.path.isdir('migrations')
-
-
-def test_migrate(cli):
-    runner = CliRunner()
-    runner.invoke(cli.app['cli'], ['db', 'init'])
-    result = runner.invoke(cli.app['cli'], ['db', 'migrate', '-m', 'test'])
-    assert result.exit_code == 0
-
-
-def test_tables(cli):
-    runner = CliRunner()
-    result = runner.invoke(cli.app['cli'], ['db', 'tables'])
-    assert result.exit_code == 0
-    assert result.output == '\n'.join(
-        ('multi_key_unique', 'randoms', 'tasks', '')
-    )
 
 
 async def test_get_list(cli):

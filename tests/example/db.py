@@ -74,3 +74,12 @@ def meta(meta=None):
     )
 
     return meta
+
+
+def extra(meta):
+    sa.Table(
+        'extras', meta,
+        UUIDColumn(
+            'id', make_default=True, doc='Unique ID'),
+        sa.Column('name', sa.String(64), nullable=False)
+    )
