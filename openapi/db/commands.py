@@ -144,3 +144,14 @@ def tables(ctx):
     meta = get_db(ctx).metadata
     for name in sorted(meta.tables):
         click.echo(name)
+
+
+@db.command()
+@click.pass_context
+def drop(ctx):
+    """Drop all tables in database
+    """
+    engine = get_db(ctx).engine
+    engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+    engine.execute("CREATE SCHEMA IF NOT EXISTS public")
+    click.echo("tables dropped")
