@@ -14,15 +14,19 @@ DBPOOL_MAX_SIZE = int(os.environ.get('DBPOOL_MAX_SIZE') or '10')
 class Database:
     """A container for tables in a database
     """
-    def __init__(self, dsn: str = None) -> None:
+    def __init__(self, dsn: str = None, metadata: sa.MetaData = None) -> None:
         self._dsn = dsn
+        self._metadata = metadata or sa.MetaData()
         self._pool = None
         self._engine = None
-        self._metadata = sa.MetaData()
 
     def __repr__(self) -> str:
         return self._dsn
     __str__ = __repr__
+
+    @property
+    def dsn(self):
+        return self._dsn
 
     @property
     def metadata(self):
@@ -51,6 +55,14 @@ class Database:
             min_size=DBPOOL_MIN_SIZE,
             max_size=DBPOOL_MAX_SIZE,
         )
+
+    async def get_connection(self) -> asyncpg.Connection:
+        if not self._pool:
+            await self.connect()
+        return await self._pool.acquire()
+
+    async def release_connection(self, conn: asyncpg.Connection) -> None:
+        return await self._pool.release(conn)
 
     @asynccontextmanager
     async def connection(self) -> asyncpg.Connection:
