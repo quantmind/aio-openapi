@@ -2,6 +2,7 @@
 source = openapi
 omit =
     openapi/db/openapi
+    openapi/_py36
 
 [html]
 directory = build/coverage/html

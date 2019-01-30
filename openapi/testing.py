@@ -1,6 +1,6 @@
 """Testing utilities
 """
-from openapi.json import loads, dumps
+from .json import loads, dumps
 
 
 async def jsonBody(response, status=200):
