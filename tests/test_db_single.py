@@ -4,10 +4,11 @@ from openapi.testing import SingleConnDatabase
 
 
 @pytest.fixture
-def app(test_app):
+async def app(test_app):
     db = test_app['db']
     test_app['db'] = SingleConnDatabase(db.dsn, db.metadata)
-    return test_app
+    yield test_app
+    await test_app['db'].close()
 
 
 async def test_connection(app):
