@@ -17,6 +17,13 @@ class CrudDB(Database):
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
+    async def db_count(self, table, filters, *, conn=None, consumer=None):
+        query = self.get_query(table, table.select(), consumer, filters)
+        sql, args = compile_query(query.alias('inner').count())
+        async with self.ensure_connection(conn) as conn:
+            total = await conn.fetchrow(sql, *args)
+        return total['tbl_row_count']
+
     async def db_insert(self, table, data, *, conn=None):
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(table, data)
