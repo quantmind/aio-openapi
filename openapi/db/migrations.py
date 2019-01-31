@@ -26,8 +26,9 @@ class Migration:
         alembic_cmd.show(self.cfg, revision)
         return self.message()
 
-    def stamp(self, revision):
-        alembic_cmd.stamp(self.cfg, revision)
+    def history(self):
+        alembic_cmd.history(self.cfg)
+        return self.message()
 
     def revision(self, message, autogenerate=False, branch_label=None):
         alembic_cmd.revision(self.cfg, autogenerate=autogenerate,
@@ -44,12 +45,6 @@ class Migration:
 
     def current(self, verbose=False):
         alembic_cmd.current(self.cfg, verbose=verbose)
-        return self.message()
-
-    def merge(self, message, branch_label=None, rev_id=None, revisions=None):
-        alembic_cmd.merge(self.cfg, message=message,
-                          branch_label=branch_label,
-                          rev_id=rev_id, revisions=revisions)
         return self.message()
 
     def message(self):

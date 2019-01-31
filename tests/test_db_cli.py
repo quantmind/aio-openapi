@@ -82,6 +82,13 @@ def test_show_migration(cli):
     assert result.output.split('\n')[4].strip() == 'test'
 
 
+def test_history(cli):
+    runner = _migrate(cli)
+    result = runner.invoke(cli.app['cli'], ['db', 'history'])
+    assert result.exit_code == 0
+    assert result.output.strip().startswith('<base> -> ')
+
+
 def test_upgrade(cli):
     runner = _migrate(cli)
     result = runner.invoke(cli.app['cli'], ['db', 'upgrade'])

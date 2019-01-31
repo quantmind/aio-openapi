@@ -79,14 +79,10 @@ def upgrade(ctx, revision, drop_tables):
 
 @db.command()
 @click.option('--revision', help='Revision id', required=True)
-@click.option('--drop-tables', default=False, is_flag=True,
-              help="Drop tables before applying migrations")
 @click.pass_context
-def downgrade(ctx, revision, drop_tables):
+def downgrade(ctx, revision):
     """Downgrade to a previous version
     """
-    if drop_tables:
-        _drop_tables(ctx)
     migration(ctx).downgrade(revision)
     click.echo(f"downgraded successfully to {revision}")
 
@@ -98,6 +94,14 @@ def show(ctx, revision):
     """Show revision ID and creation date
     """
     click.echo(migration(ctx).show(revision))
+
+
+@db.command()
+@click.pass_context
+def history(ctx):
+    """List changeset scripts in chronological order
+    """
+    click.echo(migration(ctx).history())
 
 
 @db.command()

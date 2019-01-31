@@ -20,7 +20,7 @@ def get_db(
     It returns the database object
     """
     store_url = store_url or os.environ.get('DATASTORE')
-    if not store_url:
+    if not store_url:   # pragma: no cover
         app.logger.warning('DATASTORE url not available')
     else:
         app['db'] = CrudDB(store_url)
