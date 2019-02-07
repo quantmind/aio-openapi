@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, MISSING
 
-from .fields import VALIDATOR, REQUIRED, DEFAULT, ValidationError, field_ops
+from .fields import VALIDATOR, REQUIRED, ValidationError, field_ops
 from ..utils import mapping_copy, is_subclass
 
 
@@ -24,17 +24,20 @@ def validated_schema(schema, data, *, strict=True):
     return schema(**d.data)
 
 
-def validate(schema, data, *, strict=True, multiple=False):
+def validate(
+        schema, data: Dict, *,
+        strict: bool = True, multiple: bool = False):
     """Validate a dictionary of data with a given dataclass
     """
     errors = {}
     cleaned = {}
     data = mapping_copy(data)
-    for field in schema.__dataclass_fields__.values():
+    for field in fields(schema):
         try:
             required = field.metadata.get(REQUIRED)
-            if strict and DEFAULT in field.metadata:
-                data.setdefault(field.name, field.metadata[DEFAULT])
+            default = get_default(field)
+            if strict and default is not None:
+                data.setdefault(field.name, default)
 
             if field.name not in data and required and strict:
                 raise ValidationError(field.name, 'required')
@@ -71,7 +74,7 @@ def validate(schema, data, *, strict=True, multiple=False):
 
 
 def collect_value(field, name, value):
-    if value is None or value == 'NULL':
+    if is_null(value):
         return None
 
     validator = field.metadata.get(VALIDATOR)
@@ -96,3 +99,15 @@ def collect_value(field, name, value):
                 raise ValidationError(name, 'not a valid value')
 
     return value
+
+
+def is_null(value):
+    return value is None or value == 'NULL'
+
+
+def get_default(field):
+    if field.default_factory is not MISSING:
+        value = field.default_factory()
+    else:
+        value = field.default
+    return value if value is not MISSING else None

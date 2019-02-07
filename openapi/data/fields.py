@@ -10,7 +10,6 @@ from email_validator import EmailNotValidError, validate_email
 from .. import json
 from ..utils import compact_dict
 
-DEFAULT = 'default'
 REQUIRED = 'required'
 VALIDATOR = 'OPENAPI_VALIDATOR'
 DESCRIPTION = 'description'
@@ -27,15 +26,13 @@ class ValidationError(ValueError):
 
 
 def data_field(
-        required=False, validator=None, default=None, dump=None, format=None,
-        description=None, ops=()):
+        required=False, validator=None, dump=None, format=None,
+        description=None, ops=(), **kwargs):
     """Extend a dataclass field with
 
     :param validator: optional callable which accept (field, value, data)
                       as inputs and return the validated value
     :param required: boolean specifying if field is required
-    :param default: optional callable returning the default value
-                    if value is missing
     :param dump: optional callable which receive the field value and convert to
                  the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
@@ -43,16 +40,17 @@ def data_field(
     """
     if isinstance(validator, Validator) and not dump:
         dump = validator.dump
+    if 'default_factory' not in kwargs:
+        kwargs.setdefault('default', None)
 
     f = field(metadata=compact_dict({
         VALIDATOR: validator,
         REQUIRED: required,
-        DEFAULT: default,
         DUMP: dump,
         DESCRIPTION: description,
         FORMAT: format,
         OPS: ops
-    }))
+    }), **kwargs)
     return f
 
 

@@ -20,7 +20,7 @@ def rest(
         allowed_tags: typing.Set = None,
         validate_docs: bool = False,
         OpenApiSpecClass: typing.ClassVar = OpenApiSpec
-):
+) -> OpenApiClient:
     """Create the OpenApi application server
     """
     return OpenApiClient(
@@ -70,13 +70,17 @@ def orderable(*orderable_fields):
 
 
 def searchable(*searchable_fields):
+    """Create a dataclass for search fields
+    """
+    fields = docjoin(searchable_fields)
+
     @dataclass
     class Searchable:
-        search_fields = list(searchable_fields)
+        search_fields = frozenset(searchable_fields)
         search: str = str_field(
             description=(
-                'Search query string'
-            ),
-            required=False
+                'Search query string. '
+                f'The search is performed on {fields} fields.'
+            )
         )
     return Searchable

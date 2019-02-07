@@ -1,8 +1,8 @@
 [run]
 source = openapi
 omit =
-    openapi/reload.py
     openapi/db/openapi
+    openapi/_py36.py
 
 [html]
 directory = build/coverage/html

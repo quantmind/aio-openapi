@@ -48,7 +48,8 @@ def test_schema2json():
             description='Datetime field'
         )
         ref_field: OtherClass = field(
-            metadata={'required': True, 'description': 'Ref field'}
+            metadata={'required': True, 'description': 'Ref field'},
+            default=None
         )
         list_ref_field: List[OtherClass] = data_field(
             description='List field'

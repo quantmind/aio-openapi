@@ -3,6 +3,7 @@ import uuid
 from openapi import sentry
 from openapi.middleware import json_error
 from openapi.ws import Sockets, LocalBroker
+from openapi.db import get_db
 
 from .db import meta
 from .endpoints import routes
@@ -10,7 +11,8 @@ from .ws import ws_routes
 
 
 def setup_app(app):
-    meta(app['db'].metadata)
+    db = get_db(app)
+    meta(db.metadata)
     app['broker'] = LocalBroker()
     app['web_sockets'] = Sockets(app)
     app.middlewares.append(json_error())

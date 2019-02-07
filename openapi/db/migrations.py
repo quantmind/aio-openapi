@@ -1,6 +1,7 @@
 """Alembic migrations handler
 """
 import os
+from io import StringIO
 
 from alembic.config import Config
 from alembic import command as alembic_cmd
@@ -19,36 +20,44 @@ class Migration:
     def init(self):
         dirname = self.cfg.get_main_option('script_location')
         alembic_cmd.init(self.cfg, dirname, template='openapi')
+        return self.message()
 
     def show(self, revision):
         alembic_cmd.show(self.cfg, revision)
+        return self.message()
 
-    def stamp(self, revision):
-        alembic_cmd.stamp(self.cfg, revision)
+    def history(self):
+        alembic_cmd.history(self.cfg)
+        return self.message()
 
     def revision(self, message, autogenerate=False, branch_label=None):
         alembic_cmd.revision(self.cfg, autogenerate=autogenerate,
                              message=message, branch_label=branch_label)
+        return self.message()
 
     def upgrade(self, revision):
         alembic_cmd.upgrade(self.cfg, revision)
+        return self.message()
 
     def downgrade(self, revision):
         alembic_cmd.downgrade(self.cfg, revision)
+        return self.message()
 
     def current(self, verbose=False):
         alembic_cmd.current(self.cfg, verbose=verbose)
+        return self.message()
 
-    def merge(self, message, branch_label=None, rev_id=None, revisions=None):
-        alembic_cmd.merge(self.cfg, message=message,
-                          branch_label=branch_label,
-                          rev_id=rev_id, revisions=revisions)
+    def message(self):
+        msg = self.cfg.stdout.getvalue()
+        self.cfg.stdout.seek(0)
+        self.cfg.stdout.truncate()
+        return msg
 
 
 def create_config(app):
     """Programmatically create Alembic config
     """
-    cfg = Config()
+    cfg = Config(stdout=StringIO())
     cfg.get_template_directory = get_template_directory
     migrations = os.path.join(app['cwd'], 'migrations')
 
