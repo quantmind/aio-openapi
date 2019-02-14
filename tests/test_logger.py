@@ -8,9 +8,9 @@ from openapi.logger import getLogger
 
 def test_logger():
     logger = getLogger()
-    assert logger.name == 'apitest'
+    assert logger.name == 'openapi'
     logger = getLogger('foo')
-    assert logger.name == 'apitest.foo'
+    assert logger.name == 'openapi.foo'
 
 
 def test_serve():
