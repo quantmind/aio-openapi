@@ -9,7 +9,7 @@ from openapi.data.fields import (
     decimal_field, email_field, enum_field, date_time_field,
     ListValidator, UUIDValidator, EnumValidator, Choice, DateTimeValidator,
     NumberValidator, DecimalValidator, EmailValidator, BoolValidator,
-    Validator, IntegerValidator,
+    Validator, IntegerValidator, VALIDATOR
 )
 
 
@@ -127,6 +127,14 @@ def test_DateTimeValidator_dump():
     validator = DateTimeValidator()
     assert validator.dump(value) == value.isoformat()
     assert validator.dump(value.isoformat()) == value.isoformat()
+
+
+def test_DateTimeValidator_timezone():
+    value = datetime.now()
+    field = date_time_field(timezone=True)
+    validator = field.metadata[VALIDATOR]
+    with pytest.raises(ValidationError):
+        validator(field, value)
 
 
 def test_NumberValidator_valid():

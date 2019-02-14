@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, date
+from datetime import date
 
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
