@@ -6,7 +6,8 @@ from aiohttp import web
 import click
 import uvloop
 
-from .utils import get_debug_flag, get_logger
+from .utils import get_debug_flag
+from .logger import logger, setup_logging
 from . import spec
 
 
@@ -18,7 +19,7 @@ PORT = os.environ.get('MICRO_SERVICE_PORT', 8080)
 class OpenApiClient(click.Group):
 
     def __init__(self, spec, setup_app=None, base_path=None,
-                 commands=None, **extra) -> None:
+                 commands=None, callback=None, **extra) -> None:
         params = list(extra.pop('params', None) or ())
         self.spec = spec
         self.debug = get_debug_flag()
@@ -34,9 +35,21 @@ class OpenApiClient(click.Group):
                     is_flag=True,
                     is_eager=True
                 ),
+                click.Option(
+                    ['-v', '--verbose'],
+                    help='Increase logging verbosity',
+                    is_flag=True,
+                    is_eager=True
+                ),
+                click.Option(
+                    ['-q', '--quiet'],
+                    help='Decrease logging verbosity',
+                    is_flag=True,
+                    is_eager=True
+                ),
             )
         )
-        super().__init__(params=params, **extra)
+        super().__init__(params=params, callback=setup_logging, **extra)
         self.add_command(serve)
         for command in commands or ():
             self.add_command(command)
@@ -73,10 +86,6 @@ class OpenApiClient(click.Group):
         ctx.obj = dict(app=self.web())
         return super().list_commands(ctx)
 
-    def main(self, *args, **kwargs):
-        os.environ['OPENAPI_RUN_FROM_CLI'] = 'true'
-        return super().main(*args, **kwargs)
-
     def get_server_version(self, ctx, param, value):
         if not value or ctx.resilient_parsing:
             return
@@ -103,5 +112,5 @@ def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
     app = ctx.obj['app']['cli'].get_serve_app()
-    access_log = get_logger()
+    access_log = logger if ctx.obj['log_level'] else None
     web.run_app(app, host=host, port=port, access_log=access_log)

@@ -1,6 +1,5 @@
 import os
 import sys
-import logging
 from inspect import isclass
 from collections import Mapping
 from typing import List, Dict
@@ -56,17 +55,6 @@ def iter_items(data):
     if hasattr(items, '__call__'):
         return items()
     return iter(data)
-
-
-def get_logger():
-    level = (os.environ.get('LOG_LEVEL') or 'info').upper()
-    if level != 'NONE':
-        name = os.environ.get('APP_NAME') or 'openapi'
-        logger = logging.getLogger(name)
-        if not logger.hasHandlers():
-            logger.setLevel(getattr(logging, level))
-            logger.addHandler(logging.StreamHandler())
-        return logger
 
 
 def is_subclass(value, Type):
