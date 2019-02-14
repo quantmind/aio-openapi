@@ -112,5 +112,5 @@ def serve(ctx, host, port, reload):
     """Run the aiohttp server.
     """
     app = ctx.obj['app']['cli'].get_serve_app()
-    access_log = logger if ctx.obj['log_level'] else logger
+    access_log = logger if ctx.obj['log_level'] else None
     web.run_app(app, host=host, port=port, access_log=access_log)

@@ -2,8 +2,6 @@ import asyncio
 import os
 import shutil
 
-import dotenv
-
 import pytest
 
 from aiohttp import test_utils
@@ -16,8 +14,6 @@ from openapi.json import dumps
 from openapi.rest import rest
 from . import example
 
-
-dotenv.load_dotenv()
 
 DEFAULT_DB = 'postgres://postgres:postgres@localhost:5432/openapi'
 

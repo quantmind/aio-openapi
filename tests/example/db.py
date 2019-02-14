@@ -6,6 +6,7 @@ from sqlalchemy_utils import UUIDType
 
 from openapi.db.columns import UUIDColumn
 from openapi.data import fields
+from openapi.tz import utcnow
 
 from .models import TaskType
 
@@ -55,8 +56,8 @@ def meta(meta=None):
             default=uuid.uuid4
         ),
         sa.Column('randomdate', sa.Date, nullable=False, default=date.today),
-        sa.Column('timestamp', sa.DateTime, nullable=False,
-                  default=datetime.now),
+        sa.Column('timestamp', sa.DateTime(timezone=True),
+                  nullable=False, default=utcnow),
         sa.Column('price', sa.Numeric(precision=100, scale=4), nullable=False),
         sa.Column('tenor', sa.String(3), nullable=False),
         sa.Column('tick', sa.Boolean),

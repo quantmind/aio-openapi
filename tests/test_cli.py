@@ -1,9 +1,12 @@
+import logging
+
 from unittest.mock import patch
 
 import click
 from click.testing import CliRunner
 
 from openapi.rest import rest
+from openapi.logger import logger
 
 
 def test_usage():
@@ -24,11 +27,20 @@ def test_serve():
     runner = CliRunner()
     cli = rest(base_path='/v1')
     with patch('aiohttp.web.run_app') as mock:
-        result = runner.invoke(cli, ['serve'])
+        result = runner.invoke(cli, ['--quiet', 'serve'])
         assert result.exit_code == 0
         assert mock.call_count == 1
         app = mock.call_args[0][0]
         assert app.router is not None
+        assert logger.level == logging.ERROR
+
+    with patch('aiohttp.web.run_app') as mock:
+        result = runner.invoke(cli, ['--verbose', 'serve'])
+        assert result.exit_code == 0
+        assert mock.call_count == 1
+        app = mock.call_args[0][0]
+        assert app.router is not None
+        assert logger.level == logging.DEBUG
 
 
 def test_commands():

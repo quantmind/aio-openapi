@@ -5,7 +5,7 @@ import click
 
 try:
     import colorlog
-except ImportError:     # noqa
+except ImportError:     # pragma: no cover
     colorlog = None
 
 
@@ -39,7 +39,7 @@ def setup_logging(ctx, verbose, quiet):
             if colorlog:
                 handler = colorlog.StreamHandler()
                 fmt = colorlog.ColoredFormatter(f'%(log_color)s{LOG_FORMAT}')
-            else:
+            else:   # pragma: no cover
                 handler = logging.StreamHandler()
             handler.setFormatter(fmt)
             logger.addHandler(handler)

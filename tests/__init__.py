@@ -1,5 +1,3 @@
-import os
+import dotenv
 
-
-if not os.environ.get('PYTHON_ENV'):
-    os.environ['PYTHON_ENV'] = 'test'
+dotenv.load_dotenv()
