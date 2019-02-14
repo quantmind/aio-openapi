@@ -8,7 +8,7 @@ from openapi.data.fields import (
     ValidationError, data_field, bool_field, uuid_field, number_field,
     decimal_field, email_field, enum_field, date_time_field,
     ListValidator, UUIDValidator, EnumValidator, Choice, DateTimeValidator,
-    NumberValidator, DecimalValidator, email_validator, BoolValidator,
+    NumberValidator, DecimalValidator, EmailValidator, BoolValidator,
     Validator, IntegerValidator,
 )
 
@@ -224,21 +224,21 @@ def test_DecimalValidator_dump():
 
 def test_email_validator_valid():
     field = email_field()
-    assert email_validator(field, 'valid@email.com') == 'valid@email.com'
-    assert email_validator(field, 'a1-_@email.us') == 'a1-_@email.us'
-    assert email_validator(field, 'foo.top@kaputt.co') == 'foo.top@kaputt.co'
+    assert EmailValidator()(field, 'valid@email.com') == 'valid@email.com'
+    assert EmailValidator()(field, 'a1-_@email.us') == 'a1-_@email.us'
+    assert EmailValidator()(field, 'foo.top@kaputt.co') == 'foo.top@kaputt.co'
 
 
 def test_email_validator_invalid():
     field = email_field()
     with pytest.raises(ValidationError):
-        email_validator(field, 'a@email')
+        EmailValidator()(field, 'a@email')
     with pytest.raises(ValidationError):
-        email_validator(field, 'email.com')
+        EmailValidator()(field, 'email.com')
     with pytest.raises(ValidationError):
-        email_validator(field, '@email.com')
+        EmailValidator()(field, '@email.com')
     with pytest.raises(ValidationError):
-        email_validator(field, 1)
+        EmailValidator()(field, 1)
 
 
 def test_BoolValidator_valid():

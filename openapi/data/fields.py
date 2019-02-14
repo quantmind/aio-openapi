@@ -92,8 +92,11 @@ def decimal_field(min_value=None, max_value=None, precision=None, **kw):
     return data_field(**kw)
 
 
-def email_field(**kw):
-    kw.setdefault('validator', email_validator)
+def email_field(max_length=None, min_length=None, **kw):
+    kw.setdefault(
+        'validator',
+        EmailValidator(min_length=min_length, max_length=max_length)
+    )
     return data_field(**kw)
 
 
@@ -134,16 +137,6 @@ def json_field(**kw):
 # VALIDATORS
 
 
-def email_validator(field, value, data=None):
-    value = str(value)
-    try:
-        validate_email(value, check_deliverability=False)
-    except EmailNotValidError:
-        raise ValidationError(
-            field.name, '%s not a valid email' % value) from None
-    return value
-
-
 class Validator:
     dump = None
 
@@ -173,6 +166,19 @@ class StrValidator(Validator):
             prop['minLength'] = self.min_length
         if self.max_length:
             prop['maxLength'] = self.max_length
+
+
+@dataclass
+class EmailValidator(StrValidator):
+
+    def __call__(self, field, value, data=None):
+        value = super().__call__(field, value, data=data)
+        try:
+            validate_email(value, check_deliverability=False)
+        except EmailNotValidError:
+            raise ValidationError(
+                field.name, '%s not a valid email' % value) from None
+        return value
 
 
 class ListValidator(Validator):

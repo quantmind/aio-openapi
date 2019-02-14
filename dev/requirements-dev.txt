@@ -9,4 +9,7 @@ pytest-mock
 twine
 agile-toolkit
 asynctest
+#
+# additional features
+colorlog
 raven-aiohttp

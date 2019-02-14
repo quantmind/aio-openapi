@@ -30,7 +30,7 @@ def requirements(name):
 
 
 install_requires = requirements('dev/requirements.txt')[0]
-
+tests_require = requirements('dev/requirements-dev.txt')[0]
 
 if sys.version_info < (3, 7):
     install_requires.append('dataclasses')
@@ -48,6 +48,7 @@ meta = dict(
     url='https://github.com/lendingblock/aio-openapi',
     python_requires='>=3.6.0',
     install_requires=install_requires,
+    tests_require=tests_require,
     include_package_data=True,
     classifiers=[
         'Development Status :: 3 - Alpha',
