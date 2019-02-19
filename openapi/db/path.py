@@ -4,7 +4,7 @@ from aiohttp import web
 from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy.sql import or_
 
-from .compile import compile_query
+from .compile import compile_query, count
 from ..db.dbmodel import CrudDB
 from ..spec.path import ApiPath
 from ..spec.pagination import Pagination, DEF_PAGINATION_LIMIT
@@ -63,7 +63,7 @@ class SqlApiPath(ApiPath):
         specials = self.get_special_params(filters)
         query = self.db.get_query(table, table.select(), self, filters)
         #
-        query_count = query.alias('inner').count()
+        sql_count, args_count = count(query)
         #
         # order by
         if specials['order_by']:
@@ -90,14 +90,13 @@ class SqlApiPath(ApiPath):
             query = query.limit(limit)
 
         sql, args = compile_query(query)
-        sql_count, args_count = compile_query(query_count)
         async with self.db.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql_count, *args_count)
             values = await conn.fetch(sql, *args)
         pagination = Pagination(self.full_url())
         data = self.dump(dump_schema, values)
         return pagination.paginated(
-            data, total['tbl_row_count'], offset, limit
+            data, total[0], offset, limit
         )
 
     async def create_one(

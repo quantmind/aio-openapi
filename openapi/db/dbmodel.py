@@ -1,7 +1,7 @@
 from sqlalchemy.sql import and_
 
 from ..db.container import Database
-from .compile import compile_query
+from .compile import compile_query, count
 
 
 class CrudDB(Database):
@@ -19,10 +19,10 @@ class CrudDB(Database):
 
     async def db_count(self, table, filters, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
-        sql, args = compile_query(query.alias('inner').count())
+        sql, args = count(query)
         async with self.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql, *args)
-        return total['tbl_row_count']
+        return total[0]
 
     async def db_insert(self, table, data, *, conn=None):
         async with self.ensure_connection(conn) as conn:
