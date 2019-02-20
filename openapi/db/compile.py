@@ -1,5 +1,6 @@
 from sqlalchemy.dialects.postgresql import pypostgresql
 from sqlalchemy.sql.dml import Insert as InsertObject, Update as UpdateObject
+from sqlalchemy import select, func
 
 from .. import json
 
@@ -64,3 +65,8 @@ def compile_query(query, inline=False):
         return new_query
 
     return new_query, new_params
+
+
+def count(query):
+    count_query = select([func.count()]).select_from(query.alias('inner'))
+    return compile_query(count_query)
