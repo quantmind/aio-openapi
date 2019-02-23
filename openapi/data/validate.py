@@ -36,8 +36,8 @@ def validate(
         try:
             required = field.metadata.get(REQUIRED)
             default = get_default(field)
-            if strict and default is not None:
-                data.setdefault(field.name, default)
+            if strict and default is not None and data.get(field.name) is None:
+                data[field.name] = default
 
             if field.name not in data and required and strict:
                 raise ValidationError(field.name, 'required')

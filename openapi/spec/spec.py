@@ -68,7 +68,7 @@ class SchemaParser:
     def parameters(self, Schema, default_in='path'):
         params = []
         schema = self.schema2json(Schema)
-        required = set(schema['required'])
+        required = set(schema.get('required', ()))
         for name, entry in schema['properties'].items():
             entry = compact(
                 name=name,
@@ -130,13 +130,15 @@ class SchemaParser:
             for name in fields.field_ops(item):
                 properties[name] = json_property
 
-        return {
+        json_schema = {
             'type': 'object',
             'description': trim_docstring(schema.__doc__),
             'properties': properties,
-            'required': required,
             'additionalProperties': False
         }
+        if required:
+            json_schema['required'] = required
+        return json_schema
 
     def get_schema_ref(self, schema):
         if schema not in self.group.parsed_schemas:

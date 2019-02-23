@@ -2,6 +2,8 @@ import re
 
 import yaml
 
+from .exceptions import InvalidSpecException
+
 
 # from django.contrib.admindocs.utils
 def trim_docstring(docstring):
@@ -56,7 +58,10 @@ def load_yaml_from_docstring(docstring):
 
     yaml_string = "\n".join(split_lines[cut_from:])
     yaml_string = dedent(yaml_string)
-    return yaml.load(yaml_string)
+    try:
+        return yaml.load(yaml_string)
+    except Exception as e:
+        raise InvalidSpecException('Invalid yaml %s' % e) from None
 
 
 def docjoin(iterable):
