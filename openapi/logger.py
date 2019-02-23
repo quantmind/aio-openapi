@@ -41,5 +41,6 @@ def setup_logging(ctx, verbose, quiet):
                 fmt = colorlog.ColoredFormatter(f'%(log_color)s{LOG_FORMAT}')
             else:   # pragma: no cover
                 handler = logging.StreamHandler()
+                fmt = logging.Formatter(LOG_FORMAT)
             handler.setFormatter(fmt)
             logger.addHandler(handler)
