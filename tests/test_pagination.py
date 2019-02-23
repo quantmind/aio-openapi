@@ -95,7 +95,26 @@ async def test_pagination_with_forwarded_host(cli):
         '/tasks',
         headers={
             'X-Forwarded-Proto': 'https',
-            'X-Forwarded-Host': 'whenbeer.pub'
+            'X-Forwarded-Host': 'whenbeer.pub',
+            'X-Forwarded-Port': '1234'
+        },
+        params={'limit': 10, 'offset': 20}
+    )
+    data = await jsonBody(response)
+    assert len(data) == 0
+    link = response.headers['Link']
+    assert link == (
+        f'<https://whenbeer.pub:1234/tasks?limit=10&offset=0>; rel="first", '
+        f'<https://whenbeer.pub:1234/tasks?limit=10&offset=10>; rel="prev"'
+    )
+    assert response.headers['X-total-count'] == '2'
+    #
+    response = await cli.get(
+        '/tasks',
+        headers={
+            'X-Forwarded-Proto': 'https',
+            'X-Forwarded-Host': 'whenbeer.pub',
+            'X-Forwarded-Port': '443'
         },
         params={'limit': 10, 'offset': 20}
     )

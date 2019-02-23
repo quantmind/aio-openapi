@@ -24,7 +24,7 @@ class OpenApiClient(click.Group):
         self.spec = spec
         self.debug = get_debug_flag()
         self.setup_app = setup_app
-        self.base_path = base_path
+        self.base_path = base_path or ''
         params.extend(
             (
                 click.Option(

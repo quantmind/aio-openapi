@@ -103,14 +103,7 @@ class ApiPath(web.View):
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
     def full_url(self):
-        headers = self.request.headers
-        proto = headers.get(hdrs.X_FORWARDED_PROTO)
-        host = headers.get(hdrs.X_FORWARDED_HOST)
-        if proto and host:
-            url = URL.build(scheme=proto, host=host)
-            return url.join(self.request.rel_url)
-        else:
-            return self.request.url
+        return full_url(self.request)
 
     @classmethod
     def api_response_data(cls, data):
@@ -122,3 +115,19 @@ class ApiPath(web.View):
     @classmethod
     def json_response(cls, data, **kwargs):
         return web.json_response(data, **kwargs, dumps=dumps)
+
+
+def full_url(request):
+    headers = request.headers
+    proto = headers.get(hdrs.X_FORWARDED_PROTO)
+    host = headers.get(hdrs.X_FORWARDED_HOST)
+    port = headers.get(hdrs.X_FORWARDED_PORT)
+    if proto and host:
+        url = URL.build(scheme=proto, host=host)
+        if port:
+            port = int(port)
+            if url.port != port:
+                url = url.with_port(port)
+        return url.join(request.rel_url)
+    else:
+        return request.url

@@ -50,7 +50,7 @@ pytest --cov
 * Data validation, serialization and unserialization with python [dataclasses](https://docs.python.org/3/library/dataclasses.html)
 * [OpenApi][] v 3 auto documentation
 * [SqlAlchemy][] expression language
-* Asynchronous DB interaction with [asyncpg](https://github.com/MagicStack/asyncpg)
+* Asynchronous DB interaction with [asyncpg][]
 * Migrations with [alembic][]
 * SqlAlchemy tables as python dataclasses
 * Support [click][] command line interface
@@ -163,6 +163,10 @@ This will enable database connection and command line tools (most of them from [
 ```
 python main.py db --help
 ```
+The database container is available at the `db` app key:
+```python
+app['db']
+```
 
 ## Websockets
 
@@ -237,3 +241,4 @@ Several environment variables are used by the library to support testing and dep
 [SqlAlchemy]: https://www.sqlalchemy.org/
 [click]: https://github.com/pallets/click
 [alembic]: http://alembic.zzzcomputing.com/en/latest/
+[asyncpg]: https://github.com/MagicStack/asyncpg

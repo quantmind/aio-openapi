@@ -9,7 +9,7 @@ from aiohttp import hdrs
 from aiohttp import web
 
 from .exceptions import InvalidTypeException, InvalidSpecException
-from .path import ApiPath
+from .path import ApiPath, full_url
 from .utils import load_yaml_from_docstring, trim_docstring
 from ..data import fields
 from ..data.exc import (
@@ -17,7 +17,7 @@ from ..data.exc import (
 )
 from ..utils import compact, is_subclass, as_class
 
-OPENAPI = '3.0.1'
+OPENAPI = '3.0.2'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
 SCHEMAS_TO_SCHEMA = ('response_schema', 'body_schema')
 SCHEMA_BASE_REF = '#/components/schemas/'
@@ -194,13 +194,14 @@ class OpenApiSpec:
             default_content_type: str = None,
             default_responses: Iterable = None,
             allowed_tags: Iterable = None,
-            validate_docs: bool = False):
+            validate_docs: bool = False,
+            servers: List = None):
         self.schemas = {}
         self.parameters = {}
         self.responses = {}
         self.tags = {}
         self.plugins = {}
-        self.servers = []
+        self.servers = servers or []
         self.default_content_type = default_content_type or 'application/json'
         self.default_responses = default_responses or {}
         self.doc = dict(
@@ -262,6 +263,7 @@ class OpenApiSpec:
         schemas, parameters and paths objects to the spec
         """
         paths = self.paths
+        base_path = app['cli'].base_path
         for route in self.routes(app):
             route_info = route.get_info()
             path = route_info.get('path', route_info.get('formatter', None))
@@ -271,6 +273,7 @@ class OpenApiSpec:
                 self._include(handler.private, public, private)
             )
             if include:
+                path = path[len(base_path):]
                 try:
                     paths[path] = self._build_path_object(
                         handler, app, public, private
@@ -432,5 +435,19 @@ async def spec_root(request):
     app = request.app
     spec = app.get('spec_doc')
     if not spec:
-        app['spec_doc'] = app['spec'].build(app)
-    return web.json_response(app['spec_doc'])
+        spec = app['spec'].build(app)
+        if not spec.get('servers'):
+            # build the server info
+            spec['servers'] = [default_server(request)]
+        app['spec_doc'] = spec
+    return web.json_response(spec)
+
+
+def default_server(request):
+    app = request.app
+    url = full_url(request)
+    url = url.with_path(app['cli'].base_path)
+    return dict(
+        url=str(url),
+        description='Api server'
+    )
