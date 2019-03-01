@@ -9,7 +9,7 @@ from aiohttp import hdrs
 from aiohttp import web
 
 from .exceptions import InvalidTypeException, InvalidSpecException
-from .path import ApiPath, full_url
+from .path import ApiPath
 from .utils import load_yaml_from_docstring, trim_docstring
 from ..data import fields
 from ..data.exc import (

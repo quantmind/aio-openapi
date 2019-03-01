@@ -16,7 +16,6 @@ def default_server(request):
 
 
 def server_urls(request, paths):
-    spec = get_spec(request)
     base_path = request.app['cli'].base_path
     n = len(base_path)
     base_url = get_spec(request)['servers'][0]['url']
