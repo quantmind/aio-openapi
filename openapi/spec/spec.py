@@ -16,6 +16,8 @@ from ..data.exc import (
     ValidationErrors, ErrorMessage, FieldError, error_response_schema
 )
 from ..utils import compact, is_subclass, as_class
+from .server import get_spec, default_server
+
 
 OPENAPI = '3.0.2'
 METHODS = [method.lower() for method in hdrs.METH_ALL]
@@ -212,6 +214,7 @@ class OpenApiSpec:
         self.schemas_to_parse = set()
         self.allowed_tags = allowed_tags
         self.validate_docs = validate_docs
+        self._spec_doc = None
 
     @property
     def paths(self):
@@ -429,25 +432,21 @@ class OpenApiSpec:
         )
 
 
+class SpecDoc:
+    _spec_doc = None
+
+    def get(self, request) -> Dict:
+        if not self._spec_doc:
+            app = request.app
+            doc = app['spec'].build(app)
+            if not doc.get('servers'):
+                # build the server info
+                doc['servers'] = [default_server(request)]
+            self._spec_doc = doc
+        return self._spec_doc
+
+
 async def spec_root(request):
     """Return the OpenApi spec
     """
-    app = request.app
-    spec = app.get('spec_doc')
-    if not spec:
-        spec = app['spec'].build(app)
-        if not spec.get('servers'):
-            # build the server info
-            spec['servers'] = [default_server(request)]
-        app['spec_doc'] = spec
-    return web.json_response(spec)
-
-
-def default_server(request):
-    app = request.app
-    url = full_url(request)
-    url = url.with_path(app['cli'].base_path)
-    return dict(
-        url=str(url),
-        description='Api server'
-    )
+    return web.json_response(get_spec(request))

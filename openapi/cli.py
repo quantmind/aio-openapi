@@ -8,6 +8,7 @@ import uvloop
 
 from .utils import get_debug_flag
 from .logger import logger, setup_logging
+from .spec.spec import SpecDoc
 from . import spec
 
 
@@ -62,6 +63,7 @@ class OpenApiClient(click.Group):
             app = web.Application()
             app['cli'] = self
             app['spec'] = self.spec
+            app['spec_doc'] = SpecDoc()
             app['cwd'] = os.getcwd()
             spec.setup_app(app)
             if self.setup_app:
