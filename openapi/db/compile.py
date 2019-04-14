@@ -1,13 +1,12 @@
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import pypostgresql
-from sqlalchemy.sql.dml import Insert as InsertObject, Update as UpdateObject
-from sqlalchemy import select, func
+from sqlalchemy.sql.dml import Insert as InsertObject
+from sqlalchemy.sql.dml import Update as UpdateObject
 
 from .. import json
 
 dialect = pypostgresql.dialect(
-    paramstyle='pyformat',
-    json_serializer=json.dumps,
-    json_deserializer=json.loads
+    paramstyle="pyformat", json_serializer=json.dumps, json_deserializer=json.loads
 )
 
 dialect.implicit_returning = True
@@ -20,9 +19,9 @@ dialect._has_native_hstore = True
 
 def _execute_defaults(query):
     if isinstance(query, InsertObject):
-        attr_name = 'default'
+        attr_name = "default"
     elif isinstance(query, UpdateObject):
-        attr_name = 'onupdate'
+        attr_name = "onupdate"
     else:
         return query
 
@@ -51,10 +50,7 @@ def compile_query(query, inline=False):
     compiled = query.compile(dialect=dialect)
     compiled_params = sorted(compiled.params.items())
     #
-    mapping = {
-        key: '$' + str(i)
-        for i, (key, _) in enumerate(compiled_params, start=1)
-    }
+    mapping = {key: "$" + str(i) for i, (key, _) in enumerate(compiled_params, start=1)}
     new_query = compiled.string % mapping
     processors = compiled._bind_processors
     new_params = [
@@ -68,5 +64,5 @@ def compile_query(query, inline=False):
 
 
 def count(query):
-    count_query = select([func.count()]).select_from(query.alias('inner'))
+    count_query = select([func.count()]).select_from(query.alias("inner"))
     return compile_query(count_query)

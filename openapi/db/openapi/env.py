@@ -1,9 +1,11 @@
 from __future__ import with_statement
-from alembic import context
-from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
+
 import logging
 import re
+from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 USE_TWOPHASE = False
 
@@ -13,14 +15,14 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-cfg_file = config.get_section_option('logging', 'path', '')
+cfg_file = config.get_section_option("logging", "path", "")
 if len(cfg_file) > 0:
-    fileConfig(open(cfg_file, 'r'))
-logger = logging.getLogger('alembic.env')
+    fileConfig(open(cfg_file, "r"))
+logger = logging.getLogger("alembic.env")
 
 # gather section names referring to different
 # databases.
-db_names = config.get_main_option('databases')
+db_names = config.get_main_option("databases")
 
 # your model's MetaData will be try to obtain below
 # for 'autogenerate' support. You can remove this code
@@ -54,19 +56,21 @@ def run_migrations_offline():
     # individual files.
 
     engines = {}
-    for name in re.split(r',\s*', db_names):
+    for name in re.split(r",\s*", db_names):
         engines[name] = rec = {}
-        rec['url'] = context.config.get_section_option(name,
-                                                       "sqlalchemy.url")
+        rec["url"] = context.config.get_section_option(name, "sqlalchemy.url")
 
     for name, rec in engines.items():
         logger.info("Migrating database %s" % name)
         file_ = "%s.sql" % name
         logger.info("Writing output to %s" % file_)
-        with open(file_, 'w') as buffer:
-            context.configure(url=rec['url'], output_buffer=buffer,
-                              target_metadata=target_metadata.get(name),
-                              literal_binds=True)
+        with open(file_, "w") as buffer:
+            context.configure(
+                url=rec["url"],
+                output_buffer=buffer,
+                target_metadata=target_metadata.get(name),
+                literal_binds=True,
+            )
             with context.begin_transaction():
                 context.run_migrations(engine_name=name)
 
@@ -83,47 +87,48 @@ def run_migrations_online():
     # engines, then run all migrations, then commit all transactions.
 
     engines = {}
-    for name in re.split(r',\s*', db_names):
+    for name in re.split(r",\s*", db_names):
         engines[name] = rec = {}
-        rec['engine'] = engine_from_config(
+        rec["engine"] = engine_from_config(
             context.config.get_section(name),
-            prefix='sqlalchemy.',
-            poolclass=pool.NullPool)
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
 
     for name, rec in engines.items():
-        engine = rec['engine']
-        rec['connection'] = conn = engine.connect()
+        engine = rec["engine"]
+        rec["connection"] = conn = engine.connect()
 
         if USE_TWOPHASE:
-            rec['transaction'] = conn.begin_twophase()
+            rec["transaction"] = conn.begin_twophase()
         else:
-            rec['transaction'] = conn.begin()
+            rec["transaction"] = conn.begin()
 
     try:
         for name, rec in engines.items():
             logger.info("Migrating database %s" % name)
             context.configure(
-                connection=rec['connection'],
+                connection=rec["connection"],
                 upgrade_token="%s_upgrades" % name,
                 downgrade_token="%s_downgrades" % name,
                 target_metadata=target_metadata.get(name),
-                compare_type=True
+                compare_type=True,
             )
             context.run_migrations(engine_name=name)
 
         if USE_TWOPHASE:
             for rec in engines.values():
-                rec['transaction'].prepare()
+                rec["transaction"].prepare()
 
         for rec in engines.values():
-            rec['transaction'].commit()
+            rec["transaction"].commit()
     except Exception:
         for rec in engines.values():
-            rec['transaction'].rollback()
+            rec["transaction"].rollback()
         raise
     finally:
         for rec in engines.values():
-            rec['connection'].close()
+            rec["connection"].close()
 
 
 if context.is_offline_mode():

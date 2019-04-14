@@ -1,9 +1,8 @@
 import os
 import sys
+from collections.abc import Mapping
 from inspect import isclass
-from collections import Mapping
-from typing import List, Dict
-
+from typing import Dict, List
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # noqa
@@ -11,19 +10,19 @@ else:
     from ._py36 import asynccontextmanager  # noqa
 
 
-LOCAL = 'local'
-DEV = 'dev'
-PRODUCTION = 'production'
-NO_DEBUG = {'0', 'false', 'no'}
+LOCAL = "local"
+DEV = "dev"
+PRODUCTION = "production"
+NO_DEBUG = {"0", "false", "no"}
 Null = object()
 
 
 def get_env() -> str:
-    return os.environ.get('PYTHON_ENV') or PRODUCTION
+    return os.environ.get("PYTHON_ENV") or PRODUCTION
 
 
 def get_debug_flag() -> str:
-    val = os.environ.get('DEBUG')
+    val = os.environ.get("DEBUG")
     if not val:
         return get_env() == LOCAL
     return val.lower() not in NO_DEBUG
@@ -51,14 +50,14 @@ def mapping_copy(data):
 
 
 def iter_items(data):
-    items = getattr(data, 'items', None)
-    if hasattr(items, '__call__'):
+    items = getattr(data, "items", None)
+    if hasattr(items, "__call__"):
         return items()
     return iter(data)
 
 
 def is_subclass(value, Type):
-    origin = getattr(value, '__origin__', None) or value
+    origin = getattr(value, "__origin__", None) or value
     return isclass(origin) and issubclass(origin, Type)
 
 
@@ -68,10 +67,9 @@ def as_class(value):
 
 def as_list(errors: Dict) -> List:
     return [
-        {'field': field, 'message': message} for
-        field, message in iter_items(errors)
+        {"field": field, "message": message} for field, message in iter_items(errors)
     ]
 
 
 def error_dict(errors: List) -> Dict:
-    return dict(((d['field'], d['message']) for d in errors))
+    return dict(((d["field"], d["message"]) for d in errors))
