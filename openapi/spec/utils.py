@@ -12,13 +12,11 @@ def trim_docstring(docstring):
     http://www.python.org/peps/pep-0257.html#handling-docstring-indentation
     """
     if not docstring or not docstring.strip():
-        return ''
+        return ""
     # Convert tabs to spaces and split into lines
     lines = docstring.expandtabs().splitlines()
-    indent = min(len(line) - len(line.lstrip())
-                 for line in lines if line.lstrip())
-    trimmed = [lines[0].lstrip()] + [
-        line[indent:].rstrip() for line in lines[1:]]
+    indent = min(len(line) - len(line.lstrip()) for line in lines if line.lstrip())
+    trimmed = [lines[0].lstrip()] + [line[indent:].rstrip() for line in lines[1:]]
     return "\n".join(trimmed).strip()
 
 
@@ -31,26 +29,28 @@ def dedent(content):
     as it fails to dedent multiline docstrings that include
     unindented text on the initial line.
     """
-    whitespace_counts = [len(line) - len(line.lstrip(' '))
-                         for line in content.splitlines()[1:] if line.lstrip()]
+    whitespace_counts = [
+        len(line) - len(line.lstrip(" "))
+        for line in content.splitlines()[1:]
+        if line.lstrip()
+    ]
 
     # unindent the content if needed
     if whitespace_counts:
-        whitespace_pattern = '^' + (' ' * min(whitespace_counts))
-        content = re.sub(
-            re.compile(whitespace_pattern, re.MULTILINE), '', content)
+        whitespace_pattern = "^" + (" " * min(whitespace_counts))
+        content = re.sub(re.compile(whitespace_pattern, re.MULTILINE), "", content)
 
     return content.strip()
 
 
 def load_yaml_from_docstring(docstring):
     """Loads YAML from docstring."""
-    split_lines = trim_docstring(docstring).split('\n')
+    split_lines = trim_docstring(docstring).split("\n")
 
     # Cut YAML from rest of docstring
     for index, line in enumerate(split_lines):
         line = line.strip()
-        if line.startswith('---'):
+        if line.startswith("---"):
             cut_from = index
             break
     else:
@@ -61,8 +61,8 @@ def load_yaml_from_docstring(docstring):
     try:
         return yaml.load(yaml_string)
     except Exception as e:
-        raise InvalidSpecException('Invalid yaml %s' % e) from None
+        raise InvalidSpecException("Invalid yaml %s" % e) from None
 
 
 def docjoin(iterable):
-    return ', '.join(f'``{v}``' for v in iterable)
+    return ", ".join(f"``{v}``" for v in iterable)

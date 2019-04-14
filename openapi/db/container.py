@@ -1,19 +1,19 @@
 import os
-import asyncpg
 
+import asyncpg
 import sqlalchemy as sa
 
 from ..exc import ImproperlyConfigured
 from ..utils import asynccontextmanager
 
-
-DBPOOL_MIN_SIZE = int(os.environ.get('DBPOOL_MIN_SIZE') or '10')
-DBPOOL_MAX_SIZE = int(os.environ.get('DBPOOL_MAX_SIZE') or '10')
+DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
+DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
 
 
 class Database:
     """A container for tables in a database
     """
+
     def __init__(self, dsn: str = None, metadata: sa.MetaData = None) -> None:
         self._dsn = dsn
         self._metadata = metadata or sa.MetaData()
@@ -22,6 +22,7 @@ class Database:
 
     def __repr__(self) -> str:
         return self._dsn
+
     __str__ = __repr__
 
     @property
@@ -40,7 +41,7 @@ class Database:
     def engine(self):
         if self._engine is None:
             if not self._dsn:
-                raise ImproperlyConfigured('DSN not available')
+                raise ImproperlyConfigured("DSN not available")
             self._engine = sa.create_engine(self._dsn)
         return self._engine
 
@@ -51,9 +52,7 @@ class Database:
 
     async def connect(self) -> None:
         self._pool = await asyncpg.create_pool(
-            self._dsn,
-            min_size=DBPOOL_MIN_SIZE,
-            max_size=DBPOOL_MAX_SIZE,
+            self._dsn, min_size=DBPOOL_MIN_SIZE, max_size=DBPOOL_MAX_SIZE
         )
 
     async def get_connection(self) -> asyncpg.Connection:
@@ -97,7 +96,7 @@ class Database:
     def drop_all(self) -> None:
         self.engine.execute(f'truncate {", ".join(self.metadata.tables)}')
         try:
-            self.engine.execute('drop table alembic_version')
+            self.engine.execute("drop table alembic_version")
         except Exception:  # noqa
             pass
 

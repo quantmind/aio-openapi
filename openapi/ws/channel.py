@@ -1,14 +1,13 @@
-import re
-import enum
 import asyncio
+import enum
 import logging
-from typing import Set
-from functools import wraps
+import re
 from collections import OrderedDict
 from dataclasses import dataclass
+from functools import wraps
+from typing import Set
 
-
-logger = logging.getLogger('openapi.channels')
+logger = logging.getLogger("openapi.channels")
 
 
 class StatusType(enum.Enum):
@@ -33,7 +32,6 @@ class Event:
 
 
 def safe_execution(method):
-
     @wraps(method)
     async def _(self, *args, **kwargs):
         try:
@@ -48,6 +46,7 @@ def safe_execution(method):
 class Channel:
     """A websocket channel
     """
+
     def __init__(self, channels, name):
         self.channels = channels
         self.name = name
@@ -72,8 +71,8 @@ class Channel:
         return iter(self.channels.values())
 
     async def __call__(self, message):
-        event = message.get('event') or ''
-        data = message.get('data')
+        event = message.get("event") or ""
+        data = message.get("data")
         for entry in tuple(self.callbacks.values()):
             match = entry.regex.match(event)
             if match:
@@ -92,8 +91,7 @@ class Channel:
         except Exception:
             self._remove_callback(entry, callback)
             logger.exception(
-                'callback exception: channel "%s" event "%s"',
-                self.name, event
+                'callback exception: channel "%s" event "%s"', self.name, event
             )
 
     @safe_execution
@@ -111,13 +109,13 @@ class Channel:
     def register(self, event, callback):
         """Register a ``callback`` for ``event``
         """
-        event = event or '*'
+        event = event or "*"
         pattern = self.channels.event_pattern(event)
         entry = self.callbacks.get(pattern)
         if not entry:
             entry = Event(
-                name=event, pattern=pattern,
-                regex=re.compile(pattern), callbacks=[])
+                name=event, pattern=pattern, regex=re.compile(pattern), callbacks=[]
+            )
             self.callbacks[entry.pattern] = entry
 
         if callback not in entry.callbacks:

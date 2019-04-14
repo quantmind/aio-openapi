@@ -1,16 +1,20 @@
 from aiohttp import web
-
 from sqlalchemy.sql.expression import null
 
 from openapi.db.path import SqlApiPath
-from openapi.spec import op
 from openapi.exc import JsonHttpException
-from .models import (
-    Task, TaskAdd, TaskQuery, TaskPathSchema, TaskUpdate, TaskPathSchema2,
-    TaskOrderableQuery,
-    MultiKey,
-)
+from openapi.spec import op
 
+from .models import (
+    MultiKey,
+    Task,
+    TaskAdd,
+    TaskOrderableQuery,
+    TaskPathSchema,
+    TaskPathSchema2,
+    TaskQuery,
+    TaskUpdate,
+)
 
 routes = web.RouteTableDef()
 invalid_path_routes = web.RouteTableDef()
@@ -20,17 +24,17 @@ invalid_method_description_routes = web.RouteTableDef()
 invalid_tag_missing_description_routes = web.RouteTableDef()
 
 
-@routes.get('/status')
+@routes.get("/status")
 async def status(request):
     return web.json_response({})
 
 
-@routes.get('/error')
+@routes.get("/error")
 async def error(request):
     1 / 0  # noqa
 
 
-@routes.view('/tasks')
+@routes.view("/tasks")
 class TasksPath(SqlApiPath):
     """
     ---
@@ -38,7 +42,8 @@ class TasksPath(SqlApiPath):
     tags:
         - Task
     """
-    table = 'tasks'
+
+    table = "tasks"
 
     def filter_done(self, op, value):
         done = self.db_table.c.done
@@ -86,7 +91,7 @@ class TasksPath(SqlApiPath):
         return web.Response(status=204)
 
 
-@routes.view('/tasks/{id}')
+@routes.view("/tasks/{id}")
 class TaskPath(SqlApiPath):
     """
     ---
@@ -97,7 +102,8 @@ class TaskPath(SqlApiPath):
         - name: Random
           description: Random description
     """
-    table = 'tasks'
+
+    table = "tasks"
     path_schema = TaskPathSchema
 
     @op(response_schema=Task)
@@ -140,7 +146,7 @@ class TaskPath(SqlApiPath):
         return web.Response(status=204)
 
 
-@routes.view('/bulk/tasks')
+@routes.view("/bulk/tasks")
 class TaskBulkPath(SqlApiPath):
     """
     ---
@@ -148,7 +154,8 @@ class TaskBulkPath(SqlApiPath):
     tags:
         - Task
     """
-    table = 'tasks'
+
+    table = "tasks"
 
     @op(body_schema=[TaskAdd], response_schema=[Task])
     async def post(self):
@@ -164,7 +171,7 @@ class TaskBulkPath(SqlApiPath):
         return self.json_response(data, status=201)
 
 
-@routes.view('/transaction/tasks')
+@routes.view("/transaction/tasks")
 class TaskTransactionsPath(SqlApiPath):
     """
     ---
@@ -174,7 +181,8 @@ class TaskTransactionsPath(SqlApiPath):
         - name: Transaction
           description: Endpoints that creates a new transaction
     """
-    table = 'tasks'
+
+    table = "tasks"
 
     @op(body_schema=TaskAdd, response_schema=Task)
     async def post(self):
@@ -190,7 +198,7 @@ class TaskTransactionsPath(SqlApiPath):
         """
         data = await self.json_data()
         async with self.db.transaction() as conn:
-            should_raise = data.pop('should_raise', False)
+            should_raise = data.pop("should_raise", False)
 
             task = await self.create_one(data=data, conn=conn)
 
@@ -213,7 +221,7 @@ class TaskTransactionsPath(SqlApiPath):
         return paginated.json_response()
 
 
-@routes.view('/transaction/tasks/{id}')
+@routes.view("/transaction/tasks/{id}")
 class TaskTransactionPath(SqlApiPath):
     """
     ---
@@ -222,7 +230,8 @@ class TaskTransactionPath(SqlApiPath):
         - Task
         - Transaction
     """
-    table = 'tasks'
+
+    table = "tasks"
     path_schema = TaskPathSchema
 
     @op(response_schema=Task)
@@ -251,7 +260,7 @@ class TaskTransactionPath(SqlApiPath):
         """
         data = await self.json_data()
         async with self.db.transaction() as conn:
-            should_raise = data.pop('should_raise', False)
+            should_raise = data.pop("should_raise", False)
 
             task = await self.update_one(data=data, conn=conn)
 
@@ -272,7 +281,7 @@ class TaskTransactionPath(SqlApiPath):
         """
         data = await self.json_data()
         async with self.db.transaction() as conn:
-            should_raise = data.pop('should_raise', False)
+            should_raise = data.pop("should_raise", False)
 
             await self.delete_one(conn=conn)
 
@@ -282,7 +291,7 @@ class TaskTransactionPath(SqlApiPath):
             return self.json_response(data={}, status=204)
 
 
-@routes.view('/transaction/bulk/tasks')
+@routes.view("/transaction/bulk/tasks")
 class TaskBulkTransactionPath(SqlApiPath):
     """
     ---
@@ -291,7 +300,8 @@ class TaskBulkTransactionPath(SqlApiPath):
         - Task
         - Transaction
     """
-    table = 'tasks'
+
+    table = "tasks"
 
     @op(query_schema=TaskQuery)
     async def delete(self):
@@ -304,9 +314,7 @@ class TaskBulkTransactionPath(SqlApiPath):
                 description: Tasks successfully deleted
         """
         async with self.db.transaction() as conn:
-            await self.delete_list(
-                query=dict(self.request.query), conn=conn
-            )
+            await self.delete_list(query=dict(self.request.query), conn=conn)
             return web.Response(status=204)
 
     @op(body_schema=[TaskAdd], response_schema=[Task])
@@ -324,19 +332,20 @@ class TaskBulkTransactionPath(SqlApiPath):
             return self.json_response(data, status=201)
 
 
-@routes.view('/tasks2/{task_id}')
+@routes.view("/tasks2/{task_id}")
 class TaskPath2(SqlApiPath):
     """
     ---
     tags:
         - Task
     """
-    table = 'tasks'
+
+    table = "tasks"
     path_schema = TaskPathSchema2
 
     def get_filters(self):
         filters = super().get_filters()
-        return {'id': filters['task_id']}
+        return {"id": filters["task_id"]}
 
     @op(response_schema=Task)
     async def get(self):
@@ -378,21 +387,23 @@ class TaskPath2(SqlApiPath):
         return web.Response(status=204)
 
 
-@invalid_path_routes.view('/tasks')
+@invalid_path_routes.view("/tasks")
 class NoTagsTaskPath(SqlApiPath):
     """
     ---
     """
+
     pass
 
 
-@invalid_method_summary_routes.view('/tasks')
+@invalid_method_summary_routes.view("/tasks")
 class NoSummaryMethodPath(SqlApiPath):
     """
     ---
     tags:
         - Tag
     """
+
     @op(response_schema=[Task])
     def get(self):
         """
@@ -405,13 +416,14 @@ class NoSummaryMethodPath(SqlApiPath):
         pass
 
 
-@invalid_method_description_routes.view('/tasks')
+@invalid_method_description_routes.view("/tasks")
 class NoDescriptionMethodPath(SqlApiPath):
     """
     ---
     tags:
         - Tag
     """
+
     @op(response_schema=[Task])
     def get(self):
         """
@@ -424,7 +436,7 @@ class NoDescriptionMethodPath(SqlApiPath):
         pass
 
 
-@invalid_tag_missing_description_routes.view('/tasks')
+@invalid_tag_missing_description_routes.view("/tasks")
 class NoTagDescriptionPath(SqlApiPath):
     """"
     ---
@@ -433,10 +445,11 @@ class NoTagDescriptionPath(SqlApiPath):
           description: Simple description
         - Random
     """
+
     pass
 
 
-@routes.view('/multikey')
+@routes.view("/multikey")
 class MultiKeyPath(SqlApiPath):
     """
     ---
@@ -444,7 +457,8 @@ class MultiKeyPath(SqlApiPath):
     tags:
         - MultiKey
     """
-    table = 'multi_key_unique'
+
+    table = "multi_key_unique"
 
     @op(response_schema=MultiKey, body_schema=MultiKey)
     async def post(self):

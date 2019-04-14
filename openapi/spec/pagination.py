@@ -1,18 +1,15 @@
 import os
 
-from multidict import MultiDict
-
 from aiohttp import web
+from multidict import MultiDict
 
 from openapi.json import dumps
 
-
-MAX_PAGINATION_LIMIT = int(os.environ.get('MAX_PAGINATION_LIMIT') or 100)
-DEF_PAGINATION_LIMIT = int(os.environ.get('DEF_PAGINATION_LIMIT') or 50)
+MAX_PAGINATION_LIMIT = int(os.environ.get("MAX_PAGINATION_LIMIT") or 100)
+DEF_PAGINATION_LIMIT = int(os.environ.get("DEF_PAGINATION_LIMIT") or 50)
 
 
 class PaginatedData:
-
     def __init__(self, data, pagination, total, offset, limit):
         self.data = data
         self.pagination = pagination
@@ -24,17 +21,13 @@ class PaginatedData:
         headers = headers or {}
         links = self.header_links()
         if links:
-            headers['Link'] = links
-        headers['X-Total-Count'] = f'{self.total}'
-        return web.json_response(
-            self.data, headers=headers, **kwargs, dumps=dumps
-        )
+            headers["Link"] = links
+        headers["X-Total-Count"] = f"{self.total}"
+        return web.json_response(self.data, headers=headers, **kwargs, dumps=dumps)
 
     def header_links(self):
         links = self.pagination.links(self.total, self.limit, self.offset)
-        return ', '.join(
-            f'<{value}>; rel="{name}"' for name, value in links.items()
-        )
+        return ", ".join(f'<{value}>; rel="{name}"' for name, value in links.items())
 
 
 class Pagination:
@@ -70,7 +63,7 @@ class Pagination:
 
     def link(self, offset, limit):
         query = self.query.copy()
-        query.update({'offset': offset, 'limit': limit})
+        query.update({"offset": offset, "limit": limit})
         return self.url.with_query(query)
 
     def _count_part(self, total, limit, offset):
@@ -84,14 +77,14 @@ class Pagination:
         links = {}
         first = self.first_link(total, limit, offset)
         if first:
-            links['first'] = first
+            links["first"] = first
             prev = self.prev_link(total, limit, offset)
             if prev != first:
-                links['prev'] = prev
+                links["prev"] = prev
         next_ = self.next_link(total, limit, offset)
         if next_:
             last = self.last_link(total, limit, offset)
             if last != next_:
-                links['next'] = next_
-            links['last'] = last
+                links["next"] = next_
+            links["last"] = last
         return links

@@ -2,8 +2,7 @@ import os
 
 from aiohttp import web
 
-
-ERROR_500 = os.environ.get('ERROR_500_MESSSAGE', 'Internal Server Error')
+ERROR_500 = os.environ.get("ERROR_500_MESSSAGE", "Internal Server Error")
 
 
 def json_error(status_codes=None):
@@ -23,11 +22,11 @@ def json_error(status_codes=None):
             message = ex.reason
             status = ex.status
             if isinstance(message, str):
-                message = {'error': message}
+                message = {"error": message}
         except Exception:
             if 500 in status_codes:
                 status = 500
-                message = {'error': ERROR_500}
+                message = {"error": ERROR_500}
                 request.app.logger.exception(ERROR_500)
             else:
                 raise

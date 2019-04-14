@@ -1,11 +1,12 @@
 import abc
 import asyncio
-from typing import Dict, Callable
+from typing import Callable, Dict
 
 
 class Broker(abc.ABC):
     """Abstract class for pubsub brokers
     """
+
     async def start(self) -> None:
         """
         Start broker
@@ -39,7 +40,6 @@ class Broker(abc.ABC):
 
 
 class LocalBroker(Broker):
-
     def __init__(self):
         self.binds = set()
         self.messages = None

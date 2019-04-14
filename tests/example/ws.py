@@ -3,13 +3,13 @@ import asyncio
 from aiohttp import web
 
 from openapi import ws
-from openapi.ws import pubsub
 from openapi.spec.path import ApiPath
+from openapi.ws import pubsub
 
 ws_routes = web.RouteTableDef()
 
 
-@ws_routes.view('/stream')
+@ws_routes.view("/stream")
 class StreamPath(ws.WsPathMixin, pubsub.Publish, pubsub.Subscribe, ApiPath):
     """
     ---
@@ -17,6 +17,7 @@ class StreamPath(ws.WsPathMixin, pubsub.Publish, pubsub.Subscribe, ApiPath):
     tags:
         - Task
     """
+
     async def ws_rpc_echo(self, payload):
         """Echo parameters
         """

@@ -19,7 +19,7 @@ def test_encoder_uuid():
 
 
 def test_encoder_enum():
-    assert encoder(Pippo.bla) == 'bla'
+    assert encoder(Pippo.bla) == "bla"
 
 
 def test_encoder_datetime():
@@ -30,7 +30,7 @@ def test_encoder_datetime():
 
 def test_encoder_invalid_type():
     with pytest.raises(TypeError):
-        encoder('string')
+        encoder("string")
     with pytest.raises(TypeError):
         encoder(123)
     with pytest.raises(TypeError):

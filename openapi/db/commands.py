@@ -1,18 +1,17 @@
 from copy import copy
 
 import click
-
-from sqlalchemy_utils import database_exists, drop_database, create_database
+from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from .migrations import Migration
 
 
 def migration(ctx):
-    return Migration(ctx.obj['app'])
+    return Migration(ctx.obj["app"])
 
 
 def get_db(ctx):
-    return ctx.obj['app']['db']
+    return ctx.obj["app"]["db"]
 
 
 @click.group()
@@ -29,9 +28,10 @@ def init(ctx):
 
 
 @db.command()
-@click.option('-m', '--message', help='Revision message', required=True)
-@click.option('--branch-label',
-              help='Specify a branch label to apply to the new revision')
+@click.option("-m", "--message", help="Revision message", required=True)
+@click.option(
+    "--branch-label", help="Specify a branch label to apply to the new revision"
+)
 @click.pass_context
 def migrate(ctx, message, branch_label):
     """Autogenerate a new revision file
@@ -39,34 +39,41 @@ def migrate(ctx, message, branch_label):
     alias for 'revision --autogenerate'
     """
     return migration(ctx).revision(
-        message,
-        autogenerate=True,
-        branch_label=branch_label
+        message, autogenerate=True, branch_label=branch_label
     )
 
 
 @db.command()
-@click.option('-m', '--message', help='Revision message', required=True)
-@click.option('--branch-label',
-              help='Specify a branch label to apply to the new revision')
-@click.option('--autogenerate', default=False, is_flag=True,
-              help=('Populate revision script with candidate migration '
-                    'operations, based on comparison of database to model'))
+@click.option("-m", "--message", help="Revision message", required=True)
+@click.option(
+    "--branch-label", help="Specify a branch label to apply to the new revision"
+)
+@click.option(
+    "--autogenerate",
+    default=False,
+    is_flag=True,
+    help=(
+        "Populate revision script with candidate migration "
+        "operations, based on comparison of database to model"
+    ),
+)
 @click.pass_context
 def revision(ctx, message, branch_label, autogenerate):
     """Autogenerate a new revision file
     """
     return migration(ctx).revision(
-        message,
-        autogenerate=autogenerate,
-        branch_label=branch_label
+        message, autogenerate=autogenerate, branch_label=branch_label
     )
 
 
 @db.command()
-@click.option('--revision', default='heads')
-@click.option('--drop-tables', default=False, is_flag=True,
-              help="Drop tables before applying migrations")
+@click.option("--revision", default="heads")
+@click.option(
+    "--drop-tables",
+    default=False,
+    is_flag=True,
+    help="Drop tables before applying migrations",
+)
 @click.pass_context
 def upgrade(ctx, revision, drop_tables):
     """Upgrade to a later version
@@ -78,7 +85,7 @@ def upgrade(ctx, revision, drop_tables):
 
 
 @db.command()
-@click.option('--revision', help='Revision id', required=True)
+@click.option("--revision", help="Revision id", required=True)
 @click.pass_context
 def downgrade(ctx, revision):
     """Downgrade to a previous version
@@ -88,7 +95,7 @@ def downgrade(ctx, revision):
 
 
 @db.command()
-@click.option('--revision', default='heads')
+@click.option("--revision", default="heads")
 @click.pass_context
 def show(ctx, revision):
     """Show revision ID and creation date
@@ -105,7 +112,7 @@ def history(ctx):
 
 
 @db.command()
-@click.option('--verbose/--quiet', default=False)
+@click.option("--verbose/--quiet", default=False)
 @click.pass_context
 def current(ctx, verbose):
     """Show revision ID and creation date
@@ -114,9 +121,10 @@ def current(ctx, verbose):
 
 
 @db.command()
-@click.argument('dbname', nargs=1)
-@click.option('--force', default=False, is_flag=True,
-              help='Force removal of an existing database')
+@click.argument("dbname", nargs=1)
+@click.option(
+    "--force", default=False, is_flag=True, help="Force removal of an existing database"
+)
 @click.pass_context
 def create(ctx, dbname, force):
     """Creates a new database
@@ -129,15 +137,18 @@ def create(ctx, dbname, force):
         if force:
             drop_database(store)
         else:
-            return click.echo(f'database {dbname} already available')
+            return click.echo(f"database {dbname} already available")
     create_database(store)
-    click.echo(f'database {dbname} created')
+    click.echo(f"database {dbname} created")
 
 
 @db.command()
 @click.option(
-    '--db', default=False, is_flag=True,
-    help='List tables in database rather than in sqlalchemy metadata')
+    "--db",
+    default=False,
+    is_flag=True,
+    help="List tables in database rather than in sqlalchemy metadata",
+)
 @click.pass_context
 def tables(ctx, db):
     """List all tables managed by the app"""

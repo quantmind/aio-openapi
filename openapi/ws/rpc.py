@@ -1,14 +1,15 @@
+from dataclasses import dataclass
 from functools import wraps
 from typing import Any
-from dataclasses import dataclass
 
-from ..data.validate import validate, ValidationErrors
+from ..data.validate import ValidationErrors, validate
 
 
 @dataclass
 class ws_rpc:
     """Defines a Websocket RPC method in an OpenAPI Path
     """
+
     body_schema: Any = None
     response_schema: Any = None
 

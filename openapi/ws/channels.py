@@ -1,14 +1,13 @@
 import asyncio
 from collections import OrderedDict
-from typing import Dict, Iterator, Callable
+from typing import Callable, Dict, Iterator
 
+from ..utils import compact
+from .broker import Broker
 from .channel import Channel, StatusType, logger
 from .utils import redis_to_py_pattern
-from .broker import Broker
-from ..utils import compact
 
-
-DEFAULT_CHANNEL = 'server'
+DEFAULT_CHANNEL = "server"
 
 CAN_CONNECT = frozenset((StatusType.initialised, StatusType.disconnected))
 MIN_RECONNECT_LAG = 2
@@ -16,25 +15,23 @@ MAX_RECONNECT_LAG = 20
 
 
 def backoff(value):
-    return min(value*1.2, MAX_RECONNECT_LAG) if value else MIN_RECONNECT_LAG
+    return min(value * 1.2, MAX_RECONNECT_LAG) if value else MIN_RECONNECT_LAG
 
 
 class Channels:
     """Manage channels for publish/subscribe
     """
+
     statusType = StatusType
 
     def __init__(
-            self,
-            broker: Broker,
-            namespace: str = None,
-            status_channel: str = None) -> None:
+        self, broker: Broker, namespace: str = None, status_channel: str = None
+    ) -> None:
         self.connection_error = False
         self.broker = broker
-        self.namespace = (namespace or '').lower()
+        self.namespace = (namespace or "").lower()
         self.channels = OrderedDict()
-        self.status_channel = self.get_channel(
-            status_channel or DEFAULT_CHANNEL)
+        self.status_channel = self.get_channel(status_channel or DEFAULT_CHANNEL)
         self.status = self.statusType.initialised
         if broker:
             broker.on_connection_lost(self.connection_lost)
@@ -44,7 +41,7 @@ class Channels:
         return tuple(self.channels)
 
     def __repr__(self) -> str:
-        return f'Channels [{self.broker}]'
+        return f"Channels [{self.broker}]"
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -60,16 +57,15 @@ class Channels:
 
     async def __call__(self, channel_name: str, message: Dict):
         if channel_name.startswith(self.namespace):
-            name = channel_name[len(self.namespace):]
+            N = len(self.namespace)
+            name = channel_name[N:]
             channel = self.channels.get(name)
             if channel:
                 await channel(message)
 
     async def register(
-            self,
-            channel_name: str,
-            event: str,
-            callback: Callable) -> Channel:
+        self, channel_name: str, event: str, callback: Callable
+    ) -> Channel:
         """Register a callback to ``channel_name`` and ``event``
         """
         channel = self.get_channel(channel_name)
@@ -79,10 +75,8 @@ class Channels:
         return channel
 
     async def unregister(
-            self,
-            channel_name: str,
-            event: str,
-            callback: Callable) -> Channel:
+        self, channel_name: str, event: str, callback: Callable
+    ) -> Channel:
         """Safely unregister a callback from the list of event
         callbacks for channel_name
         """
@@ -113,7 +107,7 @@ class Channels:
             logger.critical(
                 '%s cannot publish on "%s" channel - connection error',
                 self,
-                channel_name
+                channel_name,
             )
         else:
             self._connection_ok()
@@ -121,7 +115,7 @@ class Channels:
 
     def prefixed(self, name):
         if self.namespace and not name.startswith(self.namespace):
-            name = f'{self.namespace}{name}'
+            name = f"{self.namespace}{name}"
         return name
 
     async def start(self):
@@ -146,7 +140,7 @@ class Channels:
     def event_pattern(self, event):
         """Channel pattern for an event name
         """
-        return redis_to_py_pattern(event or '*')
+        return redis_to_py_pattern(event or "*")
 
     def get_subscribed(self, handler):
         subscribed = {}
@@ -171,10 +165,7 @@ class Channels:
 
     def _connection_ok(self):
         if self.connection_error:
-            logger.warning(
-                'connection with %s established - all good',
-                self
-            )
+            logger.warning("connection with %s established - all good", self)
             self.connection_error = False
 
     async def _connect(self, next_time):
@@ -186,22 +177,20 @@ class Channels:
             logger.warning(
                 '%s ready and listening for events on channel "%s" - all good',
                 self,
-                self.status_channel.name
+                self.status_channel.name,
             )
         except ConnectionError:
             self.status = StatusType.disconnected
             next_time = backoff(next_time)
             logger.critical(
-                '%s cannot subscribe - connection error - '
-                'try again in %s seconds',
+                "%s cannot subscribe - connection error - " "try again in %s seconds",
                 self,
-                next_time
+                next_time,
             )
             self._loop.call_later(
-                next_time,
-                lambda: self._loop.create_task(self.connect(next_time))
+                next_time, lambda: self._loop.create_task(self.connect(next_time))
             )
         else:
-            await asyncio.gather(*[
-                c.connect() for c in self if c.name != self.status_channel.name
-            ])
+            await asyncio.gather(
+                *[c.connect() for c in self if c.name != self.status_channel.name]
+            )
