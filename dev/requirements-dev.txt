@@ -1,7 +1,9 @@
 # devs
 flake8
+black
 coverage
 mypy
+isort
 pytest
 pytest-cov
 pytest-aiohttp

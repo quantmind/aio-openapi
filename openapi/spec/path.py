@@ -1,34 +1,33 @@
 from aiohttp import web
-
 from multidict import MultiDict
-
 from yarl import URL
 
-from openapi.json import loads, dumps
+from openapi.json import dumps, loads
 
 from ..data.dump import dump, dump_list
-from ..data.validate import validate
 from ..data.exc import ValidationErrors
-from ..utils import compact, as_list
+from ..data.validate import validate
+from ..utils import as_list, compact
 from . import hdrs
 
 
 class ApiPath(web.View):
     """An OpenAPI path
     """
+
     path_schema = None
     private = False
 
     # UTILITIES
 
-    def insert_data(self, data, *, strict=True, body_schema='body_schema'):
+    def insert_data(self, data, *, strict=True, body_schema="body_schema"):
         data = self.cleaned(body_schema, data)
         if self.path_schema:
-            path = self.cleaned('path_schema', self.request.match_info)
+            path = self.cleaned("path_schema", self.request.match_info)
             data.update(path)
         return data
 
-    def get_filters(self, *, query=None, query_schema='query_schema'):
+    def get_filters(self, *, query=None, query_schema="query_schema"):
         combined = MultiDict(query or ())
         combined.update(self.request.query)
         try:
@@ -36,12 +35,11 @@ class ApiPath(web.View):
         except web.HTTPNotImplemented:
             params = {}
         if self.path_schema:
-            path = self.cleaned('path_schema', self.request.match_info)
+            path = self.cleaned("path_schema", self.request.match_info)
             params.update(path)
         return params
 
-    def cleaned(
-            self, schema, data, *, multiple=False, strict=True, Error=None):
+    def cleaned(self, schema, data, *, multiple=False, strict=True, Error=None):
         """Clean data for a given schema name
         """
         Schema = self.get_schema(schema)
@@ -51,15 +49,15 @@ class ApiPath(web.View):
         if validated.errors:
             if Error:
                 raise Error()
-            elif schema == 'path_schema':
+            elif schema == "path_schema":
                 raise web.HTTPNotFound()
             self.raiseValidationError(errors=validated.errors)
 
         # Hacky hacky hack hack
         # Later we'll want to implement proper multicolumn search and so
         # this will be removed and will be included directly in the schema
-        if hasattr(Schema, 'search_fields'):
-            validated.data['search_fields'] = Schema.search_fields
+        if hasattr(Schema, "search_fields"):
+            validated.data["search_fields"] = Schema.search_fields
         return validated.data
 
     def dump(self, schema, data):
@@ -81,14 +79,14 @@ class ApiPath(web.View):
             return await self.request.json(loads=loads)
         except Exception:
             raise web.HTTPBadRequest(
-                **self.api_response_data({'message': 'Invalid JSON payload'})
+                **self.api_response_data({"message": "Invalid JSON payload"})
             )
 
     def get_schema(self, schema: object) -> object:
         """Get the Schema class
         """
         if isinstance(schema, str):
-            Schema = getattr(self.request['operation'], schema, None)
+            Schema = getattr(self.request["operation"], schema, None)
         else:
             Schema = schema
         if Schema is None:
@@ -107,10 +105,7 @@ class ApiPath(web.View):
 
     @classmethod
     def api_response_data(cls, data):
-        return dict(
-            body=dumps(data),
-            content_type='application/json'
-        )
+        return dict(body=dumps(data), content_type="application/json")
 
     @classmethod
     def json_response(cls, data, **kwargs):

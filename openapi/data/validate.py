@@ -1,8 +1,8 @@
+from dataclasses import MISSING, dataclass, fields
 from typing import Dict, List, Tuple
-from dataclasses import dataclass, fields, MISSING
 
-from .fields import VALIDATOR, REQUIRED, ValidationError, field_ops
-from ..utils import mapping_copy, is_subclass
+from ..utils import is_subclass, mapping_copy
+from .fields import REQUIRED, VALIDATOR, ValidationError, field_ops
 
 
 @dataclass
@@ -12,7 +12,6 @@ class ValidatedData:
 
 
 class ValidationErrors(ValueError):
-
     def __init__(self, errors):
         self.errors = errors
 
@@ -24,9 +23,7 @@ def validated_schema(schema, data, *, strict=True):
     return schema(**d.data)
 
 
-def validate(
-        schema, data: Dict, *,
-        strict: bool = True, multiple: bool = False):
+def validate(schema, data: Dict, *, strict: bool = True, multiple: bool = False):
     """Validate a dictionary of data with a given dataclass
     """
     errors = {}
@@ -40,13 +37,13 @@ def validate(
                 data[field.name] = default
 
             if field.name not in data and required and strict:
-                raise ValidationError(field.name, 'required')
+                raise ValidationError(field.name, "required")
 
             for name in field_ops(field):
                 if name not in data:
                     continue
 
-                if multiple and hasattr(data, 'getall'):
+                if multiple and hasattr(data, "getall"):
                     values = data.getall(name)
                     if len(values) > 1:
                         collected = []
@@ -66,7 +63,7 @@ def validate(
             errors[exc.field] = exc.message
 
     if not errors:
-        validate = getattr(schema, 'validate', None)
+        validate = getattr(schema, "validate", None)
         if validate:
             validate(cleaned, errors)
 
@@ -84,25 +81,25 @@ def collect_value(field, name, value):
     if is_subclass(field.type, List) or is_subclass(field.type, Tuple):
         # hack - we need to formalize this and allow for nested validators
         if not isinstance(value, (list, tuple)):
-            raise ValidationError(name, 'not a valid value')
+            raise ValidationError(name, "not a valid value")
         value = list(value)
     elif is_subclass(field.type, Dict):
         if not isinstance(value, dict):
-            raise ValidationError(name, 'not a valid value')
+            raise ValidationError(name, "not a valid value")
     else:
-        types = getattr(field.type, '__args__', None) or (field.type,)
-        types = tuple((getattr(t, '__origin__', None) or t) for t in types)
+        types = getattr(field.type, "__args__", None) or (field.type,)
+        types = tuple((getattr(t, "__origin__", None) or t) for t in types)
         if not isinstance(value, types):
             try:
                 value = field.type(value)
             except (TypeError, ValueError):
-                raise ValidationError(name, 'not a valid value')
+                raise ValidationError(name, "not a valid value")
 
     return value
 
 
 def is_null(value):
-    return value is None or value == 'NULL'
+    return value is None or value == "NULL"
 
 
 def get_default(field):

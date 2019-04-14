@@ -1,20 +1,19 @@
-import time
 import asyncio
 import hashlib
 import logging
-from typing import Dict
+import time
 from dataclasses import dataclass
+from typing import Dict
 
 from aiohttp import web
 
-from ..data import fields
-from ..data.validate import validated_schema, ValidationErrors
-from ..utils import compact
 from .. import json
+from ..data import fields
+from ..data.validate import ValidationErrors, validated_schema
+from ..utils import compact
 from .channels import Channels
 
-
-logger = logging.getLogger('openapi.ws')
+logger = logging.getLogger("openapi.ws")
 
 
 @dataclass
@@ -31,7 +30,8 @@ class ProtocolError(RuntimeError):
 class WsPathMixin:
     """Api Path mixin for Websocket RPC protocol
     """
-    SOCKETS_KEY = 'web_sockets'
+
+    SOCKETS_KEY = "web_sockets"
 
     @property
     def sockets(self):
@@ -50,14 +50,16 @@ class WsPathMixin:
         response = web.WebSocketResponse()
         available = response.can_prepare(self.request)
         if not available:
-            raise web.HTTPBadRequest(**self.api_response_data({
-                'message': 'Unable to open websocket connection'
-            }))
+            raise web.HTTPBadRequest(
+                **self.api_response_data(
+                    {"message": "Unable to open websocket connection"}
+                )
+            )
         await response.prepare(self.request)
         self.response = response
         self.started = time.time()
-        key = '%s - %s' % (self.request.remote, self.started)
-        self.socket_id = hashlib.sha224(key.encode('utf-8')).hexdigest()
+        key = "%s - %s" % (self.request.remote, self.started)
+        self.socket_id = hashlib.sha224(key.encode("utf-8")).hexdigest()
         #
         # Add to set of sockets if available
         sockets = self.sockets
@@ -79,7 +81,7 @@ class WsPathMixin:
         try:
             return json.loads(msg)
         except json.JSONDecodeError:
-            raise ProtocolError('JSON string expected') from None
+            raise ProtocolError("JSON string expected") from None
 
     def encode_message(self, msg):
         """Encode as JSON string message, override for different protocol
@@ -87,7 +89,7 @@ class WsPathMixin:
         try:
             return json.dumps(msg)
         except TypeError:
-            raise ProtocolError('JSON object expected') from None
+            raise ProtocolError("JSON object expected") from None
 
     async def on_message(self, msg):
         id_ = None
@@ -95,40 +97,36 @@ class WsPathMixin:
         try:
             data = self.decode_message(msg.data)
             if not isinstance(data, dict):
-                raise ProtocolError('Malformed message; expected dictionary, '
-                                    f'got {type(data).__name__}')
-            id_ = data.get('id')
+                raise ProtocolError(
+                    "Malformed message; expected dictionary, "
+                    f"got {type(data).__name__}"
+                )
+            id_ = data.get("id")
             rpc = validated_schema(RpcProtocol, data)
-            method = getattr(self, f'ws_rpc_{rpc.method}', None)
+            method = getattr(self, f"ws_rpc_{rpc.method}", None)
             if not method:
                 raise ValidationErrors(
-                    dict(method=f'{rpc.method} method not available')
+                    dict(method=f"{rpc.method} method not available")
                 )
             response = await method(rpc.payload or {})
-            await self.write(dict(
-                id=rpc.id,
-                method=rpc.method,
-                response=response
-            ))
+            await self.write(dict(id=rpc.id, method=rpc.method, response=response))
         except ProtocolError as exc:
-            logger.error('Protocol error: %s', exc)
+            logger.error("Protocol error: %s", exc)
             await self.error_message(
-                str(exc),
-                id=id_,
-                method=rpc.method if rpc else None
+                str(exc), id=id_, method=rpc.method if rpc else None
             )
         except ValidationErrors as exc:
             await self.error_message(
-                'Invalid RPC parameters',
+                "Invalid RPC parameters",
                 errors=exc.errors,
                 id=id_,
-                method=rpc.method if rpc else None
+                method=rpc.method if rpc else None,
             )
 
     async def error_message(self, message, *, errors=None, **kw):
         error = dict(message=message)
         if errors:
-            error['errors'] = errors
+            error["errors"] = errors
         await self.write(compact(error=error, **kw))
 
     async def write(self, msg: Dict) -> None:
@@ -137,13 +135,12 @@ class WsPathMixin:
 
 
 class Sockets:
-
     def __init__(self, app, **kwargs):
         self.sockets = set()
-        self.channels = Channels(app.get('broker'), **kwargs)
+        self.channels = Channels(app.get("broker"), **kwargs)
         app.on_startup.append(self.start)
         app.on_shutdown.append(self.close)
-        app['channels'] = self.channels
+        app["channels"] = self.channels
 
     def add(self, ws):
         self.sockets.add(ws)

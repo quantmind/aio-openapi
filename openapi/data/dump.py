@@ -1,8 +1,8 @@
-from typing import Dict
 from dataclasses import asdict
+from typing import Dict
 
-from .fields import DUMP
 from ..utils import iter_items
+from .fields import DUMP
 
 
 def is_nothing(value):

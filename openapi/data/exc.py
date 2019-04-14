@@ -8,21 +8,24 @@ from .fields import data_field
 class ErrorMessage:
     """Error message and list of errors for data fields
     """
-    message: str = data_field(description='Error message')
+
+    message: str = data_field(description="Error message")
 
 
 @dataclass
 class FieldError(ErrorMessage):
     """Error message for a data field
     """
-    field: str = data_field(description='name of the data field with error')
+
+    field: str = data_field(description="name of the data field with error")
 
 
 @dataclass
 class ValidationErrors(ErrorMessage):
     """Error message and list of errors for data fields
     """
-    errors: List[FieldError] = data_field(description='List of field errors')
+
+    errors: List[FieldError] = data_field(description="List of field errors")
 
 
 def error_response_schema(status):

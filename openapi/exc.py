@@ -1,4 +1,5 @@
 from aiohttp.web import HTTPException
+
 from .json import dumps
 
 
@@ -11,12 +12,11 @@ class ImproperlyConfigured(OpenApiError):
 
 
 class JsonHttpException(HTTPException):
-
     def __init__(self, status=None, **kw):
         self.status_code = status or 500
-        kw['content_type'] = 'application/json'
+        kw["content_type"] = "application/json"
         super().__init__(**kw)
         reason = self.reason
         if isinstance(reason, str):
-            reason = {'message': reason}
+            reason = {"message": reason}
         self.text = dumps(reason)

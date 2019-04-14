@@ -1,3 +1,3 @@
 """Minimal OpenAPI asynchronous server application"""
 
-__version__ = '1.3.5.dev'
+__version__ = "1.3.5"

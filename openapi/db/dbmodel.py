@@ -41,10 +41,10 @@ class CrudDB(Database):
         params = params or {}
 
         for key, value in params.items():
-            bits = key.split(':')
+            bits = key.split(":")
             field = bits[0]
-            op = bits[1] if len(bits) == 2 else 'eq'
-            filter_field = getattr(consumer, f'filter_{field}', None)
+            op = bits[1] if len(bits) == 2 else "eq"
+            filter_field = getattr(consumer, f"filter_{field}", None)
             if filter_field:
                 result = filter_field(op, value)
             else:
@@ -89,28 +89,28 @@ class CrudDB(Database):
         """
         multiple = isinstance(value, (list, tuple))
 
-        if value == '':
+        if value == "":
             value = None
 
-        if multiple and op in ('eq', 'ne'):
-            if op == 'eq':
+        if multiple and op in ("eq", "ne"):
+            if op == "eq":
                 return field.in_(value)
-            elif op == 'ne':
+            elif op == "ne":
                 return ~field.in_(value)
         else:
             if multiple:
                 assert len(value) > 0
                 value = value[0]
 
-            if op == 'eq':
+            if op == "eq":
                 return field == value
-            elif op == 'ne':
+            elif op == "ne":
                 return field != value
-            elif op == 'gt':
+            elif op == "gt":
                 return field > value
-            elif op == 'ge':
+            elif op == "ge":
                 return field >= value
-            elif op == 'lt':
+            elif op == "lt":
                 return field < value
-            elif op == 'le':
+            elif op == "le":
                 return field <= value
