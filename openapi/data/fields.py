@@ -2,6 +2,7 @@ import decimal
 from dataclasses import Field, dataclass, field
 from datetime import date, datetime
 from numbers import Number
+from typing import Any, Callable, Dict, Tuple
 from uuid import UUID
 
 from dateutil.parser import parse as parse_date
@@ -13,6 +14,7 @@ from ..utils import compact_dict
 REQUIRED = "required"
 VALIDATOR = "OPENAPI_VALIDATOR"
 DESCRIPTION = "description"
+POST_PROCESS = "post_process"
 DUMP = "dump"
 FORMAT = "format"
 OPS = "ops"
@@ -25,12 +27,13 @@ class ValidationError(ValueError):
 
 
 def data_field(
-    required=False,
-    validator=None,
-    dump=None,
-    format=None,
-    description=None,
-    ops=(),
+    required: bool = False,
+    validator: Callable[[Field, Any, Dict], Any] = None,
+    dump: Callable[[Any], Any] = None,
+    format: str = None,
+    description: str = None,
+    post_process: Callable[[Any], Any] = None,
+    ops: Tuple = (),
     **kwargs,
 ):
     """Extend a dataclass field with
@@ -41,6 +44,8 @@ def data_field(
     :param dump: optional callable which receive the field value and convert to
                  the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
+    :params description: optional field description
+    :params prost_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
     """
     if isinstance(validator, Validator) and not dump:
@@ -55,6 +60,7 @@ def data_field(
                 REQUIRED: required,
                 DUMP: dump,
                 DESCRIPTION: description,
+                POST_PROCESS: post_process,
                 FORMAT: format,
                 OPS: ops,
             }
