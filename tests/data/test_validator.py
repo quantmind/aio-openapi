@@ -3,9 +3,9 @@ from dataclasses import asdict
 import pytest
 
 from openapi.data.fields import ListValidator, NumberValidator
-from openapi.data.validate import ValidationErrors, validated_schema
+from openapi.data.validate import ValidationErrors, validate, validated_schema
 
-from ..example.models import Permission, Role, TaskAdd
+from ..example.models import Moon, Permission, Role, TaskAdd
 
 
 def test_validated_schema():
@@ -45,3 +45,10 @@ def test_role():
     )
     d = validated_schema(Role, data)
     assert isinstance(d.permissions[0], dict)
+
+
+def test_post_process():
+    d = validate(Moon, {})
+    assert d.data == {}
+    d = validate(Moon, {"names": "luca, max"})
+    assert d.data == {"names": ["luca", "max"]}
