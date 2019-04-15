@@ -2,7 +2,7 @@ from dataclasses import MISSING, dataclass, fields
 from typing import Dict, List, Tuple
 
 from ..utils import is_subclass, mapping_copy
-from .fields import REQUIRED, VALIDATOR, ValidationError, field_ops
+from .fields import REQUIRED, VALIDATOR, POST_PROCESS, ValidationError, field_ops
 
 
 @dataclass
@@ -95,7 +95,8 @@ def collect_value(field, name, value):
             except (TypeError, ValueError):
                 raise ValidationError(name, "not a valid value")
 
-    return value
+    post_process = field.metadata.get(POST_PROCESS)
+    return post_process(value) if post_process else value
 
 
 def is_null(value):
