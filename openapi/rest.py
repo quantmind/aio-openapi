@@ -15,6 +15,7 @@ def rest(
     commands: typing.List = None,
     allowed_tags: typing.Set = None,
     validate_docs: bool = False,
+    servers: typing.List[str] = None,
     OpenApiSpecClass: typing.ClassVar = OpenApiSpec,
 ) -> OpenApiClient:
     """Create the OpenApi application server
@@ -24,6 +25,7 @@ def rest(
             OpenApi(**(openapi or {})),
             allowed_tags=allowed_tags,
             validate_docs=validate_docs,
+            servers=servers
         ),
         base_path=base_path,
         commands=commands,
