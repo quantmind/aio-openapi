@@ -59,7 +59,7 @@ def load_yaml_from_docstring(docstring):
     yaml_string = "\n".join(split_lines[cut_from:])
     yaml_string = dedent(yaml_string)
     try:
-        return yaml.load(yaml_string)
+        return yaml.load(yaml_string, Loader=yaml.FullLoader)
     except Exception as e:
         raise InvalidSpecException("Invalid yaml %s" % e) from None
 
