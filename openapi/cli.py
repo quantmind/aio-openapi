@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+from typing import Iterable, Optional
 
 import click
 import uvloop
@@ -59,9 +60,9 @@ class OpenApiClient(click.Group):
         self.add_command(serve)
         for command in commands or ():
             self.add_command(command)
-        self._web = None
+        self._web: Optional[web.Application] = None
 
-    def web(self):
+    def web(self) -> web.Application:
         """Return the web application
         """
         if self._web is None:
@@ -76,7 +77,7 @@ class OpenApiClient(click.Group):
             self._web = app
         return self._web
 
-    def get_serve_app(self):
+    def get_serve_app(self) -> web.Application:
         app = self.web()
         if self.base_path:
             base = web.Application()
@@ -85,15 +86,15 @@ class OpenApiClient(click.Group):
             app = base
         return app
 
-    def get_command(self, ctx, name):
+    def get_command(self, ctx: click.Context, name: str) -> Optional[click.Command]:
         ctx.obj = dict(app=self.web())
         return super().get_command(ctx, name)
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx: click.Context) -> Iterable[str]:
         ctx.obj = dict(app=self.web())
         return super().list_commands(ctx)
 
-    def get_server_version(self, ctx, param, value):
+    def get_server_version(self, ctx, param, value) -> None:
         if not value or ctx.resilient_parsing:
             return
         spec = self.spec

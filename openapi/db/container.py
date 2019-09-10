@@ -1,6 +1,8 @@
 import os
+from typing import Optional
 
 import asyncpg
+from asyncpg.pool import Pool
 import sqlalchemy as sa
 
 from ..exc import ImproperlyConfigured
@@ -8,13 +10,14 @@ from ..utils import asynccontextmanager
 
 DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
 DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
+Connection = asyncpg.Connection
 
 
 class Database:
     """A container for tables in a database
     """
 
-    def __init__(self, dsn: str = None, metadata: sa.MetaData = None) -> None:
+    def __init__(self, dsn: str = "", metadata: sa.MetaData = None) -> None:
         self._dsn = dsn
         self._metadata = metadata or sa.MetaData()
         self._pool = None
@@ -26,15 +29,15 @@ class Database:
     __str__ = __repr__
 
     @property
-    def dsn(self):
+    def dsn(self) -> str:
         return self._dsn
 
     @property
-    def metadata(self):
+    def metadata(self) -> sa.MetaData:
         return self._metadata
 
     @property
-    def pool(self):
+    def pool(self) -> Optional[Pool]:
         return self._pool
 
     @property
@@ -45,29 +48,34 @@ class Database:
             self._engine = sa.create_engine(self._dsn)
         return self._engine
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         if name in self._metadata.tables:
             return self._metadata.tables[name]
         return super().__getattribute__(name)
 
-    async def connect(self) -> None:
-        self._pool = await asyncpg.create_pool(
+    async def connect(self) -> Pool:
+        pool = await asyncpg.create_pool(
             self._dsn, min_size=DBPOOL_MIN_SIZE, max_size=DBPOOL_MAX_SIZE
         )
+        self._pool = pool
+        return pool
 
-    async def get_connection(self) -> asyncpg.Connection:
-        if not self._pool:
-            await self.connect()
-        return await self._pool.acquire()
+    async def get_connection(self) -> Connection:
+        pool = self._pool
+        if pool is None:
+            pool = await self.connect()
+        return await pool.acquire()
 
-    async def release_connection(self, conn: asyncpg.Connection) -> None:
-        return await self._pool.release(conn)
+    async def release_connection(self, conn: Connection) -> None:
+        if self._pool is not None:
+            await self._pool.release(conn)
 
     @asynccontextmanager
-    async def connection(self) -> asyncpg.Connection:
-        if not self._pool:
-            await self.connect()
-        async with self._pool.acquire() as conn:
+    async def connection(self) -> Connection:
+        pool = self._pool
+        if pool is None:
+            pool = await self.connect()
+        async with pool.acquire() as conn:
             yield conn
 
     @asynccontextmanager
@@ -76,7 +84,7 @@ class Database:
             yield conn
 
     @asynccontextmanager
-    async def ensure_connection(self, conn):
+    async def ensure_connection(self, conn: Optional[Connection] = None) -> Connection:
         if conn:
             yield conn
         else:

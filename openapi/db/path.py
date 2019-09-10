@@ -1,8 +1,11 @@
 import re
+from typing import Dict, List, Optional, Sequence, Union
 
+import sqlalchemy as sa
 from aiohttp import web
+from asyncpg import Connection
 from asyncpg.exceptions import UniqueViolationError
-from sqlalchemy.sql import or_
+from sqlalchemy.sql import Select, or_
 
 from ..db.dbmodel import CrudDB
 from ..spec.pagination import DEF_PAGINATION_LIMIT, Pagination
@@ -10,13 +13,15 @@ from ..spec.path import ApiPath
 from .compile import compile_query, count
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
+Query = Select
+Schema = Union[str]
 
 
 class SqlApiPath(ApiPath):
     """An OpenAPI path backed by an SQL model
     """
 
-    table = None
+    table: str = ""
     # sql table name
 
     @property
@@ -26,17 +31,19 @@ class SqlApiPath(ApiPath):
         return self.request.app["db"]
 
     @property
-    def db_table(self):
+    def db_table(self) -> sa.Table:
         return self.db.metadata.tables[self.table]
 
-    def get_search_clause(self, table, query, search, search_columns):
+    def get_search_clause(
+        self, table: sa.Table, query: Query, search: str, search_columns: Sequence[str]
+    ) -> Query:
         if not search:
             return query
 
         columns = [getattr(table.c, col) for col in search_columns]
         return query.where(or_(*(col.ilike(f"%{search}%") for col in columns)))
 
-    def get_special_params(self, params):
+    def get_special_params(self, params: Dict) -> Dict:
         return dict(
             limit=params.pop("limit", DEF_PAGINATION_LIMIT),
             offset=params.pop("offset", 0),
@@ -49,13 +56,13 @@ class SqlApiPath(ApiPath):
     async def get_list(
         self,
         *,
-        filters=None,
-        query=None,
-        table=None,
-        query_schema="query_schema",
-        dump_schema="response_schema",
-        conn=None,
-    ):
+        filters: Optional[Dict] = None,
+        query: Optional[Query] = None,
+        table: Optional[sa.Table] = None,
+        query_schema: str = "query_schema",
+        dump_schema: str = "response_schema",
+        conn: Optional[Connection] = None,
+    ) -> List:
         """Get a list of models
         """
         table = table if table is not None else self.db_table

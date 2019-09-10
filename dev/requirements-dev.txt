@@ -12,6 +12,9 @@ twine
 agile-toolkit
 asynctest
 #
+# stubs
+sqlalchemy-stubs
+#
 # additional features
 colorlog
 raven-aiohttp

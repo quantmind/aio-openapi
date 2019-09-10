@@ -16,7 +16,7 @@ class ApiPath(web.View):
     """
 
     path_schema = None
-    private = False
+    private: bool = False
 
     # UTILITIES
 
