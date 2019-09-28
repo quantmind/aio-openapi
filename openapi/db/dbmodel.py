@@ -1,42 +1,55 @@
+from typing import Any, Dict, List, Optional, Union, cast
+
+from sqlalchemy import Column, Table
 from sqlalchemy.sql import and_
 
 from ..db.container import Database
-from .compile import compile_query, count
+from .compile import QueryType, Select, compile_query, count
 
 
 class CrudDB(Database):
-    async def db_select(self, table, filters, *, conn=None, consumer=None):
+    async def db_select(self, table: Table, filters: Dict, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_delete(self, table, filters, *, conn=None, consumer=None):
-        query = self.get_query(table, table.delete(), consumer, filters)
-        sql, args = compile_query(query.returning(*table.columns))
+    async def db_delete(self, table: Table, filters: Dict, *, conn=None, consumer=None):
+        query = self.get_query(
+            table, table.delete().returning(*table.columns), consumer, filters
+        )
+        sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_count(self, table, filters, *, conn=None, consumer=None):
+    async def db_count(self, table: Table, filters: Dict, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
         sql, args = count(query)
         async with self.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql, *args)
         return total[0]
 
-    async def db_insert(self, table, data, *, conn=None):
+    async def db_insert(
+        self, table: Table, data: Union[List[Dict], Dict], *, conn=None
+    ):
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(table, data)
             return await conn.fetch(statement, *args)
 
-    def get_insert(self, table, records):
+    def get_insert(self, table: Table, records: Union[List[Dict], Dict]):
         if isinstance(records, dict):
             records = [records]
         exp = table.insert(records).returning(*table.columns)
         return compile_query(exp)
 
-    def get_query(self, table, query, consumer=None, params=None):
-        filters = []
+    def get_query(
+        self,
+        table: Table,
+        query: QueryType,
+        consumer: Any = None,
+        params: Optional[Dict] = None,
+    ) -> QueryType:
+        filters: List = []
         columns = table.c
         params = params or {}
 
@@ -55,11 +68,11 @@ class CrudDB(Database):
                     result = (result,)
                 filters.extend(result)
         if filters:
-            filters = and_(*filters) if len(filters) > 1 else filters[0]
-            query = query.where(filters)
+            whereclause = and_(*filters) if len(filters) > 1 else filters[0]
+            query = cast(Select, query).where(whereclause)
         return query
 
-    def default_filter_field(self, field, op, value):
+    def default_filter_field(self, field: Column, op: str, value: Any):
         """
         Applies a filter on a field.
 

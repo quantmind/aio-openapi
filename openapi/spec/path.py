@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from aiohttp import web
 from multidict import MultiDict
@@ -8,12 +8,12 @@ from openapi.json import dumps, loads
 
 from ..data.dump import dump, dump_list
 from ..data.exc import ValidationErrors
-from ..data.fields import DataClass
 from ..data.validate import validate
 from ..utils import as_list, compact
 from . import hdrs
 
-SchemaType = Union[List[DataClass], DataClass]
+SchemaType = Union[List[type], type]
+SchemaTypeOrStr = Union[str, SchemaType]
 DataType = Union[List[Dict], Dict]
 
 
@@ -21,19 +21,27 @@ class ApiPath(web.View):
     """An OpenAPI path
     """
 
-    path_schema = None
+    path_schema: type = None
     private: bool = False
 
     # UTILITIES
 
-    def insert_data(self, data, *, strict=True, body_schema="body_schema"):
+    def insert_data(
+        self, data, *, strict: bool = True, body_schema: SchemaTypeOrStr = "body_schema"
+    ):
         data = self.cleaned(body_schema, data)
         if self.path_schema:
             path = self.cleaned("path_schema", self.request.match_info)
             data.update(path)
         return data
 
-    def get_filters(self, *, query=None, query_schema="query_schema"):
+    def get_filters(
+        self,
+        *,
+        query: Optional[Dict[str, Any]] = None,
+        query_schema: SchemaTypeOrStr = "query_schema"
+    ) -> Dict[str, Any]:
+        """Collect a dictionary of filters"""
         combined = MultiDict(query or ())
         combined.update(self.request.query)
         try:
@@ -67,8 +75,8 @@ class ApiPath(web.View):
         return validated.data
 
     def dump(
-        self, schema: Optional[Union[SchemaType, str]], data: DataType
-    ) -> Union[SchemaType, DataType]:
+        self, schema: Optional[SchemaTypeOrStr], data: DataType
+    ) -> Optional[DataType]:
         """Dump data using a given schema, if the schema is `None` it returns the
         same `data` as the input
         """
@@ -77,9 +85,9 @@ class ApiPath(web.View):
         Schema = self.get_schema(schema)
         if isinstance(Schema, list):
             Schema = Schema[0]
-            return dump_list(Schema, data)
+            return dump_list(Schema, cast(List[Dict], data))
         else:
-            return dump(Schema, data)
+            return dump(Schema, cast(Dict, data))
 
     async def json_data(self) -> DataType:
         """Load JSON data from the request
@@ -91,7 +99,7 @@ class ApiPath(web.View):
                 **self.api_response_data({"message": "Invalid JSON payload"})
             )
 
-    def get_schema(self, schema: Optional[Union[DataClass, str]] = None) -> DataClass:
+    def get_schema(self, schema: Optional[SchemaTypeOrStr] = None) -> SchemaType:
         """Get the Schema dataclass
         """
         if isinstance(schema, str):
@@ -99,21 +107,21 @@ class ApiPath(web.View):
         else:
             Schema = schema
         if Schema is None:
-            Schema = getattr(self, schema, None)
+            Schema = getattr(self, str(schema), None)
             if Schema is None:
                 raise web.HTTPNotImplemented
         return Schema
 
-    def raiseValidationError(self, message=None, errors=None):
+    def raiseValidationError(self, message=None, errors=None) -> None:
         raw = compact(message=message, errors=as_list(errors or ()))
         data = self.dump(ValidationErrors, raw)
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
-    def full_url(self):
+    def full_url(self) -> URL:
         return full_url(self.request)
 
     @classmethod
-    def api_response_data(cls, data):
+    def api_response_data(cls, data) -> Dict:
         return dict(body=dumps(data), content_type="application/json")
 
     @classmethod
@@ -121,7 +129,7 @@ class ApiPath(web.View):
         return web.json_response(data, **kwargs, dumps=dumps)
 
 
-def full_url(request):
+def full_url(request) -> URL:
     headers = request.headers
     proto = headers.get(hdrs.X_FORWARDED_PROTO)
     host = headers.get(hdrs.X_FORWARDED_HOST)

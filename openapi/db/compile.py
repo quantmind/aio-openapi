@@ -1,9 +1,16 @@
+from typing import Dict, List, Tuple, Union
+
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import pypostgresql
-from sqlalchemy.sql.dml import Insert as InsertObject
-from sqlalchemy.sql.dml import Update as UpdateObject
+from sqlalchemy.sql import Select
+from sqlalchemy.sql.dml import Delete, Insert, Update
 
 from .. import json
+
+QueryType = Union[Delete, Update, Select]
+ClauseType = Union[Insert, QueryType]
+
+QueryTuple = Tuple[str, List]
 
 dialect = pypostgresql.dialect(
     paramstyle="pyformat", json_serializer=json.dumps, json_deserializer=json.loads
@@ -17,10 +24,10 @@ dialect.supports_sane_multi_rowcount = True  # psycopg 2.0.9+
 dialect._has_native_hstore = True
 
 
-def _execute_defaults(query):
-    if isinstance(query, InsertObject):
+def _execute_defaults(query: ClauseType) -> ClauseType:
+    if isinstance(query, Insert):
         attr_name = "default"
-    elif isinstance(query, UpdateObject):
+    elif isinstance(query, Update):
         attr_name = "onupdate"
     else:
         return query
@@ -35,7 +42,7 @@ def _execute_defaults(query):
     return query
 
 
-def _execute_default_attr(query, param, attr_name):
+def _execute_default_attr(query: ClauseType, param: Dict, attr_name: str) -> None:
     for col in query.table.columns:
         attr = getattr(col, attr_name)
         if attr and param.get(col.name) is None:
@@ -45,7 +52,7 @@ def _execute_default_attr(query, param, attr_name):
                 param[col.name] = attr.arg({})
 
 
-def compile_query(query, inline=False):
+def compile_query(query: ClauseType) -> QueryTuple:
     _execute_defaults(query)
     compiled = query.compile(dialect=dialect)
     compiled_params = sorted(compiled.params.items())
@@ -57,12 +64,9 @@ def compile_query(query, inline=False):
         processors[key](val) if key in processors else val
         for key, val in compiled_params
     ]
-    if inline:
-        return new_query
-
     return new_query, new_params
 
 
-def count(query):
+def count(query: QueryType) -> QueryTuple:
     count_query = select([func.count()]).select_from(query.alias("inner"))
     return compile_query(count_query)

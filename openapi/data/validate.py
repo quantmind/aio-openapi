@@ -43,7 +43,7 @@ def validate(
     """
     errors: Dict = {}
     cleaned: Dict = {}
-    data: MultiDict = MultiDict(data)
+    data = MultiDict(data)
     for field in fields(schema):
         try:
             required = field.metadata.get(REQUIRED)

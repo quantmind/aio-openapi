@@ -1,19 +1,18 @@
 import re
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 import sqlalchemy as sa
 from aiohttp import web
 from asyncpg import Connection
 from asyncpg.exceptions import UniqueViolationError
-from sqlalchemy.sql import Select, or_
+from sqlalchemy.sql import or_
 
 from ..db.dbmodel import CrudDB
 from ..spec.pagination import DEF_PAGINATION_LIMIT, Pagination
-from ..spec.path import ApiPath
-from .compile import compile_query, count
+from ..spec.path import ApiPath, SchemaTypeOrStr
+from .compile import QueryType, compile_query, count
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
-Query = Select
 Schema = Union[str]
 
 
@@ -35,15 +34,19 @@ class SqlApiPath(ApiPath):
         return self.db.metadata.tables[self.table]
 
     def get_search_clause(
-        self, table: sa.Table, query: Query, search: str, search_columns: Sequence[str]
-    ) -> Query:
+        self,
+        table: sa.Table,
+        query: QueryType,
+        search: str,
+        search_columns: Sequence[str],
+    ) -> QueryType:
         if not search:
             return query
 
         columns = [getattr(table.c, col) for col in search_columns]
         return query.where(or_(*(col.ilike(f"%{search}%") for col in columns)))
 
-    def get_special_params(self, params: Dict) -> Dict:
+    def get_special_params(self, params: Dict) -> Dict[str, Any]:
         return dict(
             limit=params.pop("limit", DEF_PAGINATION_LIMIT),
             offset=params.pop("offset", 0),
@@ -57,10 +60,10 @@ class SqlApiPath(ApiPath):
         self,
         *,
         filters: Optional[Dict] = None,
-        query: Optional[Query] = None,
+        query: Optional[QueryType] = None,
         table: Optional[sa.Table] = None,
-        query_schema: str = "query_schema",
-        dump_schema: str = "response_schema",
+        query_schema: SchemaTypeOrStr = "query_schema",
+        dump_schema: SchemaTypeOrStr = "response_schema",
         conn: Optional[Connection] = None,
     ) -> List:
         """Get a list of models
@@ -68,7 +71,7 @@ class SqlApiPath(ApiPath):
         table = table if table is not None else self.db_table
         if not filters:
             filters = self.get_filters(query=query, query_schema=query_schema)
-        specials = self.get_special_params(filters)
+        specials = self.get_special_params(cast(Dict, filters))
         query = self.db.get_query(table, table.select(), self, filters)
         #
         sql_count, args_count = count(query)
@@ -105,11 +108,11 @@ class SqlApiPath(ApiPath):
     async def create_one(
         self,
         *,
-        data=None,
-        table=None,
-        body_schema="body_schema",
-        dump_schema="response_schema",
-        conn=None,
+        data: Optional[Dict[str, Any]] = None,
+        table: Optional[sa.Table] = None,
+        body_schema: SchemaTypeOrStr = "body_schema",
+        dump_schema: SchemaTypeOrStr = "response_schema",
+        conn: Optional[Connection] = None,
     ):
         """Create a model
         """
@@ -129,11 +132,11 @@ class SqlApiPath(ApiPath):
     async def create_list(
         self,
         *,
-        data=None,
-        table=None,
-        body_schema="body_schema",
-        dump_schema="response_schema",
-        conn=None,
+        data: Optional[List[Dict[str, Any]]] = None,
+        table: Optional[sa.Table] = None,
+        body_schema: SchemaTypeOrStr = "body_schema",
+        dump_schema: SchemaTypeOrStr = "response_schema",
+        conn: Optional[Connection] = None,
     ):
         """Create multiple models
         """
@@ -153,10 +156,10 @@ class SqlApiPath(ApiPath):
         *,
         filters=None,
         query=None,
-        table=None,
-        query_schema="query_schema",
-        dump_schema="response_schema",
-        conn=None,
+        table: Optional[sa.Table] = None,
+        query_schema: SchemaTypeOrStr = "query_schema",
+        dump_schema: SchemaTypeOrStr = "response_schema",
+        conn: Optional[Connection] = None,
     ):
         """Get a single model
         """
@@ -174,11 +177,11 @@ class SqlApiPath(ApiPath):
         data=None,
         filters=None,
         query=None,
-        table=None,
-        body_schema="body_schema",
-        query_schema="query_schema",
-        dump_schema="response_schema",
-        conn=None,
+        table: Optional[sa.Table] = None,
+        body_schema: SchemaTypeOrStr = "body_schema",
+        query_schema: SchemaTypeOrStr = "query_schema",
+        dump_schema: SchemaTypeOrStr = "response_schema",
+        conn: Optional[Connection] = None,
     ):
         """Update a single model
         """
@@ -211,9 +214,9 @@ class SqlApiPath(ApiPath):
         *,
         filters=None,
         query=None,
-        table=None,
-        query_schema="query_schema",
-        conn=None,
+        table: Optional[sa.Table] = None,
+        query_schema: SchemaTypeOrStr = "query_schema",
+        conn: Optional[Connection] = None,
     ):
         """delete a single model
         """
@@ -225,7 +228,14 @@ class SqlApiPath(ApiPath):
             raise web.HTTPNotFound()
         return values
 
-    async def delete_list(self, *, filters=None, query=None, table=None, conn=None):
+    async def delete_list(
+        self,
+        *,
+        filters=None,
+        query=None,
+        table: Optional[sa.Table] = None,
+        conn: Optional[Connection] = None,
+    ):
         """delete multiple models
         """
         table = table if table is not None else self.db_table
