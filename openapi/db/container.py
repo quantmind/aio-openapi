@@ -1,16 +1,16 @@
 import os
-from typing import Optional
+from typing import Optional, Any
 
 import asyncpg
-from asyncpg.pool import Pool
 import sqlalchemy as sa
+from asyncpg import Connection
+from asyncpg.pool import Pool
 
 from ..exc import ImproperlyConfigured
 from ..utils import asynccontextmanager
 
 DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
 DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
-Connection = asyncpg.Connection
 
 
 class Database:
@@ -48,7 +48,7 @@ class Database:
             self._engine = sa.create_engine(self._dsn)
         return self._engine
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         if name in self._metadata.tables:
             return self._metadata.tables[name]
         return super().__getattribute__(name)
@@ -79,7 +79,7 @@ class Database:
             yield conn
 
     @asynccontextmanager
-    async def transaction(self) -> asyncpg.Connection:
+    async def transaction(self) -> Connection:
         async with self.connection() as conn, conn.transaction():
             yield conn
 

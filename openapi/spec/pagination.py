@@ -1,23 +1,26 @@
 import os
+from typing import Dict, List, Optional
 
 from aiohttp import web
 from multidict import MultiDict
 
 from openapi.json import dumps
 
-MAX_PAGINATION_LIMIT = int(os.environ.get("MAX_PAGINATION_LIMIT") or 100)
-DEF_PAGINATION_LIMIT = int(os.environ.get("DEF_PAGINATION_LIMIT") or 50)
+MAX_PAGINATION_LIMIT: int = int(os.environ.get("MAX_PAGINATION_LIMIT") or 100)
+DEF_PAGINATION_LIMIT: int = int(os.environ.get("DEF_PAGINATION_LIMIT") or 50)
 
 
 class PaginatedData:
-    def __init__(self, data, pagination, total, offset, limit):
+    def __init__(
+        self, data: List, pagination: "Pagination", total: int, offset: int, limit: int
+    ) -> None:
         self.data = data
         self.pagination = pagination
         self.total = total
         self.offset = offset
         self.limit = limit
 
-    def json_response(self, headers=None, **kwargs):
+    def json_response(self, headers: Optional[Dict[str, str]] = None, **kwargs):
         headers = headers or {}
         links = self.header_links()
         if links:
@@ -25,17 +28,19 @@ class PaginatedData:
         headers["X-Total-Count"] = f"{self.total}"
         return web.json_response(self.data, headers=headers, **kwargs, dumps=dumps)
 
-    def header_links(self):
+    def header_links(self) -> str:
         links = self.pagination.links(self.total, self.limit, self.offset)
         return ", ".join(f'<{value}>; rel="{name}"' for name, value in links.items())
 
 
 class Pagination:
-    def __init__(self, url):
+    def __init__(self, url) -> None:
         self.url = url
         self.query = MultiDict(url.query)
 
-    def paginated(self, data, total, offset, limit):
+    def paginated(
+        self, data: List, total: int, offset: int, limit: int
+    ) -> PaginatedData:
         return PaginatedData(data, self, total, offset, limit)
 
     def first_link(self, total, limit, offset):

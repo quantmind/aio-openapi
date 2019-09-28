@@ -1,8 +1,7 @@
 import os
 import sys
-from collections.abc import Mapping
 from inspect import isclass
-from typing import Dict, List, Hashable
+from typing import Dict, Hashable, Iterable, Iterator, List
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # noqa
@@ -43,13 +42,7 @@ def replace_key(kwargs: Dict, from_key: Hashable, to_key: Hashable) -> Dict:
     return kwargs
 
 
-def mapping_copy(data):
-    if isinstance(data, Mapping):
-        return data.copy()
-    return dict(data)
-
-
-def iter_items(data):
+def iter_items(data: Iterable) -> Iterator:
     items = getattr(data, "items", None)
     if hasattr(items, "__call__"):
         return items()

@@ -1,11 +1,12 @@
 import asyncio
 import os
 import sys
-from typing import Iterable, Optional
+from typing import Callable, Iterable, List, Optional
 
 import click
 import uvloop
 from aiohttp import web
+from aiohttp.web import Application
 
 from . import spec
 from .logger import logger, setup_logging
@@ -21,9 +22,9 @@ class OpenApiClient(click.Group):
     def __init__(
         self,
         spec,
-        setup_app=None,
-        base_path=None,
-        commands=None,
+        setup_app: Optional[Callable[[Application], None]] = None,
+        base_path: str = "",
+        commands: Optional[List] = None,
         callback=None,
         **extra,
     ) -> None:
@@ -60,13 +61,13 @@ class OpenApiClient(click.Group):
         self.add_command(serve)
         for command in commands or ():
             self.add_command(command)
-        self._web: Optional[web.Application] = None
+        self._web: Optional[Application] = None
 
-    def web(self) -> web.Application:
+    def web(self) -> Application:
         """Return the web application
         """
         if self._web is None:
-            app = web.Application()
+            app = Application()
             app["cli"] = self
             app["spec"] = self.spec
             app["spec_doc"] = SpecDoc()
@@ -77,10 +78,10 @@ class OpenApiClient(click.Group):
             self._web = app
         return self._web
 
-    def get_serve_app(self) -> web.Application:
+    def get_serve_app(self) -> Application:
         app = self.web()
         if self.base_path:
-            base = web.Application()
+            base = Application()
             base.add_subapp(self.base_path, app)
             base["cli"] = self
             app = base

@@ -1,3 +1,5 @@
+from typing import Dict, List, Optional, Union
+
 from aiohttp import web
 from multidict import MultiDict
 from yarl import URL
@@ -6,9 +8,13 @@ from openapi.json import dumps, loads
 
 from ..data.dump import dump, dump_list
 from ..data.exc import ValidationErrors
+from ..data.fields import DataClass
 from ..data.validate import validate
 from ..utils import as_list, compact
 from . import hdrs
+
+SchemaType = Union[List[DataClass], DataClass]
+DataType = Union[List[Dict], Dict]
 
 
 class ApiPath(web.View):
@@ -60,8 +66,11 @@ class ApiPath(web.View):
             validated.data["search_fields"] = Schema.search_fields
         return validated.data
 
-    def dump(self, schema, data):
-        """Dump data using a given schema
+    def dump(
+        self, schema: Optional[Union[SchemaType, str]], data: DataType
+    ) -> Union[SchemaType, DataType]:
+        """Dump data using a given schema, if the schema is `None` it returns the
+        same `data` as the input
         """
         if schema is None:
             return data
@@ -72,7 +81,7 @@ class ApiPath(web.View):
         else:
             return dump(Schema, data)
 
-    async def json_data(self):
+    async def json_data(self) -> DataType:
         """Load JSON data from the request
         """
         try:
@@ -82,8 +91,8 @@ class ApiPath(web.View):
                 **self.api_response_data({"message": "Invalid JSON payload"})
             )
 
-    def get_schema(self, schema: object) -> object:
-        """Get the Schema class
+    def get_schema(self, schema: Optional[Union[DataClass, str]] = None) -> DataClass:
+        """Get the Schema dataclass
         """
         if isinstance(schema, str):
             Schema = getattr(self.request["operation"], schema, None)

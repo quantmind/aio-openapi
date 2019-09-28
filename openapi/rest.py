@@ -25,7 +25,7 @@ def rest(
             OpenApi(**(openapi or {})),
             allowed_tags=allowed_tags,
             validate_docs=validate_docs,
-            servers=servers
+            servers=servers,
         ),
         base_path=base_path,
         commands=commands,

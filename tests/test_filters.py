@@ -24,10 +24,11 @@ async def fixtures(cli):
 
 async def assert_query(cli, params, expected):
     response = await cli.get("/tasks", params=params)
-    body = await jsonBody(response, 200)
-    for d in body:
+    data = await jsonBody(response)
+    for d in data:
         d.pop("id")
-    assert body == expected
+    assert len(data) == len(expected)
+    assert data == expected
 
 
 async def test_spec(test_app):

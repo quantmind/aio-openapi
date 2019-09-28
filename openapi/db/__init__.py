@@ -1,4 +1,5 @@
 import os
+import typing as t
 
 from aiohttp.web import Application
 
@@ -6,7 +7,9 @@ from ..db.dbmodel import CrudDB
 from .commands import db
 
 
-def get_db(app: Application, store_url: str = None, command: bool = True) -> CrudDB:
+def get_db(
+    app: Application, store_url: str = None, command: bool = True
+) -> t.Optional[CrudDB]:
     """Create an Open API db handler
 
     This function
@@ -19,6 +22,7 @@ def get_db(app: Application, store_url: str = None, command: bool = True) -> Cru
     store_url = store_url or os.environ.get("DATASTORE")
     if not store_url:  # pragma: no cover
         app.logger.warning("DATASTORE url not available")
+        return None
     else:
         app["db"] = CrudDB(store_url)
         app.on_shutdown.append(close_db)
@@ -27,5 +31,5 @@ def get_db(app: Application, store_url: str = None, command: bool = True) -> Cru
         return app["db"]
 
 
-async def close_db(app):
+async def close_db(app: Application) -> None:
     await app["db"].close()
