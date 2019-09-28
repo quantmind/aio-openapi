@@ -26,3 +26,7 @@ black: 		## run black and fix files
 
 black-check: 	## run black check in CI
 	@./dev/run-black.sh --check
+
+
+mypy:		## run mypy
+	@mypy openapi

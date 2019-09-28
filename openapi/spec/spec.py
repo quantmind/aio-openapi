@@ -1,9 +1,11 @@
 from collections import OrderedDict
-from dataclasses import asdict, dataclass, field, is_dataclass
+from dataclasses import asdict, dataclass, field
+from dataclasses import fields as get_fields
+from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, Iterable, List, TypeVar
+from typing import Dict, Iterable, List, Optional, Set, TypeVar
 
 from aiohttp import hdrs, web
 
@@ -59,11 +61,11 @@ class SchemaParser:
         TypeVar: {"type": "string"},
     }
 
-    def __init__(self, group=None, validate_docs=False):
+    def __init__(self, group=None, validate_docs: bool = False) -> None:
         self.group = group or SchemaGroup()
         self.validate_docs = validate_docs
 
-    def parameters(self, Schema, default_in="path"):
+    def parameters(self, Schema: type, default_in: str = "path") -> List:
         params = []
         schema = self.schema2json(Schema)
         required = set(schema.get("required", ()))
@@ -78,7 +80,7 @@ class SchemaParser:
             params.append(entry)
         return params
 
-    def field2json(self, field, validate_docs=True):
+    def field2json(self, field, validate_docs: bool = True) -> Dict:
         field = fields.as_field(field)
         mapping = self._fields_mapping.get(as_class(field.type), None)
         if not mapping:
@@ -116,10 +118,10 @@ class SchemaParser:
             validator.openapi(json_property)
         return json_property
 
-    def schema2json(self, schema):
+    def schema2json(self, schema: type) -> Dict:
         properties = {}
         required = []
-        for item in schema.__dataclass_fields__.values():
+        for item in get_fields(schema):
             if item.metadata.get(fields.REQUIRED, False):
                 required.append(item.name)
             json_property = self.field2json(item)
@@ -130,7 +132,7 @@ class SchemaParser:
 
         json_schema = {
             "type": "object",
-            "description": trim_docstring(schema.__doc__),
+            "description": trim_docstring(schema.__doc__ or ""),
             "properties": properties,
             "additionalProperties": False,
         }
@@ -164,10 +166,10 @@ class SchemaParser:
 
 
 class SchemaGroup:
-    def __init__(self):
-        self.parsed_schemas = {}
+    def __init__(self) -> None:
+        self.parsed_schemas: Dict[str, Dict] = {}
 
-    def parse(self, schemas, validate_docs=False):
+    def parse(self, schemas: Iterable[type], validate_docs=False) -> Dict[str, Dict]:
         for schema in set(schemas):
             if schema.__name__ in self.parsed_schemas:
                 continue
@@ -185,25 +187,25 @@ class OpenApiSpec:
 
     def __init__(
         self,
-        info: OpenApi = None,
-        default_content_type: str = None,
-        default_responses: Iterable = None,
+        info: Optional[OpenApi] = None,
+        default_content_type: str = "",
+        default_responses: Optional[Dict] = None,
         allowed_tags: Iterable = None,
         validate_docs: bool = False,
-        servers: List = None,
-    ):
-        self.schemas = {}
-        self.parameters = {}
-        self.responses = {}
-        self.tags = {}
-        self.plugins = {}
-        self.servers = servers or []
+        servers: Optional[List] = None,
+    ) -> None:
+        self.schemas: Dict = {}
+        self.parameters: Dict = {}
+        self.responses: Dict = {}
+        self.tags: Dict = {}
+        self.plugins: Dict = {}
+        self.servers: List = servers or []
         self.default_content_type = default_content_type or "application/json"
         self.default_responses = default_responses or {}
         self.doc = dict(
             openapi=OPENAPI, info=asdict(info or OpenApi()), paths=OrderedDict()
         )
-        self.schemas_to_parse = set()
+        self.schemas_to_parse: Set = set()
         self.allowed_tags = allowed_tags
         self.validate_docs = validate_docs
         self._spec_doc = None

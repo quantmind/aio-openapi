@@ -1,7 +1,7 @@
 import os
 import sys
 from inspect import isclass
-from typing import Dict, Hashable, Iterable, Iterator, List
+from typing import Any, Dict, Hashable, Iterable, Iterator, List
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # noqa
@@ -58,7 +58,7 @@ def as_class(value):
     return value if isclass(value) else type(value)
 
 
-def as_list(errors: Dict) -> List:
+def as_list(errors: Iterable) -> List[Dict[str, Any]]:
     return [
         {"field": field, "message": message} for field, message in iter_items(errors)
     ]
