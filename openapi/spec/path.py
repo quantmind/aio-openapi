@@ -14,7 +14,8 @@ from . import hdrs
 
 SchemaType = Union[List[type], type]
 SchemaTypeOrStr = Union[str, SchemaType]
-DataType = Union[List[Dict], Dict]
+StrDict = Dict[str, Any]
+DataType = Union[List[StrDict], StrDict]
 
 
 class ApiPath(web.View):
@@ -38,8 +39,8 @@ class ApiPath(web.View):
     def get_filters(
         self,
         *,
-        query: Optional[Dict[str, Any]] = None,
-        query_schema: SchemaTypeOrStr = "query_schema"
+        query: Optional[StrDict] = None,
+        query_schema: SchemaTypeOrStr = "query_schema",
     ) -> Dict[str, Any]:
         """Collect a dictionary of filters"""
         combined = MultiDict(query or ())
@@ -53,7 +54,15 @@ class ApiPath(web.View):
             params.update(path)
         return params
 
-    def cleaned(self, schema, data, *, multiple=False, strict=True, Error=None):
+    def cleaned(
+        self,
+        schema: SchemaTypeOrStr,
+        data: DataType,
+        *,
+        multiple: bool = False,
+        strict: bool = True,
+        Error: type = None,
+    ):
         """Clean data for a given schema name
         """
         Schema = self.get_schema(schema)
@@ -62,9 +71,9 @@ class ApiPath(web.View):
         validated = validate(Schema, data, strict=strict, multiple=multiple)
         if validated.errors:
             if Error:
-                raise Error()
+                raise Error
             elif schema == "path_schema":
-                raise web.HTTPNotFound()
+                raise web.HTTPNotFound
             self.raiseValidationError(errors=validated.errors)
 
         # Hacky hacky hack hack
@@ -121,12 +130,13 @@ class ApiPath(web.View):
         return full_url(self.request)
 
     @classmethod
-    def api_response_data(cls, data) -> Dict:
+    def api_response_data(cls, data: DataType) -> Dict[str, Any]:
         return dict(body=dumps(data), content_type="application/json")
 
     @classmethod
     def json_response(cls, data, **kwargs):
-        return web.json_response(data, **kwargs, dumps=dumps)
+        kwargs.setdefault("dumps", dumps)
+        return web.json_response(data, **kwargs)
 
 
 def full_url(request) -> URL:
