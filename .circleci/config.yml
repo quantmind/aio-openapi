@@ -3,7 +3,7 @@ jobs:
   test36:
     docker:
       - image: circleci/python:3.6
-      - image: postgres:10
+      - image: postgres:11
     steps:
       - checkout
       - run:
@@ -15,7 +15,7 @@ jobs:
   tests:
     docker:
       - image: circleci/python:3.7
-      - image: postgres:10
+      - image: postgres:11
     steps:
       - checkout
       - run:
@@ -25,6 +25,9 @@ jobs:
           name: flake8
           command: flake8
       - run:
+          name: black
+          command: make black-check
+      - run:
           name: test
           command: pytest --cov
       - run:
@@ -32,7 +35,7 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash)
   deploy-release:
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.7
     steps:
       - checkout
       - run:

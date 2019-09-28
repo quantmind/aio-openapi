@@ -1,8 +1,7 @@
 import os
 import sys
-from collections.abc import Mapping
 from inspect import isclass
-from typing import Dict, List
+from typing import Dict, Hashable, Iterable, Iterator, List
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # noqa
@@ -21,7 +20,7 @@ def get_env() -> str:
     return os.environ.get("PYTHON_ENV") or PRODUCTION
 
 
-def get_debug_flag() -> str:
+def get_debug_flag() -> bool:
     val = os.environ.get("DEBUG")
     if not val:
         return get_env() == LOCAL
@@ -32,24 +31,18 @@ def compact(**kwargs) -> Dict:
     return {k: v for k, v in kwargs.items() if v}
 
 
-def compact_dict(kwargs) -> Dict:
+def compact_dict(kwargs: Dict) -> Dict:
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-def replace_key(kwargs, from_key, to_key):
+def replace_key(kwargs: Dict, from_key: Hashable, to_key: Hashable) -> Dict:
     value = kwargs.pop(from_key, Null)
     if value is not Null:
         kwargs[to_key] = value
     return kwargs
 
 
-def mapping_copy(data):
-    if isinstance(data, Mapping):
-        return data.copy()
-    return dict(data)
-
-
-def iter_items(data):
+def iter_items(data: Iterable) -> Iterator:
     items = getattr(data, "items", None)
     if hasattr(items, "__call__"):
         return items()

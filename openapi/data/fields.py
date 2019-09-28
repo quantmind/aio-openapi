@@ -2,7 +2,7 @@ import decimal
 from dataclasses import Field, dataclass, field
 from datetime import date, datetime
 from numbers import Number
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Iterator, Tuple
 from uuid import UUID
 
 from dateutil.parser import parse as parse_date
@@ -18,6 +18,8 @@ POST_PROCESS = "post_process"
 DUMP = "dump"
 FORMAT = "format"
 OPS = "ops"
+
+DataClass = Any
 
 
 class ValidationError(ValueError):
@@ -35,7 +37,7 @@ def data_field(
     post_process: Callable[[Any], Any] = None,
     ops: Tuple = (),
     **kwargs,
-):
+) -> Field:
     """Extend a dataclass field with
 
     :param validator: optional callable which accept (field, value, data)
@@ -70,63 +72,63 @@ def data_field(
     return f
 
 
-def str_field(max_length=None, min_length=None, **kw):
+def str_field(max_length=None, min_length=None, **kw) -> Field:
     kw.setdefault(
         "validator", StrValidator(min_length=min_length, max_length=max_length)
     )
     return data_field(**kw)
 
 
-def bool_field(**kw):
+def bool_field(**kw) -> Field:
     kw.setdefault("validator", BoolValidator())
     return data_field(**kw)
 
 
-def uuid_field(format="uuid", **kw):
+def uuid_field(format="uuid", **kw) -> Field:
     """A UUID field with validation
     """
     kw.setdefault("validator", UUIDValidator())
     return data_field(format=format, **kw)
 
 
-def number_field(min_value=None, max_value=None, precision=None, **kw):
+def number_field(min_value=None, max_value=None, precision=None, **kw) -> Field:
     kw.setdefault("validator", NumberValidator(min_value, max_value, precision))
     return data_field(**kw)
 
 
-def integer_field(min_value=None, max_value=None, **kw):
+def integer_field(min_value=None, max_value=None, **kw) -> Field:
     kw.setdefault("validator", IntegerValidator(min_value, max_value))
     return data_field(**kw)
 
 
-def decimal_field(min_value=None, max_value=None, precision=None, **kw):
+def decimal_field(min_value=None, max_value=None, precision=None, **kw) -> Field:
     kw.setdefault("validator", DecimalValidator(min_value, max_value, precision))
     return data_field(**kw)
 
 
-def email_field(max_length=None, min_length=None, **kw):
+def email_field(max_length=None, min_length=None, **kw) -> Field:
     kw.setdefault(
         "validator", EmailValidator(min_length=min_length, max_length=max_length)
     )
     return data_field(**kw)
 
 
-def enum_field(EnumClass, **kw):
+def enum_field(EnumClass, **kw) -> Field:
     kw.setdefault("validator", EnumValidator(EnumClass))
     return data_field(**kw)
 
 
-def date_field(**kw):
+def date_field(**kw) -> Field:
     kw.setdefault("validator", DateValidator())
     return data_field(**kw)
 
 
-def date_time_field(timezone=False, **kw):
+def date_time_field(timezone=False, **kw) -> Field:
     kw.setdefault("validator", DateTimeValidator(timezone=timezone))
     return data_field(**kw)
 
 
-def as_field(item, **kw):
+def as_field(item, **kw) -> Field:
     if isinstance(item, Field):
         return item
     field = data_field(**kw)
@@ -134,15 +136,18 @@ def as_field(item, **kw):
     return field
 
 
-def field_ops(field):
+def json_field(**kw) -> Field:
+    kw.setdefault("validator", JSONValidator())
+    return data_field(**kw)
+
+
+# Utilities
+
+
+def field_ops(field: Field) -> Iterator[str]:
     yield field.name
     for op in field.metadata.get(OPS, ()):
         yield f"{field.name}:{op}"
-
-
-def json_field(**kw):
-    kw.setdefault("validator", JSONValidator())
-    return data_field(**kw)
 
 
 # VALIDATORS

@@ -1,4 +1,4 @@
-import typing
+import typing as t
 from dataclasses import make_dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -11,7 +11,14 @@ from . import fields
 CONVERTERS = {}
 
 
-def dataclass_from_table(name, table, *, exclude=None, include=None, required=None):
+def dataclass_from_table(
+    name: str,
+    table: sa.Table,
+    *,
+    exclude: t.Optional[t.Sequence] = None,
+    include: t.Optional[t.Sequence] = None,
+    required: bool = False,
+):
     """Create a dataclass from an sqlalchemy table
     """
     columns = []
@@ -38,7 +45,7 @@ def converter(*types):
 
 
 @converter(sa.Boolean)
-def bl(col, required):
+def bl(col, required: bool):
     data_field = col.info.get("data_field", fields.bool_field)
     return (bool, data_field(**info(col, required)))
 
@@ -86,7 +93,7 @@ def js(col, required):
     if col.default:
         arg = col.default.arg
         val = arg() if col.default.is_callable else arg
-    return (JsonTypes.get(type(val), typing.Dict), data_field(**info(col, required)))
+    return (JsonTypes.get(type(val), t.Dict), data_field(**info(col, required)))
 
 
 @converter(UUIDType)
@@ -105,4 +112,4 @@ def info(col, required):
     return data
 
 
-JsonTypes = {list: typing.List, dict: typing.Dict}
+JsonTypes = {list: t.List, dict: t.Dict}

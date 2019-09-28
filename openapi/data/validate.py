@@ -1,8 +1,17 @@
-from dataclasses import MISSING, dataclass, fields
-from typing import Dict, List, Tuple
+from dataclasses import MISSING, dataclass, fields, Field
+from typing import Any, Dict, List, Tuple, Union, cast
 
-from ..utils import is_subclass, mapping_copy
-from .fields import REQUIRED, VALIDATOR, POST_PROCESS, ValidationError, field_ops
+from multidict import MultiDict
+
+from ..utils import is_subclass
+from .fields import (
+    POST_PROCESS,
+    REQUIRED,
+    VALIDATOR,
+    DataClass,
+    ValidationError,
+    field_ops,
+)
 
 
 @dataclass
@@ -12,23 +21,29 @@ class ValidatedData:
 
 
 class ValidationErrors(ValueError):
-    def __init__(self, errors):
+    def __init__(self, errors) -> None:
         self.errors = errors
 
 
-def validated_schema(schema, data, *, strict=True):
+def validated_schema(schema, data, *, strict: bool = True):
     d = validate(schema, data, strict=strict)
     if d.errors:
         raise ValidationErrors(d.errors)
     return schema(**d.data)
 
 
-def validate(schema, data: Dict, *, strict: bool = True, multiple: bool = False):
+def validate(
+    schema: DataClass,
+    data: Union[Dict[str, Any], MultiDict],
+    *,
+    strict: bool = True,
+    multiple: bool = False,
+) -> ValidatedData:
     """Validate a dictionary of data with a given dataclass
     """
-    errors = {}
-    cleaned = {}
-    data = mapping_copy(data)
+    errors: Dict = {}
+    cleaned: Dict = {}
+    data: MultiDict = MultiDict(data)
     for field in fields(schema):
         try:
             required = field.metadata.get(REQUIRED)
@@ -43,8 +58,8 @@ def validate(schema, data: Dict, *, strict: bool = True, multiple: bool = False)
                 if name not in data:
                     continue
 
-                if multiple and hasattr(data, "getall"):
-                    values = data.getall(name)
+                if multiple:
+                    values = cast(MultiDict, data).getall(name)
                     if len(values) > 1:
                         collected = []
                         for v in values:
@@ -70,7 +85,7 @@ def validate(schema, data: Dict, *, strict: bool = True, multiple: bool = False)
     return ValidatedData(data=cleaned, errors=errors)
 
 
-def collect_value(field, name, value):
+def collect_value(field: Field, name: str, value: Any) -> Any:
     if is_null(value):
         return None
 
@@ -99,11 +114,11 @@ def collect_value(field, name, value):
     return post_process(value) if post_process else value
 
 
-def is_null(value):
+def is_null(value: Any) -> bool:
     return value is None or value == "NULL"
 
 
-def get_default(field):
+def get_default(field: Field) -> Any:
     if field.default_factory is not MISSING:
         value = field.default_factory()
     else:
