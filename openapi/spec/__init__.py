@@ -11,6 +11,6 @@ __all__ = ["op", "ApiPath", "OpenApi", "OpenApiSpec", "SchemaParser", "setup_app
 SPEC_ROUTE = os.environ.get("SPEC_ROUTE", "/spec")
 
 
-def setup_app(app):
+def setup_app(app: web.Application) -> None:
     if SPEC_ROUTE:
         app.add_routes([web.get(SPEC_ROUTE, spec_root)])
