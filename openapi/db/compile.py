@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, cast
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import pypostgresql
@@ -24,14 +24,7 @@ dialect.supports_sane_multi_rowcount = True  # psycopg 2.0.9+
 dialect._has_native_hstore = True
 
 
-def _execute_defaults(query: ClauseType) -> ClauseType:
-    if isinstance(query, Insert):
-        attr_name = "default"
-    elif isinstance(query, Update):
-        attr_name = "onupdate"
-    else:
-        return query
-
+def _execute_defaults(query: Union[Insert, Update], attr_name: str) -> None:
     # query.parameters could be a list in a multi row insert
     if isinstance(query.parameters, list):
         for param in query.parameters:
@@ -39,10 +32,12 @@ def _execute_defaults(query: ClauseType) -> ClauseType:
     else:
         query.parameters = query.parameters or {}
         _execute_default_attr(query, query.parameters, attr_name)
-    return query
+    return None
 
 
-def _execute_default_attr(query: ClauseType, param: Dict, attr_name: str) -> None:
+def _execute_default_attr(
+    query: Union[Insert, Update], param: Dict, attr_name: str
+) -> None:
     for col in query.table.columns:
         attr = getattr(col, attr_name)
         if attr and param.get(col.name) is None:
@@ -53,7 +48,11 @@ def _execute_default_attr(query: ClauseType, param: Dict, attr_name: str) -> Non
 
 
 def compile_query(query: ClauseType) -> QueryTuple:
-    _execute_defaults(query)
+    if isinstance(query, Insert):
+        _execute_defaults(cast(Insert, query), "default")
+    elif isinstance(query, Update):
+        _execute_defaults(cast(Update, query), "onupdate")
+
     compiled = query.compile(dialect=dialect)
     compiled_params = sorted(compiled.params.items())
     #
@@ -67,6 +66,6 @@ def compile_query(query: ClauseType) -> QueryTuple:
     return new_query, new_params
 
 
-def count(query: QueryType) -> QueryTuple:
+def count(query: Select) -> QueryTuple:
     count_query = select([func.count()]).select_from(query.alias("inner"))
     return compile_query(count_query)

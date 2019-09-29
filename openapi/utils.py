@@ -49,12 +49,12 @@ def iter_items(data: Iterable) -> Iterator:
     return iter(data)
 
 
-def is_subclass(value, Type):
+def is_subclass(value: Any, Type: type) -> bool:
     origin = getattr(value, "__origin__", None) or value
     return isclass(origin) and issubclass(origin, Type)
 
 
-def as_class(value):
+def as_class(value: Any) -> type:
     return value if isclass(value) else type(value)
 
 

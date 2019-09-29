@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from .fields import str_field, data_field
+from .fields import data_field, str_field
 
 
 @dataclass
