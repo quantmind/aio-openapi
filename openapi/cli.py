@@ -1,10 +1,12 @@
 import asyncio
 import os
 import sys
+from typing import Callable, Iterable, List, Optional
 
 import click
 import uvloop
 from aiohttp import web
+from aiohttp.web import Application
 
 from . import spec
 from .logger import logger, setup_logging
@@ -19,11 +21,10 @@ PORT = os.environ.get("MICRO_SERVICE_PORT", 8080)
 class OpenApiClient(click.Group):
     def __init__(
         self,
-        spec,
-        setup_app=None,
-        base_path=None,
-        commands=None,
-        callback=None,
+        spec: spec.OpenApiSpec,
+        setup_app: Optional[Callable[[Application], None]] = None,
+        base_path: str = "",
+        commands: Optional[List] = None,
         **extra,
     ) -> None:
         params = list(extra.pop("params", None) or ())
@@ -55,17 +56,18 @@ class OpenApiClient(click.Group):
                 ),
             )
         )
-        super().__init__(params=params, callback=setup_logging, **extra)
+        extra.setdefault("callback", setup_logging)
+        super().__init__(params=params, **extra)
         self.add_command(serve)
         for command in commands or ():
             self.add_command(command)
-        self._web = None
+        self._web: Optional[Application] = None
 
-    def web(self):
+    def web(self) -> Application:
         """Return the web application
         """
         if self._web is None:
-            app = web.Application()
+            app = Application()
             app["cli"] = self
             app["spec"] = self.spec
             app["spec_doc"] = SpecDoc()
@@ -76,24 +78,24 @@ class OpenApiClient(click.Group):
             self._web = app
         return self._web
 
-    def get_serve_app(self):
+    def get_serve_app(self) -> Application:
         app = self.web()
         if self.base_path:
-            base = web.Application()
+            base = Application()
             base.add_subapp(self.base_path, app)
             base["cli"] = self
             app = base
         return app
 
-    def get_command(self, ctx, name):
+    def get_command(self, ctx: click.Context, name: str) -> Optional[click.Command]:
         ctx.obj = dict(app=self.web())
         return super().get_command(ctx, name)
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx: click.Context) -> Iterable[str]:
         ctx.obj = dict(app=self.web())
         return super().list_commands(ctx)
 
-    def get_server_version(self, ctx, param, value):
+    def get_server_version(self, ctx, param, value) -> None:
         if not value or ctx.resilient_parsing:
             return
         spec = self.spec

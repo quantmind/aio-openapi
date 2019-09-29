@@ -1,5 +1,7 @@
-import typing
+import typing as t
 from dataclasses import dataclass
+
+from aiohttp.web import Application
 
 from .cli import OpenApiClient
 from .data.fields import Choice, IntegerValidator, bool_field, data_field, str_field
@@ -9,23 +11,23 @@ from .spec.utils import docjoin
 
 
 def rest(
-    openapi: dict = None,
-    setup_app: typing.Callable = None,
-    base_path: str = None,
-    commands: typing.List = None,
-    allowed_tags: typing.Set = None,
+    openapi: t.Dict = None,
+    setup_app: t.Callable[[Application], None] = None,
+    base_path: str = "",
+    commands: t.Optional[t.List] = None,
+    allowed_tags: t.Optional[t.Set[str]] = None,
     validate_docs: bool = False,
-    servers: typing.List[str] = None,
-    OpenApiSpecClass: typing.ClassVar = OpenApiSpec,
+    servers: t.Optional[t.List[str]] = None,
+    OpenApiSpecClass: type = OpenApiSpec,
 ) -> OpenApiClient:
-    """Create the OpenApi application server
+    """Create the OpenApi Client
     """
     return OpenApiClient(
         OpenApiSpecClass(
             OpenApi(**(openapi or {})),
             allowed_tags=allowed_tags,
             validate_docs=validate_docs,
-            servers=servers
+            servers=servers,
         ),
         base_path=base_path,
         commands=commands,
@@ -48,7 +50,7 @@ class Query:
     )
 
 
-def orderable(*orderable_fields):
+def orderable(*orderable_fields) -> type:
     @dataclass
     class Orderable:
         order_by: str = data_field(
@@ -65,7 +67,7 @@ def orderable(*orderable_fields):
     return Orderable
 
 
-def searchable(*searchable_fields):
+def searchable(*searchable_fields) -> type:
     """Create a dataclass for search fields
     """
     fields = docjoin(searchable_fields)

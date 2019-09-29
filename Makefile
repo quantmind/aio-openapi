@@ -14,3 +14,17 @@ clean:		## remove python cache files
 
 version:	## dipsplay software version
 	@python3 -c "import openapi; print(openapi.__version__)"
+
+isort: 		## run isort
+	@isort -rc
+
+black: 		## run black and fix files
+	@./dev/run-black.sh
+
+
+black-check: 	## run black check in CI
+	@./dev/run-black.sh --check
+
+
+mypy:		## run mypy
+	@mypy openapi

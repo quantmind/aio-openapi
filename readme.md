@@ -119,7 +119,8 @@ class TasksPath(SqlApiPath):
     ---
     summary: Create and query Tasks
     tags:
-        - Task
+        - name: Task
+          description: Task tag description
     """
     table = 'tasks'
 

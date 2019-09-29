@@ -30,7 +30,7 @@ class Channels:
         self.connection_error = False
         self.broker = broker
         self.namespace = (namespace or "").lower()
-        self.channels = OrderedDict()
+        self.channels: OrderedDict = OrderedDict()
         self.status_channel = self.get_channel(status_channel or DEFAULT_CHANNEL)
         self.status = self.statusType.initialised
         if broker:

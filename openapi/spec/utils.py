@@ -1,4 +1,5 @@
 import re
+from typing import Dict, Iterable, Optional
 
 import yaml
 
@@ -6,7 +7,7 @@ from .exceptions import InvalidSpecException
 
 
 # from django.contrib.admindocs.utils
-def trim_docstring(docstring):
+def trim_docstring(docstring: str) -> str:
     """Uniformly trims leading/trailing whitespace from docstrings.
     Based on
     http://www.python.org/peps/pep-0257.html#handling-docstring-indentation
@@ -21,7 +22,7 @@ def trim_docstring(docstring):
 
 
 # from rest_framework.utils.formatting
-def dedent(content):
+def dedent(content: str) -> str:
     """
     Remove leading indent from a block of text.
     Used when generating descriptions from docstrings.
@@ -43,7 +44,7 @@ def dedent(content):
     return content.strip()
 
 
-def load_yaml_from_docstring(docstring):
+def load_yaml_from_docstring(docstring: str) -> Optional[Dict]:
     """Loads YAML from docstring."""
     split_lines = trim_docstring(docstring).split("\n")
 
@@ -64,5 +65,5 @@ def load_yaml_from_docstring(docstring):
         raise InvalidSpecException("Invalid yaml %s" % e) from None
 
 
-def docjoin(iterable):
+def docjoin(iterable: Iterable) -> str:
     return ", ".join(f"``{v}``" for v in iterable)

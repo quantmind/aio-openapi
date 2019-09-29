@@ -8,6 +8,7 @@ tests = [
     {"title": "test1", "unique_title": "thefirsttest", "severity": 1},
     {"title": "test2", "unique_title": "anothertest1", "severity": 3},
     {"title": "test3"},
+    {"title": "test4", "unique_title": "anothertest4", "severity": 5},
 ]
 
 
@@ -24,10 +25,11 @@ async def fixtures(cli):
 
 async def assert_query(cli, params, expected):
     response = await cli.get("/tasks", params=params)
-    body = await jsonBody(response, 200)
-    for d in body:
+    data = await jsonBody(response)
+    for d in data:
         d.pop("id")
-    assert body == expected
+    assert len(data) == len(expected)
+    assert data == expected
 
 
 async def test_spec(test_app):
@@ -55,38 +57,40 @@ async def test_spec(test_app):
 
 
 async def test_filters(cli, fixtures):
-    test1, test2, test3 = fixtures
-    await assert_query(cli, {"severity:gt": 1}, [test2])
-    await assert_query(cli, {"severity:ge": 1}, [test1, test2])
+    test1, test2, test3, test4 = fixtures
+    await assert_query(cli, {"severity:gt": 1}, [test2, test4])
+    await assert_query(cli, {"severity:ge": 1}, [test1, test2, test4])
     await assert_query(cli, {"severity:lt": 3}, [test1])
     await assert_query(cli, {"severity:le": 2}, [test1])
     await assert_query(cli, {"severity:le": 3}, [test1, test2])
-    await assert_query(cli, {"severity:ne": 3}, [test1])
+    await assert_query(cli, {"severity:ne": 3}, [test1, test4])
     await assert_query(cli, {"severity": 2}, [])
     await assert_query(cli, {"severity": 1}, [test1])
     await assert_query(cli, {"severity": "NULL"}, [test3])
 
 
 async def test_multiple(cli, fixtures):
-    test1, test2, test3 = fixtures
+    test1, test2, test3, test4 = fixtures
     params = MultiDict((("severity", 1), ("severity", 3)))
     await assert_query(cli, params, [test1, test2])
+    params = MultiDict((("severity:ne", 1), ("severity:ne", 3)))
+    await assert_query(cli, params, [test4])
 
 
 async def test_search(cli, fixtures):
-    test1, test2, test3 = fixtures
+    test1, test2, test3, test4 = fixtures
     params = {"search": "test"}
-    await assert_query(cli, params, [test1, test2, test3])
+    await assert_query(cli, params, [test1, test2, test3, test4])
 
 
 async def test_search_match_one(cli, fixtures):
-    test1, test2, test3 = fixtures
+    test2 = fixtures[1]
     params = {"search": "est2"}
     await assert_query(cli, params, [test2])
 
 
 async def test_search_match_one_with_title(cli, fixtures):
-    test1, test2, test3 = fixtures
+    test2 = fixtures[1]
     params = {"title": "test2", "search": "est2"}
     await assert_query(cli, params, [test2])
 
@@ -97,12 +101,11 @@ async def test_search_match_none_with_title(cli, fixtures):
 
 
 async def test_search_either_end(cli, fixtures):
-    test1, test2, test3 = fixtures
     params = {"search": "est"}
-    await assert_query(cli, params, [test1, test2, test3])
+    await assert_query(cli, params, fixtures)
 
 
 async def test_multicolumn_search(cli, fixtures):
-    test1, test2, test3 = fixtures
+    test1, test2, test3, _ = fixtures
     params = {"search": "est1"}
     await assert_query(cli, params, [test1, test2])
