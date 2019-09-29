@@ -24,7 +24,7 @@ class CrudDB(Database):
 
     async def db_count(self, table: Table, filters: Dict, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
-        sql, args = count(query)
+        sql, args = count(cast(Select, query))
         async with self.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql, *args)
         return total[0]

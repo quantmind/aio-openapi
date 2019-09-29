@@ -222,7 +222,7 @@ class SqlApiPath(ApiPath):
             filters = self.get_filters(query=query, query_schema=query_schema)
         values = await self.db.db_delete(table, filters, conn=conn, consumer=self)
         if not values:
-            raise web.HTTPNotFound()
+            raise web.HTTPNotFound
         return values
 
     async def delete_list(

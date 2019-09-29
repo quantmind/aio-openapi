@@ -21,11 +21,10 @@ PORT = os.environ.get("MICRO_SERVICE_PORT", 8080)
 class OpenApiClient(click.Group):
     def __init__(
         self,
-        spec,
+        spec: spec.OpenApiSpec,
         setup_app: Optional[Callable[[Application], None]] = None,
         base_path: str = "",
         commands: Optional[List] = None,
-        callback=None,
         **extra,
     ) -> None:
         params = list(extra.pop("params", None) or ())
@@ -57,7 +56,8 @@ class OpenApiClient(click.Group):
                 ),
             )
         )
-        super().__init__(params=params, callback=setup_logging, **extra)
+        extra.setdefault("callback", setup_logging)
+        super().__init__(params=params, **extra)
         self.add_command(serve)
         for command in commands or ():
             self.add_command(command)

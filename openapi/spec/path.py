@@ -15,6 +15,7 @@ from . import hdrs
 SchemaType = Union[List[type], type]
 SchemaTypeOrStr = Union[str, SchemaType]
 StrDict = Dict[str, Any]
+QueryType = Union[StrDict, MultiDict]
 DataType = Union[List[StrDict], StrDict]
 
 
@@ -22,7 +23,7 @@ class ApiPath(web.View):
     """An OpenAPI path
     """
 
-    path_schema: type = None
+    path_schema: Optional[type] = None
     private: bool = False
 
     # UTILITIES
@@ -39,7 +40,7 @@ class ApiPath(web.View):
     def get_filters(
         self,
         *,
-        query: Optional[StrDict] = None,
+        query: Optional[QueryType] = None,
         query_schema: SchemaTypeOrStr = "query_schema",
     ) -> Dict[str, Any]:
         """Collect a dictionary of filters"""
@@ -57,12 +58,12 @@ class ApiPath(web.View):
     def cleaned(
         self,
         schema: SchemaTypeOrStr,
-        data: DataType,
+        data: QueryType,
         *,
         multiple: bool = False,
         strict: bool = True,
         Error: type = None,
-    ):
+    ) -> StrDict:
         """Clean data for a given schema name
         """
         Schema = self.get_schema(schema)

@@ -15,10 +15,8 @@ clean:		## remove python cache files
 version:	## dipsplay software version
 	@python3 -c "import openapi; print(openapi.__version__)"
 
-isort: 		## isort
-	@docker run --rm \
-		-v $(PWD):$(DOCKER_WORKSPACE) \
-		$(REPO_NAME):tests isort -rc -c
+isort: 		## run isort
+	@isort -rc
 
 black: 		## run black and fix files
 	@./dev/run-black.sh
