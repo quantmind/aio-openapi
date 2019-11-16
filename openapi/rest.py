@@ -19,6 +19,7 @@ def rest(
     validate_docs: bool = False,
     servers: t.Optional[t.List[str]] = None,
     OpenApiSpecClass: type = OpenApiSpec,
+    **kwargs,
 ) -> OpenApiClient:
     """Create the OpenApi Client
     """
@@ -32,6 +33,7 @@ def rest(
         base_path=base_path,
         commands=commands,
         setup_app=setup_app,
+        **kwargs,
     )
 
 
