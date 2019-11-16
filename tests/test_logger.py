@@ -8,9 +8,9 @@ from openapi.rest import rest
 
 def test_logger():
     logger = getLogger()
-    assert logger.name == "openapi"
+    assert logger.name == "root"
     logger = getLogger("foo")
-    assert logger.name == "openapi.foo"
+    assert logger.name == "foo"
 
 
 def test_serve():
