@@ -10,7 +10,7 @@ except ImportError:  # pragma: no cover
 
 
 LEVEL = (os.environ.get("LOG_LEVEL") or "info").upper()
-LOGGER_NAME = os.environ.get("APP_NAME") or "openapi"
+LOGGER_NAME = os.environ.get("APP_NAME") or ""
 LOG_FORMAT = "%(levelname)s: %(name)s: %(message)s"
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -19,7 +19,7 @@ logger = logging.getLogger(LOGGER_NAME)
 def getLogger(name=None):
     if not name:
         return logger
-    return logging.getLogger(f"{LOGGER_NAME}.{name}")
+    return logging.getLogger(f"{LOGGER_NAME}.{name}" if LOGGER_NAME else name)
 
 
 @click.pass_context
