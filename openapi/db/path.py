@@ -33,12 +33,12 @@ class SqlApiPath(ApiPath):
         return self.db.metadata.tables[self.table]
 
     def get_search_clause(
-        self, table: sa.Table, query: Select, search: str, search_columns: Sequence[str]
+        self, table: sa.Table, query: Select, search: str, search_fields: Sequence[str]
     ) -> Select:
         if not search:
             return query
 
-        columns = [getattr(table.c, col) for col in search_columns]
+        columns = [getattr(table.c, col) for col in search_fields]
         return query.where(or_(*(col.ilike(f"%{search}%") for col in columns)))
 
     def get_special_params(self, params: Dict) -> Dict[str, Any]:
@@ -48,7 +48,7 @@ class SqlApiPath(ApiPath):
             order_by=params.pop("order_by", None),
             order_desc=params.pop("order_desc", False),
             search=params.pop("search", None),
-            search_columns=params.pop("search_fields", []),
+            search_fields=params.pop("search_fields", []),
         )
 
     async def get_list(
@@ -64,7 +64,7 @@ class SqlApiPath(ApiPath):
         """Get a list of models
         """
         table = table if table is not None else self.db_table
-        if not filters:
+        if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
         specials = self.get_special_params(cast(Dict, filters))
         sql_query = cast(
@@ -83,7 +83,7 @@ class SqlApiPath(ApiPath):
 
         # search
         sql_query = self.get_search_clause(
-            table, sql_query, specials["search"], specials["search_columns"]
+            table, sql_query, specials["search"], specials["search_fields"]
         )
 
         # pagination
@@ -161,7 +161,7 @@ class SqlApiPath(ApiPath):
         """Get a single model
         """
         table = table if table is not None else self.db_table
-        if not filters:
+        if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
         values = await self.db.db_select(table, filters, conn=conn, consumer=self)
         if not values:
@@ -218,7 +218,7 @@ class SqlApiPath(ApiPath):
         """delete a single model
         """
         table = table if table is not None else self.db_table
-        if not filters:
+        if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
         values = await self.db.db_delete(table, filters, conn=conn, consumer=self)
         if not values:
@@ -236,7 +236,7 @@ class SqlApiPath(ApiPath):
         """delete multiple models
         """
         table = table if table is not None else self.db_table
-        if not filters:
+        if filters is None:
             filters = self.get_filters(query=query)
         return await self.db.db_delete(table, filters, conn=conn, consumer=self)
 
