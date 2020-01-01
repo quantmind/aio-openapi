@@ -152,6 +152,10 @@ def test_DateTimeValidator_timezone():
     validator = field.metadata[VALIDATOR]
     with pytest.raises(ValidationError):
         validator(field, value)
+    value = datetime(2020, 1, 1)
+    assert not value.tzinfo
+    v2 = validator(field, value)
+    assert v2.tzinfo
 
 
 def test_NumberValidator_valid():
