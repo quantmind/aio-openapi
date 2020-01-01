@@ -5,5 +5,9 @@ import pytz
 UTC = pytz.utc
 
 
-def utcnow():
+def utcnow() -> datetime:
     return datetime.now(tz=UTC)
+
+
+def as_utc(dt: datetime) -> datetime:
+    return dt.replace(tzinfo=UTC)

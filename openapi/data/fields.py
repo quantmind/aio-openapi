@@ -1,6 +1,6 @@
 import decimal
 from dataclasses import Field, dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, time
 from numbers import Number
 from typing import Any, Callable, Dict, Iterator, Tuple
 from uuid import UUID
@@ -8,7 +8,7 @@ from uuid import UUID
 from dateutil.parser import parse as parse_date
 from email_validator import EmailNotValidError, validate_email
 
-from .. import json
+from .. import json, tz
 from ..utils import compact_dict
 
 REQUIRED = "required"
@@ -302,7 +302,10 @@ class DateTimeValidator(Validator):
         if not isinstance(value, datetime):
             raise ValidationError(field.name, "%s not valid format" % value)
         if self.timezone and not value.tzinfo:
-            raise ValidationError(field.name, "Timezone information required")
+            if value.time() == time():
+                value = tz.as_utc(value)
+            else:
+                raise ValidationError(field.name, "Timezone information required")
         return value
 
 
