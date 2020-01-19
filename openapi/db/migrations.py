@@ -62,7 +62,8 @@ def create_config(app):
     """
     cfg = Config(stdout=StringIO())
     cfg.get_template_directory = get_template_directory
-    migrations = os.path.join(app["cwd"], "migrations")
+    migration_dir = app.get("migration_dir") or app["cwd"]
+    migrations = os.path.join(migration_dir, "migrations")
 
     cfg.set_main_option("script_location", migrations)
     cfg.config_file_name = os.path.join(migrations, "alembic.ini")

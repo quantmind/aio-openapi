@@ -1,0 +1,13 @@
+.git
+.env
+.pytest_cache
+.mypy_cache
+.github
+.vscode
+.gitignore
+.dockerignore
+*.egg-info
+venv
+build
+dist
+dev/Dockerfile

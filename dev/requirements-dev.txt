@@ -1,6 +1,7 @@
 # devs
 flake8
 black
+codecov
 coverage
 mypy
 isort
