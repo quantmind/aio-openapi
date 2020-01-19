@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/aio-openapi.svg)](https://badge.fury.io/py/aio-openapi)
 [![Python versions](https://img.shields.io/pypi/pyversions/aio-openapi.svg)](https://pypi.org/project/aio-openapi)
-[![CircleCI](https://circleci.com/gh/quantmind/aio-openapi.svg?style=svg)](https://circleci.com/gh/quantmind/aio-openapi)
+[![Build](https://github.com/quantmind/aio-openapi/workflows/build/badge.svg)](https://github.com/quantmind/aio-openapi/actions?query=workflow%3Abuild)
 [![codecov](https://codecov.io/gh/quantmind/aio-openapi/branch/master/graph/badge.svg)](https://codecov.io/gh/quantmind/aio-openapi)
 
 This library is an asynchronous web middleware for [aiohttp][] for serving Rest APIs with [OpenAPI][] v 3
