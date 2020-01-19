@@ -6,7 +6,6 @@ __pycache__
 *.o
 *.def
 *.egg-info
-.coverage
 .python-version
 .pytest_cache
 .mypy_cache

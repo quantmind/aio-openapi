@@ -1,5 +1,6 @@
 [run]
 source = openapi
+data_file = build/.coverage
 omit =
     openapi/db/openapi
     openapi/_py36.py
