@@ -67,6 +67,13 @@ test-codecov:	## upload code coverage
 		openapi38 \
 		codecov --token $(CODECOV_TOKEN) --file ./build/coverage.xml
 
+test-coveralls:	## upload code coverage
+	@docker run --rm \
+		-v $(PWD):/workspace \
+		-e COVERALLS_REPO_TOKEN=$(COVERALLS_REPO_TOKEN) \
+		openapi38 \
+		coveralls
+
 test-version:	## validate version with pypi
 	@docker run \
 		-v $(PWD):/workspace \
@@ -100,4 +107,4 @@ pypi:		## release to pypi and github tag
 
 release:	## release to pypi and github tag
 	make pypi
-	make gihub-tag
+	make github-tag

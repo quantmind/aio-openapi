@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - deploy
+    tags-ignore:
+      - v*
 
 jobs:
   test:
