@@ -104,6 +104,8 @@ auto-document them.
 An example from test `tests/example` directory
 
 ```python
+from typing import List
+
 from aiohttp import web
 
 from openapi.db.path import SqlApiPath
@@ -124,8 +126,8 @@ class TasksPath(SqlApiPath):
     """
     table = 'tasks'
 
-    @op(query_schema=TaskOrderableQuery, response_schema=[Task])
-    async def get(self):
+    @op(query_schema=TaskOrderableQuery, response_schema=List[Task])
+    async def get(self) -> web.Response:
         """
         ---
         summary: Retrieve Tasks
@@ -138,7 +140,7 @@ class TasksPath(SqlApiPath):
         return paginated.json_response()
 
     @op(response_schema=Task, body_schema=TaskAdd)
-    async def post(self):
+    async def post(self) -> web.Response:
         """
         ---
         summary: Create a Task
@@ -160,9 +162,11 @@ connector with [PostgreSql][] database.
 To add the database extension simply use the `get_db` function in the applicatiuon `setup_app` function:
 
 ```python
+from aiohttp import web
+
 from openapi.db import get_db
 
-def setup_app(app):
+def setup_app(app: web.Application) -> None:
     db = get_db(app)
     meta = db.metadata
 
