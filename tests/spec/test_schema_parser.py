@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List
-from unittest.mock import patch
 
 import pytest
 
@@ -13,8 +12,8 @@ from openapi.data.fields import (
     date_time_field,
     number_field,
 )
+from openapi.exc import InvalidSpecException, InvalidTypeException
 from openapi.spec import SchemaParser
-from openapi.spec.exceptions import InvalidSpecException, InvalidTypeException
 
 
 def test_get_schema_ref():
@@ -24,9 +23,9 @@ def test_get_schema_ref():
 
     parser = SchemaParser()
 
-    schema_ref = parser.get_schema_ref(MyClass)
+    schema_ref = parser.get_schema_info(MyClass)
     assert schema_ref == {"$ref": "#/components/schemas/MyClass"}
-    assert "MyClass" in parser.group.parsed_schemas.keys()
+    assert "MyClass" in parser.schemas_to_parse
 
 
 def test_schema2json():
@@ -46,7 +45,7 @@ def test_schema2json():
         float_field: float = number_field(description="Float field")
         boolean_field: bool = bool_field(description="Bool field")
         map_field: Dict[str, int] = data_field(description="Dict field")
-        free_field: Dict = data_field(description="Free field")
+        free_field: Dict[str, str] = data_field(description="Free field")
         datetime_field: datetime = date_time_field(description="Datetime field")
         ref_field: OtherClass = field(
             metadata={"required": True, "description": "Ref field"}, default=None
@@ -80,7 +79,11 @@ def test_schema2json():
                 "additionalProperties": {"type": "integer", "format": "int32"},
                 "description": "Dict field",
             },
-            "free_field": {"type": "object", "description": "Free field"},
+            "free_field": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": "Free field",
+            },
             "datetime_field": {
                 "type": "string",
                 "format": "date-time",
@@ -130,7 +133,7 @@ def test_field2json_invalid_type():
     class MyType:
         pass
 
-    parser = SchemaParser([])
+    parser = SchemaParser()
     with pytest.raises(InvalidTypeException):
         parser.field2json(MyType)
 
@@ -143,7 +146,7 @@ def test_field2json_missing_description():
 
     parser = SchemaParser(validate_docs=True)
     with pytest.raises(InvalidSpecException):
-        parser.get_schema_ref(MyClass)
+        parser.schema2json(MyClass)
 
 
 def test_enum2json():
@@ -157,20 +160,20 @@ def test_enum2json():
     assert json_type == {"type": "string", "enum": ["FIELD_1", "FIELD_2", "FIELD_3"]}
 
 
-def test_list2json():
+def test_list2json() -> None:
     @dataclass
     class MyClass:
         list_field: List[str]
 
-    parser = SchemaParser([])
-    with patch.object(parser, "field2json"):
-        list_field = MyClass.__dataclass_fields__["list_field"]
-        list_json = parser._list2json(list_field)
-
-        assert list_json["type"] == "array"
-        assert "items" in list_json.keys()
-        assert list_json == {"type": "array", "items": parser.field2json.return_value}
-        parser.field2json.assert_called_once_with(str, False)
+    parser = SchemaParser()
+    info = parser.get_schema_info(MyClass)
+    assert info == {"$ref": "#/components/schemas/MyClass"}
+    assert len(parser.schemas_to_parse) == 1
+    parsed = parser.parsed_schemas()
+    myclass = parsed["MyClass"]
+    list_json = myclass["properties"]["list_field"]
+    assert list_json["type"] == "array"
+    assert list_json["items"] == {"type": "string"}
 
 
 def test_field2json_again():

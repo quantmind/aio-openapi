@@ -3,20 +3,13 @@ from typing import Any, Dict, List, Tuple, Union, cast
 
 from multidict import MultiDict
 
-from ..utils import is_subclass
-from .fields import (
-    POST_PROCESS,
-    REQUIRED,
-    VALIDATOR,
-    DataClass,
-    ValidationError,
-    field_ops,
-)
+from ..utils import TypingInfo, is_subclass
+from .fields import POST_PROCESS, REQUIRED, VALIDATOR, ValidationError, field_ops
 
 
 @dataclass
 class ValidatedData:
-    data: Dict
+    data: Any
     errors: Dict
 
 
@@ -33,7 +26,7 @@ def validated_schema(schema, data, *, strict: bool = True):
 
 
 def validate(
-    schema: DataClass,
+    schema: Any,
     data: Union[Dict[str, Any], MultiDict],
     *,
     strict: bool = True,
@@ -41,6 +34,51 @@ def validate(
 ) -> ValidatedData:
     """Validate a dictionary of data with a given dataclass
     """
+    type_info = TypingInfo.get(schema)
+    if type_info.container is list:
+        return validate_list(type_info.element, data, strict=strict, multiple=multiple)
+    elif type_info.container is dict:
+        return validate_dict(type_info.element, data, strict=strict, multiple=multiple)
+    elif type_info.is_dataclass:
+        return validate_dataclass(
+            type_info.element, data, strict=strict, multiple=multiple
+        )
+    else:
+        return ValidatedData(data=data, errors={})
+
+
+def validate_list(
+    schema: type, data: list, *, strict: bool = True, multiple: bool = False,
+) -> ValidatedData:
+    validated = ValidatedData(data=[], errors={})
+    if isinstance(data, list):
+        for d in data:
+            v = validate(schema, d, strict=strict, multiple=multiple)
+            validated.data.append(v.data)
+            validated.errors.update(v.errors)
+    else:
+        validated.errors["message"] = "expected a sequence"
+    return validated
+
+
+def validate_dict(
+    schema: type, data: Dict[str, Any], *, strict: bool = True, multiple: bool = False,
+) -> ValidatedData:
+    validated = ValidatedData(data={}, errors={})
+    for name, d in data.items():
+        v = validate(schema, d, strict=strict, multiple=multiple)
+        validated.data[name] = v.data
+        validated.errors.update(v.errors)
+    return validated
+
+
+def validate_dataclass(
+    schema: type,
+    data: Union[Dict[str, Any], MultiDict],
+    *,
+    strict: bool = True,
+    multiple: bool = False,
+) -> ValidatedData:
     errors: Dict = {}
     cleaned: Dict = {}
     data = MultiDict(data)

@@ -1,4 +1,7 @@
-.PHONY: help
+# Minimal makefile for Sphinx documentation
+#
+
+.PHONY: help clean docs
 
 help:
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
@@ -12,6 +15,10 @@ clean:		## remove python cache files
 	rm -rf .pytest_cache
 	rm -rf .mypy_cache
 	rm -rf .coverage
+
+docs:		## build sphinx docs
+	@sphinx-build ./docs ./build/docs
+
 
 version:	## display software version
 	@python -c "import openapi; print(openapi.__version__)"
