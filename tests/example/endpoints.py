@@ -1,9 +1,12 @@
+from typing import List
+
 from aiohttp import web
 from sqlalchemy.sql.expression import null
 
-from openapi.db.path import SqlApiPath
+from openapi.db.path import ApiPath, SqlApiPath
 from openapi.exc import JsonHttpException
 from openapi.spec import op
+from openapi.spec.server import server_urls
 
 from .models import (
     MultiKey,
@@ -22,6 +25,16 @@ invalid_method_description_routes = web.RouteTableDef()
 invalid_method_summary_routes = web.RouteTableDef()
 invalid_method_description_routes = web.RouteTableDef()
 invalid_tag_missing_description_routes = web.RouteTableDef()
+
+
+@routes.get("/")
+async def urls(request):
+    paths = set()
+    for route in request.app.router.routes():
+        route_info = route.get_info()
+        path = route_info.get("path", route_info.get("formatter", None))
+        paths.add(path)
+    return web.json_response(server_urls(request, sorted(paths)))
 
 
 @routes.get("/status")
@@ -49,7 +62,7 @@ class TasksPath(SqlApiPath):
         done = self.db_table.c.done
         return done != null() if value else done == null()
 
-    @op(query_schema=TaskOrderableQuery, response_schema=[Task])
+    @op(query_schema=TaskOrderableQuery, response_schema=List[Task])
     async def get(self):
         """
         ---
@@ -157,7 +170,7 @@ class TaskBulkPath(SqlApiPath):
 
     table = "tasks"
 
-    @op(body_schema=[TaskAdd], response_schema=[Task])
+    @op(body_schema=[TaskAdd], response_schema=List[Task])
     async def post(self):
         """
         ---
@@ -207,7 +220,7 @@ class TaskTransactionsPath(SqlApiPath):
 
             return self.json_response(data=task, status=201)
 
-    @op(query_schema=TaskOrderableQuery, response_schema=[Task])
+    @op(query_schema=TaskOrderableQuery, response_schema=List[Task])
     async def get(self):
         """
         ---
@@ -317,7 +330,7 @@ class TaskBulkTransactionPath(SqlApiPath):
             await self.delete_list(query=dict(self.request.query), conn=conn)
             return web.Response(status=204)
 
-    @op(body_schema=[TaskAdd], response_schema=[Task])
+    @op(body_schema=List[TaskAdd], response_schema=[Task])
     async def post(self):
         """
         ---
@@ -387,6 +400,27 @@ class TaskPath2(SqlApiPath):
         return web.Response(status=204)
 
 
+@routes.view("/simple-list")
+class SipleList(ApiPath):
+    """
+    ---
+    tags:
+        - Task
+    """
+
+    @op(response_schema=List[int])
+    async def get(self):
+        """
+        ---
+        summary: Retrieve a list of integer
+        description: list of simple integers
+        responses:
+            200:
+                description: list
+        """
+        return self.json_response([2, 4, 5])
+
+
 @invalid_path_routes.view("/tasks")
 class NoTagsTaskPath(SqlApiPath):
     """
@@ -404,7 +438,7 @@ class NoSummaryMethodPath(SqlApiPath):
         - Tag
     """
 
-    @op(response_schema=[Task])
+    @op(response_schema=List[Task])
     def get(self):
         """
         ---
@@ -424,7 +458,7 @@ class NoDescriptionMethodPath(SqlApiPath):
         - Tag
     """
 
-    @op(response_schema=[Task])
+    @op(response_schema=List[Task])
     def get(self):
         """
         ---

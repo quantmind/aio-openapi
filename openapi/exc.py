@@ -11,6 +11,14 @@ class ImproperlyConfigured(OpenApiError):
     pass
 
 
+class InvalidSpecException(OpenApiError):
+    pass
+
+
+class InvalidTypeException(TypeError):
+    pass
+
+
 class JsonHttpException(HTTPException):
     def __init__(self, status=None, **kw):
         self.status_code = status or 500
