@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List, Optional, Union
 
 from aiohttp import web
@@ -9,9 +10,10 @@ from openapi.json import dumps, loads
 from ..data.dump import dump
 from ..data.exc import ValidationErrors
 from ..data.validate import validate
-from ..utils import as_list, compact, TypingInfo
+from ..utils import TypingInfo, as_list, compact
 from . import hdrs
 
+BAD_DATA_MESSAGE = os.getenv("BAD_DATA_MESSAGE", "Invalid data format")
 SchemaType = Union[List[type], type]
 SchemaTypeOrStr = Union[str, SchemaType]
 StrDict = Dict[str, Any]
@@ -29,7 +31,11 @@ class ApiPath(web.View):
     # UTILITIES
 
     def insert_data(
-        self, data, *, strict: bool = True, body_schema: SchemaTypeOrStr = "body_schema"
+        self,
+        data: Any,
+        *,
+        strict: bool = True,
+        body_schema: SchemaTypeOrStr = "body_schema",
     ) -> Dict[str, Any]:
         data = self.cleaned(body_schema, data)
         if self.path_schema:
@@ -67,7 +73,10 @@ class ApiPath(web.View):
         """Clean data for a given schema name
         """
         type_info = self.get_schema(schema)
-        validated = validate(type_info, data, strict=strict, multiple=multiple)
+        try:
+            validated = validate(type_info, data, strict=strict, multiple=multiple)
+        except TypeError:
+            self.raise_bad_data()
         if validated.errors:
             if Error:
                 raise Error
@@ -115,6 +124,11 @@ class ApiPath(web.View):
         raw = compact(message=message, errors=as_list(errors or ()))
         data = self.dump(ValidationErrors, raw)
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
+
+    def raise_bad_data(self, message: str = "") -> None:
+        raw = compact(message=message or BAD_DATA_MESSAGE)
+        data = self.dump(ValidationErrors, raw)
+        raise web.HTTPBadRequest(**self.api_response_data(data))
 
     def full_url(self) -> URL:
         return full_url(self.request)
