@@ -6,6 +6,7 @@ from sqlalchemy.sql.expression import null
 from openapi.db.path import ApiPath, SqlApiPath
 from openapi.exc import JsonHttpException
 from openapi.spec import op
+from openapi.spec.server import server_urls
 
 from .models import (
     MultiKey,
@@ -24,6 +25,16 @@ invalid_method_description_routes = web.RouteTableDef()
 invalid_method_summary_routes = web.RouteTableDef()
 invalid_method_description_routes = web.RouteTableDef()
 invalid_tag_missing_description_routes = web.RouteTableDef()
+
+
+@routes.get("/")
+async def urls(request):
+    paths = set()
+    for route in request.app.router.routes():
+        route_info = route.get_info()
+        path = route_info.get("path", route_info.get("formatter", None))
+        paths.add(path)
+    return web.json_response(server_urls(request, sorted(paths)))
 
 
 @routes.get("/status")
