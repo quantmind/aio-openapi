@@ -2,7 +2,7 @@ import pytest
 
 from openapi.rest import rest
 from openapi.spec import OpenApi, OpenApiSpec
-from openapi.spec.exceptions import InvalidSpecException
+from openapi.exc import InvalidSpecException
 
 from ..example import endpoints
 

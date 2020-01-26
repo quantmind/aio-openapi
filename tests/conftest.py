@@ -8,9 +8,8 @@ from asynctest import CoroutineMock
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from openapi.json import dumps
-from openapi.rest import rest
 
-from . import example
+from .example.main import create_app
 
 DEFAULT_DB = "postgresql://postgres:postgres@localhost:5432/openapi"
 
@@ -27,7 +26,7 @@ def db_url():
 @pytest.fixture(autouse=True)
 def test_app(db_url):
     os.environ["DATASTORE"] = db_url
-    cli = rest(setup_app=example.setup_app)
+    cli = create_app()
     app = cli.web()
     app["db"].create_all()
     return app

@@ -144,7 +144,9 @@ class SqlApiPath(ApiPath):
             raise web.HTTPBadRequest(
                 **self.api_response_data({"message": "Invalid JSON payload"})
             )
-        data = [self.insert_data(d, body_schema=body_schema) for d in data]
+        schema = self.get_schema(body_schema)
+        assert schema.container is list
+        data = [self.insert_data(d, body_schema=schema.element) for d in data]
         values = await self.db.db_insert(table, data, conn=conn)
         return self.dump(dump_schema, values)
 

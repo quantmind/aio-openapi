@@ -5,8 +5,8 @@
 [![Build](https://github.com/quantmind/aio-openapi/workflows/build/badge.svg)](https://github.com/quantmind/aio-openapi/actions?query=workflow%3Abuild)
 [![codecov](https://codecov.io/gh/quantmind/aio-openapi/branch/master/graph/badge.svg)](https://codecov.io/gh/quantmind/aio-openapi)
 
-This library is an asynchronous web middleware for [aiohttp][] for serving Rest APIs with [OpenAPI][] v 3
-specification and with optional [PostgreSql][] database.
+Asynchronous web middleware for [aiohttp][] and serving Rest APIs with [OpenAPI][] v 3
+specification and with optional [PostgreSql][] database bindings.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->

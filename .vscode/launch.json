@@ -15,7 +15,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/test_filters.py"
+                "tests/test_db.py"
             ]
         }
     ]

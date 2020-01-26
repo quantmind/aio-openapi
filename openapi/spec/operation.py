@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any
+from typing import Any, Callable, Optional
+
+from ..utils import TypingInfo
 
 
 @dataclass
@@ -14,12 +16,25 @@ class op:
     response: int = 200
     # responses: List[Any] = []
 
-    def __call__(self, method):
-        method.op = self
+    def __call__(self, method) -> Callable:
+        method.op = Operation(
+            body_schema=TypingInfo.get(self.body_schema),
+            query_schema=TypingInfo.get(self.query_schema),
+            response_schema=TypingInfo.get(self.response_schema),
+            response=self.response,
+        )
 
         @wraps(method)
         async def _(view):
-            view.request["operation"] = self
+            view.request["operation"] = method.op
             return await method(view)
 
         return _
+
+
+@dataclass
+class Operation:
+    body_schema: Optional[TypingInfo] = None
+    query_schema: Optional[TypingInfo] = None
+    response_schema: Optional[TypingInfo] = None
+    response: int = 200

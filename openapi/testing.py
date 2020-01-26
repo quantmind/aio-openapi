@@ -10,7 +10,7 @@ from .utils import asynccontextmanager
 async def jsonBody(response, status=200):
     assert response.content_type == "application/json"
     data = await response.json(loads=loads)
-    if response.status != status:  # pragma    no cover
+    if response.status != status:  # pragma: no cover
         print(dumps({"status": response.status, "data": data}, indent=4))
     assert response.status == status
     return data

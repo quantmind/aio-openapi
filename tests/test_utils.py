@@ -1,9 +1,12 @@
+from typing import Dict, List, Tuple
+
 import pytest
 
 from openapi import utils
 from openapi.db.container import Database
 from openapi.exc import ImproperlyConfigured, JsonHttpException
 from openapi.json import dumps
+from openapi.utils import TypingInfo
 
 
 def test_env():
@@ -38,3 +41,32 @@ def test_exist_database_not_configured():
 def test_replace_key():
     assert utils.replace_key({}, "foo", "bla") == {}
     assert utils.replace_key({"foo": 5}, "foo", "bla") == {"bla": 5}
+
+
+def test_typing_info() -> None:
+    assert TypingInfo.get(int) == utils.TypingInfo(int)
+    assert TypingInfo.get(float) == utils.TypingInfo(float)
+    assert TypingInfo.get(List[int]) == utils.TypingInfo(int, list)
+    assert TypingInfo.get(Dict[str, int]) == utils.TypingInfo(int, dict)
+    assert TypingInfo.get(List[Dict[str, int]]) == utils.TypingInfo(
+        utils.TypingInfo(int, dict), list
+    )
+    assert TypingInfo.get(None) is None
+    info = TypingInfo.get(List[int])
+    assert TypingInfo.get(info) is info
+
+
+def test_bad_typing_info() -> None:
+    with pytest.raises(TypeError):
+        TypingInfo.get(1)
+    with pytest.raises(TypeError):
+        TypingInfo.get(Dict[int, int])
+    with pytest.raises(TypeError):
+        TypingInfo.get(Tuple[int, int])
+
+
+def test_typing_extra() -> None:
+    TypingInfo.get(int).typing == int
+    TypingInfo.get(List[int]).typing == List[int]
+    info = TypingInfo.get(Dict[str, List[int]])
+    assert info.typing == Dict[str, List[int]]

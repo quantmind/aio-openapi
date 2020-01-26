@@ -3,7 +3,7 @@ from typing import Dict, Iterable, Optional
 
 import yaml
 
-from .exceptions import InvalidSpecException
+from ..exc import InvalidSpecException
 
 
 # from django.contrib.admindocs.utils
