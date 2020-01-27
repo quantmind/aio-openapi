@@ -12,6 +12,7 @@ from aiohttp import hdrs, web
 from ..data import fields
 from ..data.exc import ErrorMessage, FieldError, ValidationErrors, error_response_schema
 from ..exc import InvalidSpecException, InvalidTypeException
+from ..types import JSONType
 from ..utils import TypingInfo, compact, is_subclass
 from .path import ApiPath
 from .server import default_server, get_spec
@@ -196,7 +197,7 @@ class OpenApiSpec(SchemaParser):
         self.allowed_tags = allowed_tags
 
     @property
-    def paths(self):
+    def paths(self) -> Dict[str, Dict]:
         return self.doc["paths"]
 
     @property
@@ -209,7 +210,7 @@ class OpenApiSpec(SchemaParser):
 
     def build(
         self, app: web.Application, public: bool = True, private: bool = False
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, JSONType]:
         """Build the ``doc`` dictionary by adding paths
         """
         self.logger = app.logger
@@ -247,7 +248,7 @@ class OpenApiSpec(SchemaParser):
 
     # Internals
 
-    def _build_paths(self, app, public, private) -> None:
+    def _build_paths(self, app: web.Application, public: bool, private: bool) -> None:
         """Loop through app paths and add
         schemas, parameters and paths objects to the spec
         """
@@ -273,7 +274,7 @@ class OpenApiSpec(SchemaParser):
         if self.validate_docs:
             self._validate_tags()
 
-    def _validate_tags(self):
+    def _validate_tags(self) -> None:
         for tag_name, tag_obj in self.tags.items():
             if self.allowed_tags and tag_name not in self.allowed_tags:
                 raise InvalidSpecException(f'Tag "{tag_name}" not allowed')

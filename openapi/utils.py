@@ -3,7 +3,17 @@ import sys
 import warnings
 from dataclasses import is_dataclass
 from inspect import isclass
-from typing import Any, Dict, Hashable, Iterable, Iterator, List, NamedTuple, Optional
+from typing import (
+    Any,
+    Dict,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    cast,
+)
 
 from .exc import InvalidTypeException
 
@@ -19,24 +29,18 @@ DEV = "dev"
 PRODUCTION = "production"
 NO_DEBUG = {"0", "false", "no"}
 Null = object()
+#
+# this should be Union[type, "TypingInfo"] but recursive types are not supported in mypy
+ElementType = Any
 
 
 class TypingInfo(NamedTuple):
-    element: type
+    element: ElementType
     container: Optional[type] = None
 
     @property
     def is_dataclass(self) -> bool:
         return not self.container and is_dataclass(self.element)
-
-    @property
-    def typing(self) -> Any:
-        if self.container is list:
-            return List[_typing(self.element)]
-        elif self.container is dict:
-            return Dict[str, _typing(self.element)]
-        else:
-            return self.element
 
     @classmethod
     def get(cls, value: Any) -> Optional["TypingInfo"]:
@@ -51,7 +55,7 @@ class TypingInfo(NamedTuple):
                     DeprecationWarning,
                     stacklevel=2,
                 )
-                return TypingInfo(value[0], list)
+                return cls(value[0], list)
             elif isclass(value):
                 return cls(value)
             else:
@@ -59,7 +63,7 @@ class TypingInfo(NamedTuple):
                     f"a class or typing annotation is required, got {value}"
                 )
         elif origin is list:
-            elem_info = cls.get(value.__args__[0])
+            elem_info = cast(TypingInfo, cls.get(value.__args__[0]))
             elem = elem_info if elem_info.container else elem_info.element
             return cls(elem, list)
         elif origin is dict:
@@ -69,7 +73,7 @@ class TypingInfo(NamedTuple):
                     f"Dict key annotation must be a string, got {key}"
                 )
 
-            elem_info = cls.get(val)
+            elem_info = cast(TypingInfo, cls.get(val))
             elem = elem_info if elem_info.container else elem_info.element
             return cls(elem, dict)
         else:
@@ -78,7 +82,7 @@ class TypingInfo(NamedTuple):
             )
 
     @classmethod
-    def get_origin(cls, value: Any):
+    def get_origin(cls, value: Any) -> Any:
         origin = getattr(value, "__origin__", None)
         return py36_origins.get(origin, origin)
 
@@ -129,7 +133,3 @@ def as_list(errors: Iterable) -> List[Dict[str, Any]]:
 
 def error_dict(errors: List) -> Dict:
     return dict(((d["field"], d["message"]) for d in errors))
-
-
-def _typing(element: Any) -> Any:
-    return element.typing if isinstance(element, TypingInfo) else element

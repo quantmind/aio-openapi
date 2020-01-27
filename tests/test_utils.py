@@ -63,10 +63,3 @@ def test_bad_typing_info() -> None:
         TypingInfo.get(Dict[int, int])
     with pytest.raises(TypeError):
         TypingInfo.get(Tuple[int, int])
-
-
-def test_typing_extra() -> None:
-    TypingInfo.get(int).typing == int
-    TypingInfo.get(List[int]).typing == List[int]
-    info = TypingInfo.get(Dict[str, List[int]])
-    assert info.typing == Dict[str, List[int]]
