@@ -12,6 +12,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    TypeVar,
     cast,
 )
 
@@ -34,8 +35,8 @@ Null = object()
 ElementType = Any
 
 
-KT, VT = Dict.__args__
-T = List.__args__[0]
+KT, VT = Dict.__args__ or (TypeVar("KT"), TypeVar("VT"))
+(T,) = List.__args__ or (TypeVar("T"),)
 
 
 class TypingInfo(NamedTuple):
@@ -67,14 +68,14 @@ class TypingInfo(NamedTuple):
                     f"a class or typing annotation is required, got {value}"
                 )
         elif origin is list:
-            val, = value.__args__
+            val = value.__args__[0] or T
             if val is T:
                 val = str
             elem_info = cast(TypingInfo, cls.get(val))
             elem = elem_info if elem_info.container else elem_info.element
             return cls(elem, list)
         elif origin is dict:
-            key, val = value.__args__
+            key, val = value.__args__ or (KT, VT)
             if key is KT:
                 key = str
             if val is VT:

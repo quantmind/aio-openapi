@@ -56,6 +56,11 @@ def test_typing_info() -> None:
     assert TypingInfo.get(info) is info
 
 
+def test_typing_info_dict_list() -> None:
+    assert TypingInfo.get(Dict) == utils.TypingInfo(str, dict)
+    assert TypingInfo.get(List) == utils.TypingInfo(str, list)
+
+
 def test_bad_typing_info() -> None:
     with pytest.raises(TypeError):
         TypingInfo.get(1)
