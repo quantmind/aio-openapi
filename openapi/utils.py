@@ -13,18 +13,34 @@ from typing import (
     NamedTuple,
     Optional,
     TypeVar,
-    cast,
+    cast
 )
 
 from .exc import InvalidTypeException
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # noqa
+
+    def get_origin(cls, value: Any) -> Any:
+        return getattr(value, "__origin__", None)
+
+
 else:  # pragma: no cover
     from ._py36 import asynccontextmanager  # noqa
 
+    py36_origins = {List: list, Dict: dict}
 
-py36_origins = {List: list, Dict: dict}
+    def get_origin(value: Any) -> Any:
+        try:
+            if value in py36_origins:
+                origin = value
+            else:
+                origin = getattr(value, "__origin__", None)
+        except TypeError:
+            origin = getattr(value, "__origin__", None)
+        return py36_origins.get(origin, origin)
+
+
 LOCAL = "local"
 DEV = "dev"
 PRODUCTION = "production"
@@ -51,7 +67,7 @@ class TypingInfo(NamedTuple):
     def get(cls, value: Any) -> Optional["TypingInfo"]:
         if value is None or isinstance(value, cls):
             return value
-        origin = cls.get_origin(value)
+        origin = get_origin(value)
         if not origin:
             if isinstance(value, list):
                 warnings.warn(
@@ -68,7 +84,7 @@ class TypingInfo(NamedTuple):
                     f"a class or typing annotation is required, got {value}"
                 )
         elif origin is list:
-            val = value.__args__[0] or T
+            (val,) = value.__args__ or (T,)
             if val is T:
                 val = str
             elem_info = cast(TypingInfo, cls.get(val))
@@ -92,11 +108,6 @@ class TypingInfo(NamedTuple):
             raise InvalidTypeException(
                 f"Types or List and Dict typing is required, got {value}"
             )
-
-    @classmethod
-    def get_origin(cls, value: Any) -> Any:
-        origin = getattr(value, "__origin__", None)
-        return py36_origins.get(origin, origin)
 
 
 def get_env() -> str:
