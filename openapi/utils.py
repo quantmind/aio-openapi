@@ -21,7 +21,7 @@ from .exc import InvalidTypeException
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # noqa
 
-    def get_origin(cls, value: Any) -> Any:
+    def get_origin(value: Any) -> Any:
         return getattr(value, "__origin__", None)
 
 
