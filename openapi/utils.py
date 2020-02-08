@@ -34,6 +34,10 @@ Null = object()
 ElementType = Any
 
 
+KT, VT = Dict.__args__
+T = List.__args__[0]
+
+
 class TypingInfo(NamedTuple):
     element: ElementType
     container: Optional[type] = None
@@ -63,11 +67,18 @@ class TypingInfo(NamedTuple):
                     f"a class or typing annotation is required, got {value}"
                 )
         elif origin is list:
-            elem_info = cast(TypingInfo, cls.get(value.__args__[0]))
+            val, = value.__args__
+            if val is T:
+                val = str
+            elem_info = cast(TypingInfo, cls.get(val))
             elem = elem_info if elem_info.container else elem_info.element
             return cls(elem, list)
         elif origin is dict:
             key, val = value.__args__
+            if key is KT:
+                key = str
+            if val is VT:
+                val = str
             if key is not str:
                 raise InvalidTypeException(
                     f"Dict key annotation must be a string, got {key}"
