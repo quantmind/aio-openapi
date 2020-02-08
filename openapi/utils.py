@@ -13,7 +13,7 @@ from typing import (
     NamedTuple,
     Optional,
     TypeVar,
-    cast
+    cast,
 )
 
 from .exc import InvalidTypeException
