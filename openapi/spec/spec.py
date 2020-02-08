@@ -164,10 +164,14 @@ class SchemaParser:
         return name
 
     def parsed_schemas(self) -> Dict[str, Dict]:
-        return {
-            name: self.schema2json(schema)
-            for name, schema in self.schemas_to_parse.items()
-        }
+        parsed = {}
+        while self.schemas_to_parse:
+            to_parse = self.schemas_to_parse
+            self.schemas_to_parse = {}
+            parsed.update(
+                ((name, self.schema2json(schema)) for name, schema in to_parse.items())
+            )
+        return parsed
 
 
 class OpenApiSpec(SchemaParser):
@@ -266,7 +270,7 @@ class OpenApiSpec(SchemaParser):
                 path = path[N:]
                 try:
                     paths[path] = self._build_path_object(handler, app, public, private)
-                except InvalidSpecException as exc:
+                except (InvalidSpecException, InvalidTypeException) as exc:
                     raise InvalidSpecException(
                         f'Invalid spec in route "{path}": {exc}'
                     ) from None
