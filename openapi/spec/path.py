@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from aiohttp import web
 from multidict import MultiDict
@@ -11,6 +11,7 @@ from ..data.dump import dump
 from ..data.exc import ValidationErrors
 from ..data.validate import validate
 from ..utils import TypingInfo, as_list, compact
+from ..types import DataType
 from . import hdrs
 
 BAD_DATA_MESSAGE = os.getenv("BAD_DATA_MESSAGE", "Invalid data format")
@@ -18,7 +19,6 @@ SchemaType = Union[List[type], type]
 SchemaTypeOrStr = Union[str, SchemaType]
 StrDict = Dict[str, Any]
 QueryType = Union[StrDict, MultiDict]
-DataType = Union[List[StrDict], StrDict]
 
 
 class ApiPath(web.View):
@@ -32,7 +32,7 @@ class ApiPath(web.View):
 
     def insert_data(
         self,
-        data: Any,
+        data: DataType,
         *,
         strict: bool = True,
         body_schema: SchemaTypeOrStr = "body_schema",
@@ -63,13 +63,13 @@ class ApiPath(web.View):
 
     def cleaned(
         self,
-        schema: Any,
+        schema: DataType,
         data: QueryType,
         *,
         multiple: bool = False,
         strict: bool = True,
-        Error: type = None,
-    ) -> StrDict:
+        Error: Optional[type] = None,
+    ) -> DataType:
         """Clean data for a given schema name
         """
         type_info = self.get_schema(schema)
@@ -87,11 +87,12 @@ class ApiPath(web.View):
         # Hacky hacky hack hack
         # Later we'll want to implement proper multicolumn search and so
         # this will be removed and will be included directly in the schema
-        if hasattr(type_info.element, "search_fields"):
-            validated.data["search_fields"] = type_info.element.search_fields
+        search_fields = getattr(type_info.element, "search_fields", None)
+        if search_fields:
+            validated.data["search_fields"] = search_fields
         return validated.data
 
-    def dump(self, schema: Any, data: DataType) -> Optional[DataType]:
+    def dump(self, schema: Any, data: DataType) -> DataType:
         """Dump data using a given schema, if the schema is `None` it returns the
         same `data` as the input
         """
@@ -107,7 +108,7 @@ class ApiPath(web.View):
                 **self.api_response_data({"message": "Invalid JSON payload"})
             )
 
-    def get_schema(self, schema: Optional[SchemaTypeOrStr] = None) -> TypingInfo:
+    def get_schema(self, schema: Any = None) -> TypingInfo:
         """Get the Schema dataclass
         """
         if isinstance(schema, str):
@@ -118,7 +119,7 @@ class ApiPath(web.View):
             Schema = getattr(self, str(schema), None)
             if Schema is None:
                 raise web.HTTPNotImplemented
-        return TypingInfo.get(Schema)
+        return cast(TypingInfo, TypingInfo.get(Schema))
 
     def raiseValidationError(self, message=None, errors=None) -> None:
         raw = compact(message=message, errors=as_list(errors or ()))
