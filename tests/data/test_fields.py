@@ -11,8 +11,6 @@ from openapi.data.fields import (
     Choice,
     DateTimeValidator,
     DecimalValidator,
-    EmailValidator,
-    EnumValidator,
     IntegerValidator,
     ListValidator,
     NumberValidator,
@@ -25,6 +23,7 @@ from openapi.data.fields import (
     decimal_field,
     email_field,
     enum_field,
+    integer_field,
     number_field,
     uuid_field,
 )
@@ -100,15 +99,23 @@ def test_UUIDValidator_dump():
 
 def test_EnumValidator_call_valid():
     field = enum_field(FakeEnum)
-    validator = EnumValidator(FakeEnum)
+    validator = field.metadata.get(VALIDATOR)
     assert validator(field, "VALUE_A") == FakeEnum.VALUE_A.name
 
 
 def test_EnumValidator_call_invalid():
     field = enum_field(FakeEnum)
-    validator = EnumValidator(FakeEnum)
+    validator = field.metadata.get(VALIDATOR)
     with pytest.raises(ValidationError):
         validator(field, "VALUE_D")
+    with pytest.raises(ValidationError):
+        validator(field, 1)
+
+
+def test_enum_validator_dump():
+    field = enum_field(FakeEnum)
+    validator = field.metadata.get(VALIDATOR)
+    assert validator.dump(FakeEnum.VALUE_A) == "VALUE_A"
 
 
 def test_Choice_call_valid():
@@ -175,7 +182,11 @@ def test_NumberValidator_invalid():
     with pytest.raises(ValidationError):
         validator(field, -11)
     with pytest.raises(ValidationError):
-        validator(field, "5")
+        validator(field, "foo")
+    with pytest.raises(ValidationError):
+        validator(field, None)
+    with pytest.raises(ValidationError):
+        validator(field, object())
 
 
 def test_NumberValidator_dump():
@@ -196,8 +207,8 @@ def test_IntegerValidator_valid():
 
 
 def test_IntegerValidator_invalid():
-    field = number_field()
-    validator = IntegerValidator(min_value=-10, max_value=10)
+    field = integer_field(min_value=-10, max_value=10)
+    validator = field.metadata.get(VALIDATOR)
     with pytest.raises(ValidationError):
         validator(field, 11)
     with pytest.raises(ValidationError):
@@ -251,23 +262,31 @@ def test_DecimalValidator_dump():
     assert validator.dump(Decimal("5.556")) == Decimal("5.56")
 
 
+def test_number_validator_string():
+    field = number_field()
+    validator = field.metadata.get(VALIDATOR)
+    assert validator(field, "2") == 2
+
+
 def test_email_validator_valid():
     field = email_field()
-    assert EmailValidator()(field, "valid@email.com") == "valid@email.com"
-    assert EmailValidator()(field, "a1-_@email.us") == "a1-_@email.us"
-    assert EmailValidator()(field, "foo.top@kaputt.co") == "foo.top@kaputt.co"
+    validator = field.metadata.get(VALIDATOR)
+    assert validator(field, "valid@email.com") == "valid@email.com"
+    assert validator(field, "a1-_@email.us") == "a1-_@email.us"
+    assert validator(field, "foo.top@kaputt.co") == "foo.top@kaputt.co"
 
 
 def test_email_validator_invalid():
     field = email_field()
+    validator = field.metadata.get(VALIDATOR)
     with pytest.raises(ValidationError):
-        EmailValidator()(field, "a@email")
+        validator(field, "a@email")
     with pytest.raises(ValidationError):
-        EmailValidator()(field, "email.com")
+        validator(field, "email.com")
     with pytest.raises(ValidationError):
-        EmailValidator()(field, "@email.com")
+        validator(field, "@email.com")
     with pytest.raises(ValidationError):
-        EmailValidator()(field, 1)
+        validator(field, 1)
 
 
 def test_BoolValidator_valid():

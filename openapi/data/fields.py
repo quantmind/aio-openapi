@@ -309,6 +309,9 @@ class DateTimeValidator(Validator):
         return value
 
 
+NumericErrors = (TypeError, ValueError, decimal.InvalidOperation)
+
+
 class BoundedNumberValidator(Validator):
     def __init__(self, min_value=None, max_value=None):
         self.min_value = min_value
@@ -334,6 +337,15 @@ class BoundedNumberValidator(Validator):
         if self.max_value is not None:
             prop["maximum"] = self.max_value
 
+    def to_number(self, value: Any) -> Number:
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                return decimal.Decimal(value)
+        else:
+            return value
+
 
 class NumberValidator(BoundedNumberValidator):
     def __init__(self, min_value=None, max_value=None, precision=None):
@@ -342,13 +354,10 @@ class NumberValidator(BoundedNumberValidator):
 
     def __call__(self, field, value, data=None):
         try:
-            if not isinstance(value, Number):
-                raise TypeError
-
+            value = self.to_number(value)
             if self.precision is not None:
                 value = round(value, self.precision)
-
-        except (ValueError, TypeError):
+        except NumericErrors:
             raise ValidationError(field.name, "%s not valid number" % value)
         return super().__call__(field, value, data=data)
 
@@ -361,10 +370,10 @@ class NumberValidator(BoundedNumberValidator):
 class IntegerValidator(BoundedNumberValidator):
     def __call__(self, field, value, data=None):
         try:
-            if isinstance(value, float):
+            value = self.to_number(value)
+            if not isinstance(value, int):
                 raise ValueError
-            value = int(value)
-        except (ValueError, TypeError):
+        except NumericErrors:
             raise ValidationError(field.name, "%s not valid integer" % value)
         return super().__call__(field, value, data=data)
 
@@ -372,10 +381,10 @@ class IntegerValidator(BoundedNumberValidator):
 class DecimalValidator(NumberValidator):
     def __call__(self, field, value, data=None):
         try:
-            if isinstance(value, float):
-                value = str(value)
-            value = decimal.Decimal(value)
-        except (TypeError, decimal.InvalidOperation):
+            value = self.to_number(value)
+            if not isinstance(value, decimal.Decimal):
+                value = decimal.Decimal(str(value))
+        except NumericErrors:
             raise ValidationError(field.name, "%s not valid Decimal" % value)
         return super().__call__(field, value, data=None)
 
