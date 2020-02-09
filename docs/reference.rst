@@ -43,3 +43,7 @@ DB
 
 .. autoclass:: SqlApiPath
    :members:
+
+Websocket
+=========
+

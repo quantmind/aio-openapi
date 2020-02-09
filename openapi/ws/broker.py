@@ -1,6 +1,8 @@
 import abc
 import asyncio
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
+
+HandlerType = Callable[[str, Any], None]
 
 
 class Broker(abc.ABC):
@@ -23,7 +25,7 @@ class Broker(abc.ABC):
         """
 
     @abc.abstractmethod
-    async def subscribe(self, channel: str, handler: Callable = None) -> None:
+    async def subscribe(self, channel: str, handler: HandlerType) -> None:
         """Bind the broker to a channel/exchange
         """
 
@@ -37,16 +39,17 @@ class Broker(abc.ABC):
 
 
 class LocalBroker(Broker):
+    """A local broker, mainly for testing"""
+
     def __init__(self):
         self.binds = set()
-        self.messages = None
+        self.messages: asyncio.Queue = asyncio.Queue()
         self.worker = None
         self._stop = False
         self._handlers = set()
 
     async def start(self):
         if not self.worker:
-            self.messages = asyncio.Queue()
             self.worker = asyncio.ensure_future(self._work())
 
     async def publish(self, channel, body):

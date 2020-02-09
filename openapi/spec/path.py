@@ -14,7 +14,7 @@ from . import hdrs
 
 
 class ApiPath(web.View, DataView):
-    """An OpenAPI path
+    """A :class:`.DataView` class for OpenAPI path
     """
 
     path_schema: Optional[type] = None
@@ -41,7 +41,11 @@ class ApiPath(web.View, DataView):
         query: Optional[QueryType] = None,
         query_schema: SchemaTypeOrStr = "query_schema",
     ) -> Dict[str, Any]:
-        """Collect a dictionary of filters"""
+        """Collect a dictionary of filters
+
+        :param query: query dictionary (will be overwritten by the request.query)
+        :param query_schema: a dataclass or an the name of an attribute in Operation
+        """
         combined = MultiDict(query or ())
         combined.update(self.request.query)
         try:
