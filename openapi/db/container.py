@@ -14,7 +14,11 @@ DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
 
 
 class Database:
-    """A container for tables in a database
+    """A container for tables in a database and manager of asynchronous
+    connections to a psotgresql database
+
+    :param dsn: Data source name used for database connections
+    :param metadata: :class:`sqlalchemy.schema.MetaData` containing tables
     """
 
     def __init__(self, dsn: str = "", metadata: sa.MetaData = None) -> None:
@@ -30,18 +34,22 @@ class Database:
 
     @property
     def dsn(self) -> str:
+        """Data source name used for database connections"""
         return self._dsn
 
     @property
     def metadata(self) -> sa.MetaData:
+        """The :class:`sqlalchemy.schema.MetaData` containing tables"""
         return self._metadata
 
     @property
     def pool(self) -> Optional[Pool]:
+        """The :class:`asyncpg.pool.Pool` of postgresql database connections"""
         return self._pool
 
     @property
     def engine(self):
+        """The :class:`sqlalchemy.engine.Engine`"""
         if self._engine is None:
             if not self._dsn:
                 raise ImproperlyConfigured("DSN not available")
@@ -49,11 +57,17 @@ class Database:
         return self._engine
 
     def __getattr__(self, name: str) -> Any:
+        """Retrive a :class:`sqlalchemy.schema.Table` from metadata tables
+
+        :param name: if this is a valid table name in the tables of :attr:`.metadata`
+            it returns the table, otherwise it defaults to superclass method
+        """
         if name in self._metadata.tables:
             return self._metadata.tables[name]
         return super().__getattribute__(name)
 
     async def connect(self) -> Pool:
+        """Connect to the Postgres database server and return :attr:`.pool`"""
         pool = await asyncpg.create_pool(
             self._dsn, min_size=DBPOOL_MIN_SIZE, max_size=DBPOOL_MAX_SIZE
         )
@@ -61,6 +75,7 @@ class Database:
         return pool
 
     async def get_connection(self) -> Connection:
+        """Acquire a :class:`asyncpg.connection.Connection`"""
         pool = self._pool
         if pool is None:
             pool = await self.connect()

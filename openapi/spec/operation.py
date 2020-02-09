@@ -8,7 +8,9 @@ from ..utils import TypingInfo
 
 @dataclass
 class op:
-    """Defines an operation object in an OpenAPI Path
+    """Decorator for a :class:`.ApiPath` view which specifies an operation object
+    in an OpenAPI Path. Parameters are dataclasses used for validation and
+    OpenAPI auto documentation.
     """
 
     body_schema: Any = None

@@ -56,6 +56,12 @@ test-py38:	## test with python 3.8 with coverage
 		openapi38 \
 		pytest --cov --cov-report xml
 
+test-docs: 	## run docs in CI
+	@docker run --rm \
+		-v $(PWD)/build:/workspace/build \
+		openapi38 \
+		make docs
+
 test-black: 	## run black check in CI
 	@docker run --rm \
 		-v $(PWD)/build:/workspace/build \
