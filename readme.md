@@ -4,6 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/aio-openapi.svg)](https://pypi.org/project/aio-openapi)
 [![Build](https://github.com/quantmind/aio-openapi/workflows/build/badge.svg)](https://github.com/quantmind/aio-openapi/actions?query=workflow%3Abuild)
 [![Coverage Status](https://coveralls.io/repos/github/quantmind/aio-openapi/badge.svg?branch=HEAD)](https://coveralls.io/github/quantmind/aio-openapi?branch=HEAD)
+[![Documentation Status](https://readthedocs.org/projects/aio-openapi/badge/?version=latest)](https://aio-openapi.readthedocs.io/en/latest/?badge=latest)
 
 Asynchronous web middleware for [aiohttp][] and serving Rest APIs with [OpenAPI][] v 3
 specification and with optional [PostgreSql][] database bindings.
@@ -39,7 +40,7 @@ Clone the repository and create a virtual environment `venv`.
 Install dependencies by running the install script
 
 ```
-./dev/install.sh
+./dev/install
 ```
 
 To run tests
