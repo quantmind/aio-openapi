@@ -1,6 +1,6 @@
 from yarl import URL
 
-from openapi.spec.pagination import Pagination
+from openapi.data.pagination import Pagination
 from openapi.testing import jsonBody
 
 

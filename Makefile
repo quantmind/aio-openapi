@@ -35,6 +35,9 @@ mypy:		## run mypy
 postgresql:	## run postgresql for testing
 	docker run --rm -d --network=host --name=openapi-db postgres:12
 
+postgresql-nd:	## run postgresql for testing - non daemon
+	docker run --rm --network=host --name=openapi-db postgres:12
+
 py36:		## build python 3.6 image for testing
 	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.6.10 -t openapi36 .
 
@@ -55,6 +58,12 @@ test-py38:	## test with python 3.8 with coverage
 		-v $(PWD)/build:/workspace/build \
 		openapi38 \
 		pytest --cov --cov-report xml
+
+test-docs: 	## run docs in CI
+	@docker run --rm \
+		-v $(PWD)/build:/workspace/build \
+		openapi38 \
+		make docs
 
 test-black: 	## run black check in CI
 	@docker run --rm \

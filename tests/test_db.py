@@ -8,6 +8,10 @@ from openapi.testing import equal_dict, jsonBody
 from openapi.utils import error_dict
 
 
+async def test_drop_all(db):
+    db.drop_all()
+
+
 async def test_get_list(cli):
     response = await cli.get("/tasks")
     data = await jsonBody(response)

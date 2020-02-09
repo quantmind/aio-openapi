@@ -1,13 +1,16 @@
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
+from ..data.view import Operation, DataView
 from ..utils import TypingInfo
 
 
 @dataclass
 class op:
-    """Defines an operation object in an OpenAPI Path
+    """Decorator for a :class:`.ApiPath` view which specifies an operation object
+    in an OpenAPI Path. Parameters are dataclasses used for validation and
+    OpenAPI auto documentation.
     """
 
     body_schema: Any = None
@@ -25,16 +28,8 @@ class op:
         )
 
         @wraps(method)
-        async def _(view):
-            view.request["operation"] = method.op
+        async def _(view: DataView) -> Any:
+            view.operation = method.op
             return await method(view)
 
         return _
-
-
-@dataclass
-class Operation:
-    body_schema: Optional[TypingInfo] = None
-    query_schema: Optional[TypingInfo] = None
-    response_schema: Optional[TypingInfo] = None
-    response: int = 200

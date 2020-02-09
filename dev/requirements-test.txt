@@ -1,0 +1,22 @@
+# devs
+flake8
+black
+codecov
+coverage
+coveralls
+mypy
+isort
+pytest
+pytest-cov
+pytest-aiohttp
+pytest-mock
+twine
+agile-toolkit
+asynctest
+
+# stubs
+sqlalchemy-stubs
+
+# additional features
+raven-aiohttp
+python-dotenv

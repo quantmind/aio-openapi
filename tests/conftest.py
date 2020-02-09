@@ -14,6 +14,30 @@ from .example.main import create_app
 DEFAULT_DB = "postgresql://postgres:postgres@localhost:5432/openapi"
 
 
+@pytest.fixture(autouse=True)
+def clean_migrations():
+    """Return an instance of the event loop."""
+    if os.path.isdir("migrations"):
+        shutil.rmtree("migrations")
+
+
+@pytest.fixture(autouse=True)
+def sentry_mock(mocker):
+    mock = CoroutineMock()
+    mocker.patch("raven_aiohttp.AioHttpTransport._do_send", mock)
+    return mock
+
+
+@pytest.fixture(scope="session", autouse=True)
+def loop():
+    """Return an instance of the event loop."""
+    loop = asyncio.new_event_loop()
+    try:
+        yield loop
+    finally:
+        loop.close()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db_url():
     url = os.environ.get("DATASTORE") or DEFAULT_DB
@@ -23,33 +47,21 @@ def db_url():
     return url
 
 
-@pytest.fixture(autouse=True)
-def test_app(db_url):
+@pytest.fixture()
+async def test_app(db_url):
     os.environ["DATASTORE"] = db_url
     cli = create_app()
     app = cli.web()
     app["db"].create_all()
-    return app
+    try:
+        yield app
+    finally:
+        app["db"].drop_all_schemas()
 
 
 @pytest.fixture
-def db(test_app):
+async def db(test_app):
     return test_app["db"]
-
-
-@pytest.fixture(autouse=True)
-def clean_migrations():
-    """Return an instance of the event loop."""
-    if os.path.isdir("migrations"):
-        shutil.rmtree("migrations")
-
-
-@pytest.fixture(autouse=True)
-def loop():
-    """Return an instance of the event loop."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture
@@ -57,17 +69,7 @@ async def cli(loop, test_app):
     server = test_utils.TestServer(test_app, loop=loop)
     client = test_utils.TestClient(server, loop=loop, json_serialize=dumps)
     await client.start_server()
-    yield client
-    await client.close()
-
-
-@pytest.fixture(autouse=True)
-def clean_db(test_app):
-    test_app["db"].drop_all()
-
-
-@pytest.fixture(autouse=True)
-def sentry_mock(mocker):
-    mock = CoroutineMock()
-    mocker.patch("raven_aiohttp.AioHttpTransport._do_send", mock)
-    return mock
+    try:
+        yield client
+    finally:
+        await client.close()

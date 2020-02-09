@@ -1,6 +1,8 @@
 import abc
 import asyncio
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
+
+HandlerType = Callable[[str, Any], None]
 
 
 class Broker(abc.ABC):
@@ -21,35 +23,33 @@ class Broker(abc.ABC):
     async def publish(self, channel: str, body: Dict) -> None:
         """Publish a new payload to a channel/exchange
         """
-        pass
 
     @abc.abstractmethod
-    async def subscribe(self, channel: str, handler: Callable = None) -> None:
+    async def subscribe(self, channel: str, handler: HandlerType) -> None:
         """Bind the broker to a channel/exchange
         """
-        pass
 
     @abc.abstractmethod
     async def unsubscribe(self, channel: str) -> None:
         """Bind the broker to a channel/exchange
         """
-        pass
 
     def on_connection_lost(self, lost):
         pass
 
 
 class LocalBroker(Broker):
+    """A local broker, mainly for testing"""
+
     def __init__(self):
         self.binds = set()
-        self.messages = None
+        self.messages: asyncio.Queue = asyncio.Queue()
         self.worker = None
         self._stop = False
         self._handlers = set()
 
     async def start(self):
         if not self.worker:
-            self.messages = asyncio.Queue()
             self.worker = asyncio.ensure_future(self._work())
 
     async def publish(self, channel, body):
@@ -57,10 +57,9 @@ class LocalBroker(Broker):
             0.01, self.messages.put_nowait, (channel, body)
         )
 
-    async def subscribe(self, key: str, handler: Callable = None) -> None:
+    async def subscribe(self, key: str, handler: HandlerType) -> None:
         self.binds.add(key)
-        if handler:
-            self._handlers.add(handler)
+        self._handlers.add(handler)
 
     async def unsubscribe(self, key):
         self.binds.discard(key)

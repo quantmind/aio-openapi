@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Optional, Sequence, cast
+from typing import Dict, List, Optional, Sequence, cast
 
 import sqlalchemy as sa
 from aiohttp import web
@@ -7,9 +7,10 @@ from asyncpg import Connection
 from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy.sql import or_
 
+from ..data.pagination import PaginatedData, Pagination
 from ..db.dbmodel import CrudDB
-from ..spec.pagination import DEF_PAGINATION_LIMIT, PaginatedData, Pagination
-from ..spec.path import ApiPath, DataType, SchemaTypeOrStr, StrDict
+from ..spec.path import ApiPath
+from ..types import DataType, SchemaTypeOrStr, StrDict
 from .compile import Select, Update, compile_query, count
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
@@ -40,16 +41,6 @@ class SqlApiPath(ApiPath):
 
         columns = [getattr(table.c, col) for col in search_fields]
         return query.where(or_(*(col.ilike(f"%{search}%") for col in columns)))
-
-    def get_special_params(self, params: Dict) -> Dict[str, Any]:
-        return dict(
-            limit=params.pop("limit", DEF_PAGINATION_LIMIT),
-            offset=params.pop("offset", 0),
-            order_by=params.pop("order_by", None),
-            order_desc=params.pop("order_desc", False),
-            search=params.pop("search", None),
-            search_fields=params.pop("search_fields", []),
-        )
 
     async def get_list(
         self,

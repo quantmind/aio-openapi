@@ -8,6 +8,8 @@ from .compile import QueryType, Select, compile_query, count
 
 
 class CrudDB(Database):
+    """A :class:`.Database` with additional methods for CRUD operations"""
+
     async def db_select(self, table: Table, filters: Dict, *, conn=None, consumer=None):
         query = self.get_query(table, table.select(), consumer, filters)
         sql, args = compile_query(query)

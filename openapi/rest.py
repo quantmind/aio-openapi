@@ -5,8 +5,8 @@ from aiohttp.web import Application
 
 from .cli import OpenApiClient
 from .data.fields import Choice, IntegerValidator, bool_field, data_field, str_field
+from .data.pagination import MAX_PAGINATION_LIMIT
 from .spec import OpenApi, OpenApiSpec
-from .spec.pagination import MAX_PAGINATION_LIMIT
 from .spec.utils import docjoin
 
 

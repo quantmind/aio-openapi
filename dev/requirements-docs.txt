@@ -1,0 +1,7 @@
+# docs
+sphinx
+sphinx-copybutton
+sphinx-autodoc-typehints
+aiohttp-theme
+recommonmark
+sphinxcontrib-blockdiag

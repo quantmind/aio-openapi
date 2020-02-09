@@ -54,6 +54,8 @@ jobs:
       run: make postgresql
     - name: build image
       run: make py38
+    - name: run docs
+      run: make test-docs
     - name: run flake8
       run: make test-flake8
     - name: run black

@@ -32,6 +32,8 @@ source_suffix = [".rst", ".md"]
 source_parsers = {
     ".md": CommonMarkParser,
 }
+# The master toctree document.
+master_doc = "index"
 
 # -- General configuration ---------------------------------------------------
 
@@ -43,7 +45,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_copybutton",
     "sphinx_autodoc_typehints",
-    "sphinxcontrib.asyncio",
     "sphinxcontrib.blockdiag",
 ]
 
@@ -65,6 +66,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
+# html_theme = "alabaster"
 html_theme = "aiohttp_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -74,6 +76,46 @@ html_static_path = ["_static"]
 
 intersphinx_mapping = {
     "python": ("http://docs.python.org/3", None),
+    "asyncpg": ("https://magicstack.github.io/asyncpg/current/", None),
+    "sqlalchemy": ("https://docs.sqlalchemy.org/", None),
 }
 
 highlight_language = "python3"
+
+html_theme_options = {
+    "description": "Async web middleware for aiohttp, asyncpg and OpenAPI",
+    "canonical_url": "https://aio-openapi.readthedocs.io/en/latest/",
+    "github_user": "quantmind",
+    "github_repo": "aio-openapi",
+    "github_button": True,
+    "github_type": "star",
+    "github_banner": True,
+    "badges": [
+        {
+            "image": "https://badge.fury.io/py/aio-openapi.svg",
+            "target": "https://pypi.org/project/aio-openapi",
+            "height": "20",
+            "alt": "Latest PyPI package version",
+        },
+        {
+            "image": "https://img.shields.io/pypi/pyversions/aio-openapi.svg",
+            "target": "https://pypi.org/project/aio-openapi",
+            "height": "20",
+            "alt": "Supported python versions",
+        },
+        {
+            "image": "https://github.com/quantmind/aio-openapi/workflows/build/badge.svg",
+            "target": "https://github.com/quantmind/aio-openapi/actions?query=workflow%3Abuild",
+            "height": "20",
+            "alt": "Build status",
+        },
+        {
+            "image": "https://coveralls.io/repos/github/quantmind/aio-openapi/badge.svg?branch=HEAD",
+            "target": "https://coveralls.io/github/quantmind/aio-openapi?branch=HEAD",
+            "height": "20",
+            "alt": "Coverage status",
+        },
+    ],
+}
+
+html_sidebars = {"**": ["about.html", "navigation.html", "searchbox.html",]}
