@@ -31,7 +31,7 @@ def requirements(name):
 
 
 install_requires = requirements("dev/requirements.txt")[0]
-tests_require = requirements("dev/requirements-dev.txt")[0]
+tests_require = requirements("dev/requirements-test.txt")[0]
 
 if sys.version_info < (3, 7):
     install_requires.append("dataclasses")

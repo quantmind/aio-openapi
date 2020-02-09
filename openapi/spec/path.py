@@ -1,5 +1,4 @@
-import os
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, Optional
 
 from aiohttp import web
 from multidict import MultiDict
@@ -7,21 +6,14 @@ from yarl import URL
 
 from openapi.json import dumps, loads
 
-from ..data.dump import dump
 from ..data.exc import ValidationErrors
-from ..data.validate import validate
-from ..utils import TypingInfo, as_list, compact
-from ..types import DataType
+from ..data.view import BAD_DATA_MESSAGE, DataView
+from ..types import DataType, QueryType, SchemaTypeOrStr
+from ..utils import as_list, compact
 from . import hdrs
 
-BAD_DATA_MESSAGE = os.getenv("BAD_DATA_MESSAGE", "Invalid data format")
-SchemaType = Union[List[type], type]
-SchemaTypeOrStr = Union[str, SchemaType]
-StrDict = Dict[str, Any]
-QueryType = Union[StrDict, MultiDict]
 
-
-class ApiPath(web.View):
+class ApiPath(web.View, DataView):
     """An OpenAPI path
     """
 
@@ -61,43 +53,6 @@ class ApiPath(web.View):
             params.update(path)
         return params
 
-    def cleaned(
-        self,
-        schema: DataType,
-        data: QueryType,
-        *,
-        multiple: bool = False,
-        strict: bool = True,
-        Error: Optional[type] = None,
-    ) -> DataType:
-        """Clean data for a given schema name
-        """
-        type_info = self.get_schema(schema)
-        try:
-            validated = validate(type_info, data, strict=strict, multiple=multiple)
-        except TypeError:
-            self.raise_bad_data()
-        if validated.errors:
-            if Error:
-                raise Error
-            elif schema == "path_schema":
-                raise web.HTTPNotFound
-            self.raiseValidationError(errors=validated.errors)
-
-        # Hacky hacky hack hack
-        # Later we'll want to implement proper multicolumn search and so
-        # this will be removed and will be included directly in the schema
-        search_fields = getattr(type_info.element, "search_fields", None)
-        if search_fields:
-            validated.data["search_fields"] = search_fields
-        return validated.data
-
-    def dump(self, schema: Any, data: DataType) -> DataType:
-        """Dump data using a given schema, if the schema is `None` it returns the
-        same `data` as the input
-        """
-        return data if schema is None else dump(self.get_schema(schema), data)
-
     async def json_data(self) -> DataType:
         """Load JSON data from the request
         """
@@ -108,25 +63,14 @@ class ApiPath(web.View):
                 **self.api_response_data({"message": "Invalid JSON payload"})
             )
 
-    def get_schema(self, schema: Any = None) -> TypingInfo:
-        """Get the Schema dataclass
-        """
-        if isinstance(schema, str):
-            Schema = getattr(self.request["operation"], schema, None)
-        else:
-            Schema = schema
-        if Schema is None:
-            Schema = getattr(self, str(schema), None)
-            if Schema is None:
-                raise web.HTTPNotImplemented
-        return cast(TypingInfo, TypingInfo.get(Schema))
-
     def raiseValidationError(self, message=None, errors=None) -> None:
         raw = compact(message=message, errors=as_list(errors or ()))
         data = self.dump(ValidationErrors, raw)
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
-    def raise_bad_data(self, message: str = "") -> None:
+    def raise_bad_data(
+        self, exc: Optional[Exception] = None, message: str = ""
+    ) -> None:
         raw = compact(message=message or BAD_DATA_MESSAGE)
         data = self.dump(ValidationErrors, raw)
         raise web.HTTPBadRequest(**self.api_response_data(data))
