@@ -32,6 +32,8 @@ source_suffix = [".rst", ".md"]
 source_parsers = {
     ".md": CommonMarkParser,
 }
+# The master toctree document.
+master_doc = 'index'
 
 # -- General configuration ---------------------------------------------------
 
