@@ -1,4 +1,5 @@
 import os
+import pytest
 
 from click.testing import CliRunner
 
@@ -75,6 +76,7 @@ def test_migration_upgrade(cli):
     assert "title" in db.metadata.tables["tasks"].c
 
 
+@pytest.mark.skip(reason="flaky in CI")
 def test_show_migration(cli):
     runner = _migrate(cli)
     result = runner.invoke(cli.app["cli"], ["db", "show"])
