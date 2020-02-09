@@ -57,10 +57,9 @@ class LocalBroker(Broker):
             0.01, self.messages.put_nowait, (channel, body)
         )
 
-    async def subscribe(self, key: str, handler: Callable = None) -> None:
+    async def subscribe(self, key: str, handler: HandlerType) -> None:
         self.binds.add(key)
-        if handler:
-            self._handlers.add(handler)
+        self._handlers.add(handler)
 
     async def unsubscribe(self, key):
         self.binds.discard(key)
