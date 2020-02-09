@@ -35,6 +35,9 @@ mypy:		## run mypy
 postgresql:	## run postgresql for testing
 	docker run --rm -d --network=host --name=openapi-db postgres:12
 
+postgresql-nd:	## run postgresql for testing - non daemon
+	docker run --rm --network=host --name=openapi-db postgres:12
+
 py36:		## build python 3.6 image for testing
 	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.6.10 -t openapi36 .
 

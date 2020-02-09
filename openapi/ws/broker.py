@@ -21,19 +21,16 @@ class Broker(abc.ABC):
     async def publish(self, channel: str, body: Dict) -> None:
         """Publish a new payload to a channel/exchange
         """
-        pass
 
     @abc.abstractmethod
     async def subscribe(self, channel: str, handler: Callable = None) -> None:
         """Bind the broker to a channel/exchange
         """
-        pass
 
     @abc.abstractmethod
     async def unsubscribe(self, channel: str) -> None:
         """Bind the broker to a channel/exchange
         """
-        pass
 
     def on_connection_lost(self, lost):
         pass

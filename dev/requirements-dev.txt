@@ -8,5 +8,4 @@ phonenumbers
 #
 # additional features
 colorlog
-#
-python-dotenv
+
