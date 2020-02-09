@@ -1,9 +1,7 @@
 # asyncio stack
-uvloop
 aiohttp
-aiodns
+uvloop
 httptools
-cchardet
 simplejson
 #
 # database
@@ -16,9 +14,6 @@ psycopg2-binary
 # tools
 click
 python-dateutil
-python-dotenv
+email_validator
 pytz
 pyyaml
-pyjwt
-phonenumbers
-email_validator
