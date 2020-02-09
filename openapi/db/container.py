@@ -108,15 +108,18 @@ class Database:
                     yield conn
 
     async def close(self) -> None:
+        """Close the connection :attr:`pool` if available"""
         if self._pool:
             await self._pool.close()
             self._pool = None
 
     # SQL Alchemy Sync Operations
     def create_all(self) -> None:
+        """Create all tables defined in :attr:`metadata`"""
         self.metadata.create_all(self.engine)
 
     def drop_all(self) -> None:
+        """Drop all tables from :attr:`metadata` in database"""
         self.engine.execute(f'truncate {", ".join(self.metadata.tables)}')
         try:
             self.engine.execute("drop table alembic_version")
@@ -124,5 +127,6 @@ class Database:
             pass
 
     def drop_all_schemas(self) -> None:
+        """Drop all schema in database"""
         self.engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
         self.engine.execute("CREATE SCHEMA IF NOT EXISTS public")
