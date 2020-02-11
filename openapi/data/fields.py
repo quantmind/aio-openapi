@@ -38,7 +38,7 @@ def data_field(
     ops: Tuple = (),
     **kwargs,
 ) -> Field:
-    """Extend a dataclass field with
+    """Extend a dataclass field with the following metadata
 
     :param validator: optional callable which accept (field, value, data)
                       as inputs and return the validated value
@@ -46,8 +46,8 @@ def data_field(
     :param dump: optional callable which receive the field value and convert to
                  the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
-    :params description: optional field description
-    :params prost_process: post processor function executed after validation
+    :param description: optional field description
+    :param prost_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
     """
     if isinstance(validator, Validator) and not dump:
@@ -73,6 +73,11 @@ def data_field(
 
 
 def str_field(max_length=None, min_length=None, **kw) -> Field:
+    """A specialized data_field for strings
+
+    :param min_length: minim length of string
+    :param max_length: maximum length of string
+    """
     kw.setdefault(
         "validator", StrValidator(min_length=min_length, max_length=max_length)
     )

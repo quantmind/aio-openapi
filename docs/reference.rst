@@ -12,6 +12,21 @@ Data
 .. autoclass:: DataView
    :members:
 
+Data Fields
+===========
+
+.. module:: openapi.data.fields
+
+.. autofunction:: data_field
+
+String field
+------------
+.. autofunction:: str_field
+
+Bool field
+------------
+.. autofunction:: bool_field
+
 
 Spec
 ====
@@ -46,4 +61,3 @@ DB
 
 Websocket
 =========
-

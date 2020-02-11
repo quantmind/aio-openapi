@@ -145,6 +145,7 @@ Contents
    :maxdepth: 2
 
    reference
+   queries
    env
    glossary
 
