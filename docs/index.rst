@@ -53,35 +53,41 @@ Features
 Getting Started
 ===============
 
-The `app` implementation:
+The `main` implementation:
 
 .. code-block:: python
 
+    import uuid
+
+    from aiohttp import web
+
+    from openapi import sentry
+    from openapi.db import get_db
+    from openapi.middleware import json_error
     from openapi.rest import rest
 
-    from .endpoint import TasksPath
+    from .db import meta
+    from .endpoints import routes
+    from .ws import ws_routes
+
 
     def create_app():
-        return rest(
-            openapi=dict(
-                title='A REST API',
-                ...
-            ),
-            base_path='/v1',
-            allowed_tags=[...],
-            validate_docs=True,
-            setup_app=setup_app,
-            commands=[...]
+        return rest(setup_app=setup_app)
+
+
+    def setup_app(app: web.Application) -> None:
+        db = get_db(app)
+        meta(db.metadata)
+        app.middlewares.append(json_error())
+        app.middlewares.append(
+            sentry.middleware(app, f"https://{uuid.uuid4().hex}@sentry.io/1234567", "test")
         )
+        app.router.add_routes(routes)
 
 
-    def setup_app(app):
-        app.router.add_routes(TasksPath)
-        return app
-
-
-    if __name__ == '__main__':
+    if __name__ == "__main__":
         create_app().main()
+
 
 
 The `endpoint` implementation:
@@ -91,27 +97,40 @@ The `endpoint` implementation:
     from typing import List
 
     from aiohttp import web
+    from sqlalchemy.sql.expression import null
 
     from openapi.db.path import SqlApiPath
     from openapi.spec import op
 
+    from .models import (
+        Task,
+        TaskAdd,
+        TaskOrderableQuery,
+        TaskPathSchema,
+        TaskQuery,
+        TaskUpdate
+    )
 
     routes = web.RouteTableDef()
 
 
-    @routes.view('/tasks')
+    @routes.view("/tasks")
     class TasksPath(SqlApiPath):
         """
         ---
         summary: Create and query Tasks
         tags:
-            - name: Task
-              description: Task tag description
+            - Task
         """
-        table = 'tasks'
+
+        table = "tasks"
+
+        def filter_done(self, op, value):
+            done = self.db_table.c.done
+            return done != null() if value else done == null()
 
         @op(query_schema=TaskOrderableQuery, response_schema=List[Task])
-        async def get(self) -> web.Response:
+        async def get(self):
             """
             ---
             summary: Retrieve Tasks
@@ -124,7 +143,7 @@ The `endpoint` implementation:
             return paginated.json_response()
 
         @op(response_schema=Task, body_schema=TaskAdd)
-        async def post(self) -> web.Response:
+        async def post(self):
             """
             ---
             summary: Create a Task
@@ -137,6 +156,80 @@ The `endpoint` implementation:
             """
             data = await self.create_one()
             return self.json_response(data, status=201)
+
+        @op(query_schema=TaskQuery)
+        async def delete(self):
+            """
+            ---
+            summary: Delete Tasks
+            description: Delete a group of Tasks
+            responses:
+                204:
+                    description: Tasks successfully deleted
+            """
+            await self.delete_list(query=dict(self.request.query))
+            return web.Response(status=204)
+
+
+    @routes.view("/tasks/{id}")
+    class TaskPath(SqlApiPath):
+        """
+        ---
+        summary: Create and query tasks
+        tags:
+            - name: Task
+            description: Simple description
+            - name: Random
+            description: Random description
+        """
+
+        table = "tasks"
+        path_schema = TaskPathSchema
+
+        @op(response_schema=Task)
+        async def get(self):
+            """
+            ---
+            summary: Retrieve a Task
+            description: Retrieve a Task by ID
+            responses:
+                200:
+                    description: the task
+            """
+            data = await self.get_one()
+            return self.json_response(data)
+
+        @op(response_schema=Task, body_schema=TaskUpdate)
+        async def patch(self):
+            """
+            ---
+            summary: Update a Task
+            description: Update an existing Task by ID
+            responses:
+                200:
+                    description: the updated task
+            """
+            data = await self.update_one()
+            return self.json_response(data)
+
+        @op()
+        async def delete(self):
+            """
+            ---
+            summary: Delete a Task
+            description: Delete an existing task
+            responses:
+                204:
+                    description: Task successfully deleted
+            """
+            await self.delete_one()
+            return web.Response(status=204)
+
+
+The data `model` implementation
+
+.. code-block:: python
+
 
 Contents
 ========

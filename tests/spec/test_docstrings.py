@@ -1,6 +1,6 @@
 import dataclasses
 
-from ..example.models import TaskOrderableQuery
+from tests.example.models import TaskOrderableQuery
 
 
 def test_search_docstring():

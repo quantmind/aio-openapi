@@ -2,7 +2,7 @@ import os
 
 from click.testing import CliRunner
 
-from .example.db import extra
+from tests.example.db_additional import extra
 
 
 def _migrate(cli, name="test", runner=None) -> CliRunner:

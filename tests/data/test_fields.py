@@ -295,18 +295,9 @@ def test_BoolValidator_valid():
     assert validator(field, True) is True
     assert validator(field, False) is False
     assert validator(field, "TrUe") is True
+    assert validator(field, "t") is True
+    assert validator(field, "Yes") is True
     assert validator(field, "fAlSe") is False
-
-
-def test_BoolValidator_invalid():
-    field = bool_field()
-    validator = BoolValidator()
-    with pytest.raises(ValidationError):
-        validator(field, None)
-    with pytest.raises(ValidationError):
-        validator(field, "f")
-    with pytest.raises(ValidationError):
-        validator(field, "t")
 
 
 def test_BoolValidator_dump():

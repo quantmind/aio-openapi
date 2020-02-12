@@ -24,8 +24,27 @@ String field
 .. autofunction:: str_field
 
 Bool field
-------------
+----------
 .. autofunction:: bool_field
+
+UUID field
+-------------
+.. autofunction:: uuid_field
+
+
+Numeric field
+-------------
+.. autofunction:: number_field
+
+
+Integer field
+-------------
+.. autofunction:: integer_field
+
+
+Email field
+-------------
+.. autofunction:: email_field
 
 
 Spec

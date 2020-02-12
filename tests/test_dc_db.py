@@ -5,15 +5,9 @@ from openapi.data.db import dataclass_from_table
 from openapi.data.dump import dump
 from openapi.data.fields import REQUIRED, VALIDATOR, UUIDValidator
 from openapi.data.validate import validate
-from openapi.db.container import Database
-
-from .example.db import meta
-
-db = Database()
-meta(db.metadata)
 
 
-def test_convert_task():
+def test_convert_task(db):
     Tasks = dataclass_from_table("Tasks", db.tasks, exclude=("random",))
     assert Tasks
     fields = Tasks.__dataclass_fields__
@@ -24,7 +18,7 @@ def test_convert_task():
     assert props["minLength"] == 3
 
 
-def test_convert_random():
+def test_convert_random(db):
     Randoms = dataclass_from_table("Randoms", db.randoms)
     assert Randoms
     fields = Randoms.__dataclass_fields__
@@ -35,7 +29,7 @@ def test_convert_random():
     assert "info" not in d.errors
 
 
-def test_validate():
+def test_validate(db):
     Tasks = dataclass_from_table("Tasks", db.tasks, exclude=("id",))
     d = validate(Tasks, dict(title="test"))
     assert not d.errors
@@ -47,7 +41,7 @@ def test_validate():
     assert d.errors["title"] == "Must be a string"
 
 
-def test_date():
+def test_date(db):
     Randoms = dataclass_from_table("Randoms", db.randoms)
     d = validate(Randoms, dict(randomdate="jhgjg"))
     assert d.errors["randomdate"] == "jhgjg not valid format"
@@ -61,7 +55,7 @@ def test_date():
     assert v["randomdate"] == date.today().isoformat()
 
 
-def test_json_list():
+def test_json_list(db):
     Randoms = dataclass_from_table("Randoms", db.randoms)
     fields = Randoms.__dataclass_fields__
     assert fields["jsonlist"].type is typing.List
@@ -71,13 +65,13 @@ def test_json_list():
     assert "jsonlist" not in d.errors
 
 
-def test_include():
+def test_include(db):
     Randoms = dataclass_from_table("Randoms", db.randoms, include=("price",))
     fields = Randoms.__dataclass_fields__
     assert len(fields) == 1
 
 
-def test_require():
+def test_require(db):
     Randoms = dataclass_from_table("Randoms", db.randoms, required=False)
     fields = Randoms.__dataclass_fields__
     assert fields
