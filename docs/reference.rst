@@ -12,6 +12,60 @@ Data
 .. autoclass:: DataView
    :members:
 
+Data Fields
+===========
+
+.. module:: openapi.data.fields
+
+.. autofunction:: data_field
+
+String field
+------------
+.. autofunction:: str_field
+
+Bool field
+----------
+.. autofunction:: bool_field
+
+UUID field
+-------------
+.. autofunction:: uuid_field
+
+
+Numeric field
+-------------
+.. autofunction:: number_field
+
+
+Integer field
+-------------
+.. autofunction:: integer_field
+
+
+Email field
+-------------
+.. autofunction:: email_field
+
+Enum field
+----------
+
+.. autofunction:: enum_field
+
+Date field
+----------
+
+.. autofunction:: date_field
+
+Datetime field
+--------------
+
+.. autofunction:: date_time_field
+
+
+JSON field
+----------
+
+.. autofunction:: json_field
 
 Spec
 ====
@@ -46,4 +100,3 @@ DB
 
 Websocket
 =========
-

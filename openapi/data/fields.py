@@ -2,14 +2,14 @@ import decimal
 from dataclasses import Field, dataclass, field
 from datetime import date, datetime, time
 from numbers import Number
-from typing import Any, Callable, Dict, Iterator, Tuple
+from typing import Any, Callable, Dict, Iterator, Optional, Tuple
 from uuid import UUID
 
 from dateutil.parser import parse as parse_date
 from email_validator import EmailNotValidError, validate_email
 
 from .. import json, tz
-from ..utils import compact_dict
+from ..utils import compact_dict, str2bool
 
 REQUIRED = "required"
 VALIDATOR = "OPENAPI_VALIDATOR"
@@ -38,7 +38,7 @@ def data_field(
     ops: Tuple = (),
     **kwargs,
 ) -> Field:
-    """Extend a dataclass field with
+    """Extend a dataclass field with the following metadata
 
     :param validator: optional callable which accept (field, value, data)
                       as inputs and return the validated value
@@ -46,8 +46,8 @@ def data_field(
     :param dump: optional callable which receive the field value and convert to
                  the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
-    :params description: optional field description
-    :params prost_process: post processor function executed after validation
+    :param description: optional field description
+    :param prost_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
     """
     if isinstance(validator, Validator) and not dump:
@@ -72,7 +72,12 @@ def data_field(
     return f
 
 
-def str_field(max_length=None, min_length=None, **kw) -> Field:
+def str_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> Field:
+    """A specialized :func:`.data_field` for strings
+
+    :param min_length: minim length of string
+    :param max_length: maximum length of string
+    """
     kw.setdefault(
         "validator", StrValidator(min_length=min_length, max_length=max_length)
     )
@@ -80,23 +85,42 @@ def str_field(max_length=None, min_length=None, **kw) -> Field:
 
 
 def bool_field(**kw) -> Field:
+    """Specialized :func:`.data_field` for bool types"""
     kw.setdefault("validator", BoolValidator())
     return data_field(**kw)
 
 
-def uuid_field(format="uuid", **kw) -> Field:
+def uuid_field(format: str = "uuid", **kw) -> Field:
     """A UUID field with validation
     """
     kw.setdefault("validator", UUIDValidator())
     return data_field(format=format, **kw)
 
 
-def number_field(min_value=None, max_value=None, precision=None, **kw) -> Field:
+def number_field(
+    min_value: Optional[float] = None,
+    max_value: Optional[float] = None,
+    precision: Optional[int] = None,
+    **kw,
+) -> Field:
+    """ A specialized :func:`.data_field` for numeric values
+
+    :param min_value: minimum value
+    :param max_value: maximum value
+    :param precision: decimal precision
+    """
     kw.setdefault("validator", NumberValidator(min_value, max_value, precision))
     return data_field(**kw)
 
 
-def integer_field(min_value=None, max_value=None, **kw) -> Field:
+def integer_field(
+    min_value: Optional[int] = None, max_value: Optional[int] = None, **kw
+) -> Field:
+    """ A specialized :func:`.data_field` for integer values
+
+    :param min_value: minimum value
+    :param max_value: maximum value
+    """
     kw.setdefault("validator", IntegerValidator(min_value, max_value))
     return data_field(**kw)
 
@@ -106,7 +130,13 @@ def decimal_field(min_value=None, max_value=None, precision=None, **kw) -> Field
     return data_field(**kw)
 
 
-def email_field(max_length=None, min_length=None, **kw) -> Field:
+def email_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> Field:
+    """A specialized :func:`.data_field` for emails, validation via the
+    `email_validator` third party library
+
+    :param min_length: minim length of email
+    :param max_length: maximum length of email
+    """
     kw.setdefault(
         "validator", EmailValidator(min_length=min_length, max_length=max_length)
     )
@@ -114,16 +144,26 @@ def email_field(max_length=None, min_length=None, **kw) -> Field:
 
 
 def enum_field(EnumClass, **kw) -> Field:
+    """A specialized :func:`.data_field` for enums
+
+    :param EnumClass: enum for validation
+    """
     kw.setdefault("validator", EnumValidator(EnumClass))
     return data_field(**kw)
 
 
 def date_field(**kw) -> Field:
+    """A specialized :func:`.data_field` for dates
+    """
     kw.setdefault("validator", DateValidator())
     return data_field(**kw)
 
 
 def date_time_field(timezone=False, **kw) -> Field:
+    """A specialized :func:`.data_field` for datetimes
+
+    :param timezone: timezone for validation
+    """
     kw.setdefault("validator", DateTimeValidator(timezone=timezone))
     return data_field(**kw)
 
@@ -137,6 +177,8 @@ def as_field(item, **kw) -> Field:
 
 
 def json_field(**kw) -> Field:
+    """A specialized :func:`.data_field` for JSON data
+    """
     kw.setdefault("validator", JSONValidator())
     return data_field(**kw)
 
@@ -391,13 +433,10 @@ class DecimalValidator(NumberValidator):
 
 class BoolValidator(Validator):
     def __call__(self, field, value, data=None):
-        value = str(value).lower()
-        if value not in ("true", "false"):
-            raise ValidationError(field.name, "%s not valid" % value)
-        return value == "true"
+        return str2bool(value)
 
     def dump(self, value):
-        return str(value).lower() == "true"
+        return str2bool(value)
 
 
 class JSONValidator(Validator):

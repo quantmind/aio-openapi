@@ -66,6 +66,9 @@ class TaskPathSchema:
     id: str = fields.uuid_field(required=True, description="Task ID")
 
 
+# Additional models for testing
+
+
 @dataclass
 class TaskPathSchema2:
     task_id: str = fields.uuid_field(required=True, description="Task ID")
