@@ -1,4 +1,3 @@
-
 from typing import List
 
 from aiohttp import web
@@ -13,7 +12,7 @@ from .models import (
     TaskOrderableQuery,
     TaskPathSchema,
     TaskQuery,
-    TaskUpdate
+    TaskUpdate,
 )
 
 routes = web.RouteTableDef()

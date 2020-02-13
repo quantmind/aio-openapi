@@ -144,16 +144,26 @@ def email_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> 
 
 
 def enum_field(EnumClass, **kw) -> Field:
+    """A specialized :func:`.data_field` for enums
+
+    :param EnumClass: enum for validation
+    """
     kw.setdefault("validator", EnumValidator(EnumClass))
     return data_field(**kw)
 
 
 def date_field(**kw) -> Field:
+    """A specialized :func:`.data_field` for dates
+    """
     kw.setdefault("validator", DateValidator())
     return data_field(**kw)
 
 
 def date_time_field(timezone=False, **kw) -> Field:
+    """A specialized :func:`.data_field` for datetimes
+
+    :param timezone: timezone for validation
+    """
     kw.setdefault("validator", DateTimeValidator(timezone=timezone))
     return data_field(**kw)
 
@@ -167,6 +177,8 @@ def as_field(item, **kw) -> Field:
 
 
 def json_field(**kw) -> Field:
+    """A specialized :func:`.data_field` for JSON data
+    """
     kw.setdefault("validator", JSONValidator())
     return data_field(**kw)
 

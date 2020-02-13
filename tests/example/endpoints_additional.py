@@ -14,7 +14,7 @@ from .models import (
     TaskPathSchema,
     TaskPathSchema2,
     TaskQuery,
-    TaskUpdate
+    TaskUpdate,
 )
 
 additional_routes = web.RouteTableDef()

@@ -46,6 +46,26 @@ Email field
 -------------
 .. autofunction:: email_field
 
+Enum field
+----------
+
+.. autofunction:: enum_field
+
+Date field
+----------
+
+.. autofunction:: date_field
+
+Datetime field
+--------------
+
+.. autofunction:: date_time_field
+
+
+JSON field
+----------
+
+.. autofunction:: json_field
 
 Spec
 ====
