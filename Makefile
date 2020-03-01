@@ -33,7 +33,7 @@ mypy:		## run mypy
 	@mypy openapi
 
 postgresql:	## run postgresql for testing
-	docker run -e POSTGRES_PASSWORD=postgres -rm -d --network=host --name=openapi-db postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db -d postgres:12
 
 postgresql-nd:	## run postgresql for testing - non daemon
 	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db postgres:12
