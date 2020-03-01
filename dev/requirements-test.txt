@@ -20,3 +20,6 @@ sqlalchemy-stubs
 # additional features
 raven-aiohttp
 python-dotenv
+
+#
+openapi-spec-validator

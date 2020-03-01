@@ -1,5 +1,5 @@
 import decimal
-from dataclasses import Field, dataclass, field
+from dataclasses import Field, dataclass, field, fields
 from datetime import date, datetime, time
 from numbers import Number
 from typing import Any, Callable, Dict, Iterator, Optional, Tuple
@@ -23,9 +23,13 @@ DataClass = Any
 
 
 class ValidationError(ValueError):
-    def __init__(self, field, message):
+    def __init__(self, field: str, message: str) -> None:
         self.field = field
         self.message = message
+
+
+def field_dict(dc: type) -> Dict[str, Field]:
+    return {f.name: f for f in fields(dc)}
 
 
 def data_field(
@@ -447,4 +451,9 @@ class JSONValidator(Validator):
             raise ValidationError(field.name, "%s not valid" % value)
 
     def dump(self, value):
-        return json.loads(value if isinstance(value, str) else json.dumps(value))
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        return json.loads(json.dumps(value))

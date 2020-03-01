@@ -8,6 +8,7 @@ from openapi.spec import op
 
 from .models import (
     MultiKey,
+    MultiKeyUnique,
     Task,
     TaskAdd,
     TaskOrderableQuery,
@@ -296,7 +297,7 @@ class MultiKeyPath(SqlApiPath):
         - MultiKey
     """
 
-    table = "multi_key_unique"
+    table = "multi_key"
 
     @op(response_schema=MultiKey, body_schema=MultiKey)
     async def post(self):
@@ -309,6 +310,54 @@ class MultiKeyPath(SqlApiPath):
         """
         data = await self.create_one()
         return self.json_response(data, status=201)
+
+    @op(response_schema=List[MultiKey])
+    async def get(self):
+        """
+        ---
+        summary: List multi-column constrained items
+        responses:
+            200:
+                description: List of items
+        """
+        paginated = await self.get_list()
+        return paginated.json_response()
+
+
+@additional_routes.view("/multikey-unique")
+class MultiKeyUniquePath(SqlApiPath):
+    """
+    ---
+    summary: Create rows in multikey constraint table
+    tags:
+        - MultiKey
+    """
+
+    table = "multi_key_unique"
+
+    @op(response_schema=MultiKeyUnique, body_schema=MultiKeyUnique)
+    async def post(self):
+        """
+        ---
+        summary: Create row in multi-column constrained table
+        responses:
+            201:
+                description: New row
+        """
+        data = await self.create_one()
+        return self.json_response(data, status=201)
+
+    @op(response_schema=List[MultiKeyUnique])
+    async def get(self):
+        """
+        ---
+        summary: List multi-column constrained items
+        responses:
+            200:
+                description: List of items
+        """
+        paginated = await self.get_list()
+        return paginated.json_response()
 
 
 @invalid_path_routes.view("/tasks")

@@ -64,6 +64,14 @@ class TypingInfo(NamedTuple):
     def is_dataclass(self) -> bool:
         return not self.container and is_dataclass(self.element)
 
+    @property
+    def is_union(self) -> bool:
+        return isinstance(self.element, tuple)
+
+    @property
+    def is_complex(self) -> bool:
+        return self.container or self.is_union
+
     @classmethod
     def get(cls, value: Any) -> Optional["TypingInfo"]:
         if value is None or isinstance(value, cls):
@@ -73,7 +81,7 @@ class TypingInfo(NamedTuple):
             if isinstance(value, list):
                 warnings.warn(
                     "typing via lists is deprecated in version 1.5.* and "
-                    "will be removed in version 1.6, use typing.List instead.",
+                    "will be removed in version 1.8, use typing.List instead.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
@@ -89,7 +97,7 @@ class TypingInfo(NamedTuple):
             if val is T:
                 val = str
             elem_info = cast(TypingInfo, cls.get(val))
-            elem = elem_info if elem_info.container else elem_info.element
+            elem = elem_info if elem_info.is_complex else elem_info.element
             return cls(elem, list)
         elif origin is dict:
             key, val = value.__args__ or (KT, VT)
@@ -103,8 +111,11 @@ class TypingInfo(NamedTuple):
                 )
 
             elem_info = cast(TypingInfo, cls.get(val))
-            elem = elem_info if elem_info.container else elem_info.element
+            elem = elem_info if elem_info.is_complex else elem_info.element
             return cls(elem, dict)
+        elif origin is Union:
+            elem = tuple(cls.get(val) for val in value.__args__)
+            return cls(elem)
         else:
             raise InvalidTypeException(
                 f"Types or List and Dict typing is required, got {value}"

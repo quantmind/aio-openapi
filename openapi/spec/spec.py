@@ -141,6 +141,8 @@ class SchemaParser:
                 "type": "object",
                 "additionalProperties": self.get_schema_info(type_info.element),
             }
+        elif type_info.is_union:
+            return {"oneOf": [self.get_schema_info(e) for e in type_info.element]}
         elif type_info.is_dataclass:
             name = self.add_schema_to_parse(type_info.element)
             return {"$ref": f"{SCHEMA_BASE_REF}{name}"}
@@ -222,11 +224,9 @@ class OpenApiSpec(SchemaParser):
         self.add_schema_to_parse(ValidationErrors)
         self.add_schema_to_parse(ErrorMessage)
         self.add_schema_to_parse(FieldError)
-        security = self.doc["info"].get("security")
-        sk = {}
+        security = self.doc["info"].pop("security", None) or {}
         if security:
-            sk = security
-            self.doc["info"]["security"] = list(sk)
+            self.doc["info"]["security"] = list(security)
         # Build paths
         self._build_paths(app, public, private)
         s = self.parsed_schemas()
@@ -240,7 +240,9 @@ class OpenApiSpec(SchemaParser):
                     schemas=OrderedDict(((k, s[k]) for k in sorted(s))),
                     parameters=OrderedDict(((k, p[k]) for k in sorted(p))),
                     responses=OrderedDict(((k, r[k]) for k in sorted(r))),
-                    securitySchemes=OrderedDict((((k, sk[k]) for k in sorted(sk)))),
+                    securitySchemes=OrderedDict(
+                        (((k, security[k]) for k in sorted(security)))
+                    ),
                 ),
                 servers=self.servers,
             )

@@ -1,16 +1,17 @@
-from dataclasses import MISSING, Field, dataclass, fields
-from typing import Any, Dict, List, Tuple, Union, cast
+from dataclasses import MISSING, Field, fields
+from typing import Any, Dict, List, NamedTuple, Tuple, Union
 
 from multidict import MultiDict
 
-from ..utils import TypingInfo, is_subclass
+from ..utils import TypingInfo
 from .fields import POST_PROCESS, REQUIRED, VALIDATOR, ValidationError, field_ops
 
+NOT_VALID_TYPE = "not valid type"
 
-@dataclass
-class ValidatedData:
-    data: Any
-    errors: Dict
+
+class ValidatedData(NamedTuple):
+    data: Any = None
+    errors: Union[Dict, List, str, None] = None
 
 
 class ValidationErrors(ValueError):
@@ -19,57 +20,98 @@ class ValidationErrors(ValueError):
 
 
 def validated_schema(schema, data, *, strict: bool = True):
-    d = validate(schema, data, strict=strict)
-    if d.errors:
-        raise ValidationErrors(d.errors)
-    return schema(**d.data)
+    data = validate(schema, data, strict=strict, raise_on_errors=True)
+    return schema(**data)
 
 
 def validate(
     schema: Any,
-    data: Union[Dict[str, Any], MultiDict],
+    data: Any,
     *,
     strict: bool = True,
     multiple: bool = False,
-) -> ValidatedData:
+    raise_on_errors: bool = False,
+) -> Any:
     """Validate a dictionary of data with a given dataclass
     """
     type_info = TypingInfo.get(schema)
-    if type_info.container is list:
-        return validate_list(type_info.element, data, strict=strict, multiple=multiple)
-    elif type_info.container is dict:
-        return validate_dict(type_info.element, data, strict=strict, multiple=multiple)
-    elif type_info.is_dataclass:
-        return validate_dataclass(
-            type_info.element, data, strict=strict, multiple=multiple
-        )
+    try:
+        if type_info.container is list:
+            vdata = validate_list(
+                type_info.element, data, strict=strict, multiple=multiple,
+            )
+        elif type_info.container is dict:
+            vdata = validate_dict(
+                type_info.element, data, strict=strict, multiple=multiple,
+            )
+        elif type_info.is_dataclass:
+            vdata = validate_dataclass(
+                type_info.element, data, strict=strict, multiple=multiple,
+            )
+        elif type_info.is_union:
+            vdata = validate_union(type_info.element, data)
+        else:
+            vdata = validate_simple(type_info.element, data)
+    except ValidationErrors as e:
+        if not raise_on_errors:
+            return ValidatedData(errors=e.errors)
+        raise
     else:
-        return ValidatedData(data=data, errors={})
+        return vdata if raise_on_errors else ValidatedData(data=vdata, errors={})
+
+
+def validate_simple(schema: type, data: Any) -> Any:
+    if isinstance(data, schema):
+        return data
+    raise ValidationErrors(NOT_VALID_TYPE)
+
+
+def validate_union(schema: Tuple[TypingInfo, ...], data: Any) -> Any:
+    for type_info in schema:
+        try:
+            return validate(type_info, data, raise_on_errors=True)
+        except ValidationErrors:
+            continue
+    raise ValidationErrors(NOT_VALID_TYPE)
 
 
 def validate_list(
     schema: type, data: list, *, strict: bool = True, multiple: bool = False,
 ) -> ValidatedData:
-    validated = ValidatedData(data=[], errors={})
+    validated = []
     if isinstance(data, list):
         for d in data:
-            v = validate(schema, d, strict=strict, multiple=multiple)
-            validated.data.append(v.data)
-            validated.errors.update(v.errors)
+            v = validate(
+                schema, d, strict=strict, multiple=multiple, raise_on_errors=True
+            )
+            validated.append(v)
+        return validated
     else:
-        validated.errors["message"] = "expected a sequence"
-    return validated
+        raise ValidationErrors("expected a sequence")
 
 
 def validate_dict(
-    schema: type, data: Dict[str, Any], *, strict: bool = True, multiple: bool = False,
+    schema: type,
+    data: Dict[str, Any],
+    *,
+    strict: bool = True,
+    multiple: bool = False,
+    raise_on_errors: bool = True,
 ) -> ValidatedData:
-    validated = ValidatedData(data={}, errors={})
-    for name, d in data.items():
-        v = validate(schema, d, strict=strict, multiple=multiple)
-        validated.data[name] = v.data
-        validated.errors.update(v.errors)
-    return validated
+    if isinstance(data, dict):
+        validated = ValidatedData(data={}, errors={})
+        for name, d in data.items():
+            try:
+                validated.data[name] = validate(
+                    schema, d, strict=strict, multiple=multiple, raise_on_errors=True
+                )
+            except ValidationErrors as exc:
+                validated.errors[name] = exc.errors
+        if validated.errors:
+            raise ValidationErrors(errors=validated.errors)
+        return validated.data
+    else:
+        raise ValidationErrors("expected an object")
 
 
 def validate_dataclass(
@@ -97,7 +139,7 @@ def validate_dataclass(
                     continue
 
                 if multiple:
-                    values = cast(MultiDict, data).getall(name)
+                    values = data.getall(name)
                     if len(values) > 1:
                         collected = []
                         for v in values:
@@ -114,13 +156,17 @@ def validate_dataclass(
 
         except ValidationError as exc:
             errors[exc.field] = exc.message
+        except ValidationErrors as exc:
+            errors[name] = exc.errors
 
     if not errors:
         validate = getattr(schema, "validate", None)
         if validate:
             validate(cleaned, errors)
 
-    return ValidatedData(data=cleaned, errors=errors)
+    if errors:
+        raise ValidationErrors(errors=errors)
+    return cleaned
 
 
 def collect_value(field: Field, name: str, value: Any) -> Any:
@@ -131,22 +177,7 @@ def collect_value(field: Field, name: str, value: Any) -> Any:
     if validator:
         value = validator(field, value)
 
-    if is_subclass(field.type, List) or is_subclass(field.type, Tuple):
-        # hack - we need to formalize this and allow for nested validators
-        if not isinstance(value, (list, tuple)):
-            raise ValidationError(name, "not a valid value")
-        value = list(value)
-    elif is_subclass(field.type, Dict):
-        if not isinstance(value, dict):
-            raise ValidationError(name, "not a valid value")
-    else:
-        types = getattr(field.type, "__args__", None) or (field.type,)
-        types = tuple((getattr(t, "__origin__", None) or t) for t in types)
-        if not isinstance(value, types):
-            try:
-                value = field.type(value)
-            except (TypeError, ValueError):
-                raise ValidationError(name, "not a valid value")
+    value = validate(field.type, value, raise_on_errors=True)
 
     post_process = field.metadata.get(POST_PROCESS)
     return post_process(value) if post_process else value
