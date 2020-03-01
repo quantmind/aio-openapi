@@ -17,7 +17,20 @@ from .ws import ws_routes
 
 
 def create_app():
-    return rest(setup_app=setup_app)
+    return rest(
+        security=dict(
+            auth_key={
+                "type": "apiKey",
+                "name": "X-Meta-Api-Key",
+                "description": (
+                    "The authentication key is required to access most "
+                    "endpoints of the API"
+                ),
+                "in": "header",
+            }
+        ),
+        setup_app=setup_app,
+    )
 
 
 def setup_app(app: web.Application) -> None:

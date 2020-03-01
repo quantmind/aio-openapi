@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from dataclasses import Field, asdict, dataclass, field
+from dataclasses import Field, asdict, dataclass
 from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
 from datetime import date, datetime
@@ -43,7 +43,6 @@ class OpenApi:
     description: str = ""
     version: str = "0.1.0"
     termsOfService: str = ""
-    security: Dict[str, Dict] = field(default_factory=dict)
     contact: Contact = Contact()
     license: License = License()
 
@@ -188,6 +187,7 @@ class OpenApiSpec(SchemaParser):
         allowed_tags: Iterable = None,
         validate_docs: bool = False,
         servers: Optional[List] = None,
+        security: Optional[Dict[str, Dict]] = None,
     ) -> None:
         super().__init__(validate_docs=validate_docs)
         self.parameters: Dict = {}
@@ -197,6 +197,7 @@ class OpenApiSpec(SchemaParser):
         self.servers: List = servers or []
         self.default_content_type = default_content_type or "application/json"
         self.default_responses = default_responses or {}
+        self.security = security
         self.doc = dict(
             openapi=OPENAPI, info=asdict(info or OpenApi()), paths=OrderedDict()
         )
@@ -224,9 +225,10 @@ class OpenApiSpec(SchemaParser):
         self.add_schema_to_parse(ValidationErrors)
         self.add_schema_to_parse(ErrorMessage)
         self.add_schema_to_parse(FieldError)
-        security = self.doc["info"].pop("security", None) or {}
-        if security:
-            self.doc["info"]["security"] = list(security)
+        security = self.security or {}
+        self.doc["security"] = [
+            {name: value.pop("scopes", [])} for name, value in security.items()
+        ]
         # Build paths
         self._build_paths(app, public, private)
         s = self.parsed_schemas()

@@ -1,5 +1,5 @@
-import typing as t
 from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Sequence
 
 from aiohttp.web import Application
 
@@ -11,13 +11,14 @@ from .spec.utils import docjoin
 
 
 def rest(
-    openapi: t.Dict = None,
-    setup_app: t.Callable[[Application], None] = None,
+    openapi: Optional[Dict] = None,
+    setup_app: Callable[[Application], None] = None,
     base_path: str = "",
-    commands: t.Optional[t.List] = None,
-    allowed_tags: t.Optional[t.Set[str]] = None,
+    commands: Optional[List] = None,
+    allowed_tags: Sequence[str] = (),
     validate_docs: bool = False,
-    servers: t.Optional[t.List[str]] = None,
+    servers: Optional[List[str]] = None,
+    security: Optional[Dict[str, Dict]] = None,
     OpenApiSpecClass: type = OpenApiSpec,
     **kwargs,
 ) -> OpenApiClient:
@@ -29,6 +30,7 @@ def rest(
             allowed_tags=allowed_tags,
             validate_docs=validate_docs,
             servers=servers,
+            security=security,
         ),
         base_path=base_path,
         commands=commands,
