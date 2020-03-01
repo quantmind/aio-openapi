@@ -3,14 +3,14 @@ from datetime import date, datetime
 
 from openapi.data.db import dataclass_from_table
 from openapi.data.dump import dump
-from openapi.data.fields import REQUIRED, VALIDATOR, UUIDValidator
+from openapi.data.fields import REQUIRED, VALIDATOR, UUIDValidator, field_dict
 from openapi.data.validate import validate
 
 
 def test_convert_task(db):
     Tasks = dataclass_from_table("Tasks", db.tasks, exclude=("random",))
     assert Tasks
-    fields = Tasks.__dataclass_fields__
+    fields = field_dict(Tasks)
     assert "random" not in fields
     props = {}
     fields["title"].metadata[VALIDATOR].openapi(props)
@@ -21,12 +21,12 @@ def test_convert_task(db):
 def test_convert_random(db):
     Randoms = dataclass_from_table("Randoms", db.randoms)
     assert Randoms
-    fields = Randoms.__dataclass_fields__
+    fields = field_dict(Randoms)
     assert isinstance(fields["id"].metadata[VALIDATOR], UUIDValidator)
     d = validate(Randoms, dict(info="jhgjg"))
-    assert d.errors["info"] == "jhgjg not valid"
-    d = validate(Randoms, dict(info=dict(a=3, b="test")))
-    assert "info" not in d.errors
+    assert d.errors["info"] == "expected an object"
+    d = validate(Randoms, dict(info=dict(a="3", b="test")))
+    assert not d.errors
 
 
 def test_validate(db):
@@ -46,7 +46,7 @@ def test_date(db):
     d = validate(Randoms, dict(randomdate="jhgjg"))
     assert d.errors["randomdate"] == "jhgjg not valid format"
     d = validate(Randoms, dict(randomdate=date.today()))
-    assert "randomdate" not in d.errors
+    assert not d.errors
     v = dump(Randoms, d.data)
     assert v["randomdate"] == date.today().isoformat()
     v = dump(Randoms, {"randomdate": datetime.now()})
@@ -57,23 +57,23 @@ def test_date(db):
 
 def test_json_list(db):
     Randoms = dataclass_from_table("Randoms", db.randoms)
-    fields = Randoms.__dataclass_fields__
+    fields = field_dict(Randoms)
     assert fields["jsonlist"].type is typing.List
     d = validate(Randoms, dict(jsonlist="jhgjg"))
-    assert d.errors["jsonlist"] == "jhgjg not valid"
+    assert d.errors["jsonlist"] == "expected a sequence"
     d = validate(Randoms, dict(jsonlist=["bla", "foo"]))
-    assert "jsonlist" not in d.errors
+    assert not d.errors
 
 
 def test_include(db):
     Randoms = dataclass_from_table("Randoms", db.randoms, include=("price",))
-    fields = Randoms.__dataclass_fields__
+    fields = field_dict(Randoms)
     assert len(fields) == 1
 
 
 def test_require(db):
     Randoms = dataclass_from_table("Randoms", db.randoms, required=False)
-    fields = Randoms.__dataclass_fields__
+    fields = field_dict(Randoms)
     assert fields
     for field in fields.values():
         assert field.metadata[REQUIRED] is False

@@ -67,6 +67,23 @@ JSON field
 
 .. autofunction:: json_field
 
+Data Validation
+===============
+
+Dataclass from db table
+-----------------------
+.. module:: openapi.data.db
+
+.. autofunction:: dataclass_from_table
+
+
+Dump data
+---------
+.. module:: openapi.data.dump
+
+.. autofunction:: dump
+
+
 Spec
 ====
 

@@ -1,12 +1,17 @@
+import enum
+
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
 
 from openapi.data import fields
 from openapi.db.columns import UUIDColumn
 
-from .models import TaskType
-
 original_init = UUIDType.__init__
+
+
+class TaskType(enum.Enum):
+    todo = 0
+    issue = 1
 
 
 def patch_init(self, binary=True, native=True, **kw):

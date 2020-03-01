@@ -43,7 +43,14 @@ def dump_dict(schema: Any, data: Dict[str, Any]) -> List[Dict]:
     return {name: dump(schema, d) for name, d in data.items()}
 
 
-def dump(schema: Any, data: Any):
+def dump(schema: Any, data: Any) -> Any:
+    """Dump data with a given schema.
+
+    :param schema: a valid schema is either a dataclass or a `List` of schemas
+        or a `Dict` of schemas
+    :param data: data to dump, if dataclasses are part of the schema,
+        the `dump` metadata function will be used if available (see :func:`.data_field`)
+    """
     type_info = TypingInfo.get(schema)
     if type_info.container is list:
         return dump_list(type_info.element, cast(List, data))

@@ -19,8 +19,15 @@ def dataclass_from_table(
     include: t.Optional[t.Sequence[str]] = None,
     required: bool = False,
     ops: t.Optional[t.Dict[str, t.Sequence[str]]] = None,
-):
-    """Create a dataclass from an sqlalchemy table
+) -> type:
+    """Create a dataclass from an :class:`sqlalchemy.schema.Table`
+
+    :param name: dataclass name
+    :param table: sqlalchemy table
+    :param exclude: fields to exclude from the dataclass
+    :param include: fields to include in the dataclass
+    :param required: set all non nullable columns as required fields in the dataclass
+    :param ops: additional operation for fields
     """
     columns = []
     include = set(include or table.columns.keys()) - set(exclude or ())

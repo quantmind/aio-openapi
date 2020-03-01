@@ -42,6 +42,10 @@ def additional_meta(meta=None):
         sa.UniqueConstraint("x", "y"),
     )
 
+    sa.Table(
+        "multi_key", meta, sa.Column("x", sa.JSON), sa.Column("y", sa.JSON),
+    )
+
     return meta
 
 
