@@ -83,15 +83,24 @@ JSON field
 Data Validation
 ===============
 
+.. module:: openapi.data.validate
+
 Validate
 -----------------------
 
 The entry function to validate input data and return a python representation.
 The function accept as input a valid type annotation or a :class:`.TypingInfo` object.
 
-.. module:: openapi.data.validate
-
 .. autofunction:: validate
+
+
+Validate Schema
+-----------------------
+
+Same as the :func:`.validate` but returns the validation schema object rather than
+simple data types (this is mainly different for dataclasses)
+
+.. autofunction:: validated_schema
 
 
 Dataclass from db table

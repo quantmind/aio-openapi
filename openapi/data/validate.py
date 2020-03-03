@@ -19,9 +19,16 @@ class ValidationErrors(ValueError):
         self.errors = errors
 
 
-def validated_schema(schema, data, *, strict: bool = True):
-    data = validate(schema, data, strict=strict, raise_on_errors=True)
-    return schema(**data)
+def validated_schema(schema, data, *, strict: bool = True) -> Any:
+    """Validate data with a given schema and return a valid representation of the data
+    as a schema instance
+
+    :param schema: a typing annotation or a :class:`.TypingInfo` object
+    :param data: a data object to validate against the schema
+    :param strict: if `True` validation is strict, i.e. missing required parameters
+        will cause validation to fails
+    """
+    return validate(schema, data, strict=strict, raise_on_errors=True, as_schema=True)
 
 
 def validate(
@@ -31,6 +38,7 @@ def validate(
     strict: bool = True,
     multiple: bool = False,
     raise_on_errors: bool = False,
+    as_schema: bool = False,
 ) -> Any:
     """Validate data with a given schema
 
@@ -42,23 +50,37 @@ def validate(
     :param raise_on_errors: when `True` failure of validation will result in a
         `ValidationErrors` error, otherwise a :class:`.ValidatedData` object
         is returned.
+    :param as_schema: return the schema object rather than simple data type
+        (dataclass rather than dict for example)
     """
     type_info = TypingInfo.get(schema)
     try:
         if type_info.container is list:
             vdata = validate_list(
-                type_info.element, data, strict=strict, multiple=multiple,
+                type_info.element,
+                data,
+                strict=strict,
+                multiple=multiple,
+                as_schema=as_schema,
             )
         elif type_info.container is dict:
             vdata = validate_dict(
-                type_info.element, data, strict=strict, multiple=multiple,
+                type_info.element,
+                data,
+                strict=strict,
+                multiple=multiple,
+                as_schema=as_schema,
             )
         elif type_info.is_dataclass:
             vdata = validate_dataclass(
-                type_info.element, data, strict=strict, multiple=multiple,
+                type_info.element,
+                data,
+                strict=strict,
+                multiple=multiple,
+                as_schema=as_schema,
             )
         elif type_info.is_union:
-            vdata = validate_union(type_info.element, data)
+            vdata = validate_union(type_info.element, data, as_schema=as_schema)
         else:
             vdata = validate_simple(type_info.element, data)
     except ValidationErrors as e:
@@ -75,23 +97,35 @@ def validate_simple(schema: type, data: Any) -> Any:
     raise ValidationErrors(NOT_VALID_TYPE)
 
 
-def validate_union(schema: Tuple[TypingInfo, ...], data: Any) -> Any:
+def validate_union(
+    schema: Tuple[TypingInfo, ...], data: Any, as_schema: bool = False
+) -> Any:
     for type_info in schema:
         try:
-            return validate(type_info, data, raise_on_errors=True)
+            return validate(type_info, data, raise_on_errors=True, as_schema=as_schema)
         except ValidationErrors:
             continue
     raise ValidationErrors(NOT_VALID_TYPE)
 
 
 def validate_list(
-    schema: type, data: list, *, strict: bool = True, multiple: bool = False,
+    schema: type,
+    data: list,
+    *,
+    strict: bool = True,
+    multiple: bool = False,
+    as_schema: bool = False,
 ) -> ValidatedData:
     validated = []
     if isinstance(data, list):
         for d in data:
             v = validate(
-                schema, d, strict=strict, multiple=multiple, raise_on_errors=True
+                schema,
+                d,
+                strict=strict,
+                multiple=multiple,
+                raise_on_errors=True,
+                as_schema=as_schema,
             )
             validated.append(v)
         return validated
@@ -105,14 +139,19 @@ def validate_dict(
     *,
     strict: bool = True,
     multiple: bool = False,
-    raise_on_errors: bool = True,
+    as_schema: bool = False,
 ) -> ValidatedData:
     if isinstance(data, dict):
         validated = ValidatedData(data={}, errors={})
         for name, d in data.items():
             try:
                 validated.data[name] = validate(
-                    schema, d, strict=strict, multiple=multiple, raise_on_errors=True
+                    schema,
+                    d,
+                    strict=strict,
+                    multiple=multiple,
+                    raise_on_errors=True,
+                    as_schema=as_schema,
                 )
             except ValidationErrors as exc:
                 validated.errors[name] = exc.errors
@@ -129,6 +168,7 @@ def validate_dataclass(
     *,
     strict: bool = True,
     multiple: bool = False,
+    as_schema: bool = False,
 ) -> ValidatedData:
     errors: Dict = {}
     cleaned: Dict = {}
@@ -175,7 +215,7 @@ def validate_dataclass(
 
     if errors:
         raise ValidationErrors(errors=errors)
-    return cleaned
+    return schema(**cleaned) if as_schema else cleaned
 
 
 def collect_value(field: Field, name: str, value: Any) -> Any:

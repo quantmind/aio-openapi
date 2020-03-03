@@ -45,3 +45,17 @@ The main object for validation are python dataclasses:
 
     validate(Foo, dict(text="ciao", param=3))
     # ValidatedData(data={'text': 'ciao', 'param': 3, 'done': False}, errors={})
+
+
+Validated Schema
+================
+
+Use the :func:`.validated_schema` to validate input data and return an instance of the
+validation schema. This differes from :func:`.validate` only when dataclasses are involved
+
+.. code-block:: python
+
+    from openapi.data.validate import validated_schema
+
+    validated_schema(Foo, dict(text="ciao", param=3))
+    # Foo(text='ciao', param=3, done=False)

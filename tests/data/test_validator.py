@@ -87,3 +87,6 @@ def test_foo():
     assert validate(Foo, dict(text="ciao"), strict=False).data == dict(text="ciao")
     valid = dict(text="ciao", param=3)
     assert validate(Foo, valid).data == dict(text="ciao", param=3, done=False)
+    d = validated_schema(List[Foo], [valid])
+    assert len(d) == 1
+    assert isinstance(d[0], Foo)
