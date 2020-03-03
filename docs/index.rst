@@ -238,6 +238,7 @@ Contents
    :maxdepth: 2
 
    reference
+   validation
    queries
    env
    glossary

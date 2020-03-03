@@ -103,3 +103,10 @@ class Moon:
         description="Comma separated list of names",
         post_process=lambda values: [v.strip() for v in values.split(",")],
     )
+
+
+@dataclass
+class Foo:
+    text: str
+    param: Union[str, int]
+    done: bool = False

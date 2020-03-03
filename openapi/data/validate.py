@@ -32,7 +32,16 @@ def validate(
     multiple: bool = False,
     raise_on_errors: bool = False,
 ) -> Any:
-    """Validate a dictionary of data with a given dataclass
+    """Validate data with a given schema
+
+    :param schema: a typing annotation or a :class:`.TypingInfo` object
+    :param data: a data object to validate against the schema
+    :param strict: if `True` validation is strict, i.e. missing required parameters
+        will cause validation to fails
+    :param multiple: allow parameters to have multiple values
+    :param raise_on_errors: when `True` failure of validation will result in a
+        `ValidationErrors` error, otherwise a :class:`.ValidatedData` object
+        is returned.
     """
     type_info = TypingInfo.get(schema)
     try:
@@ -126,7 +135,7 @@ def validate_dataclass(
     data = MultiDict(data)
     for field in fields(schema):
         try:
-            required = field.metadata.get(REQUIRED)
+            required = field.metadata.get(REQUIRED, True)
             default = get_default(field)
             if strict and default is not None and data.get(field.name) is None:
                 data[field.name] = default

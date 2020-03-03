@@ -57,23 +57,33 @@ KT, VT = Dict.__args__ or (TypeVar("KT"), TypeVar("VT"))
 
 
 class TypingInfo(NamedTuple):
+    """Information about a type annotation"""
+
     element: ElementType
     container: Optional[type] = None
 
     @property
     def is_dataclass(self) -> bool:
+        """True if :attr:`.element` is a dataclass"""
         return not self.container and is_dataclass(self.element)
 
     @property
     def is_union(self) -> bool:
+        """True if :attr:`.element` is a union of typing info"""
         return isinstance(self.element, tuple)
 
     @property
     def is_complex(self) -> bool:
+        """True if :attr:`.element` is either a dataclass or a union"""
         return self.container or self.is_union
 
     @classmethod
     def get(cls, value: Any) -> Optional["TypingInfo"]:
+        """Create a :class:`.TypingInfo` from a typing annotation or
+        another typing info
+
+        :param value: typing annotation
+        """
         if value is None or isinstance(value, cls):
             return value
         origin = get_origin(value)
