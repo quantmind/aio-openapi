@@ -1,5 +1,5 @@
 from dataclasses import MISSING, Field, fields
-from typing import Any, Dict, List, NamedTuple, Tuple, Union
+from typing import Any, Dict, NamedTuple, Tuple, Union
 
 from multidict import MultiDict
 
@@ -7,11 +7,14 @@ from ..utils import TypingInfo
 from .fields import POST_PROCESS, REQUIRED, VALIDATOR, ValidationError, field_ops
 
 NOT_VALID_TYPE = "not valid type"
+OBJECT_EXPECTED = "expected an object"
+
+ErrorType = Union[Dict, str, None]
 
 
 class ValidatedData(NamedTuple):
     data: Any = None
-    errors: Union[Dict, List, str, None] = None
+    errors: ErrorType = None
 
 
 class ValidationErrors(ValueError):
@@ -159,7 +162,7 @@ def validate_dict(
             raise ValidationErrors(errors=validated.errors)
         return validated.data
     else:
-        raise ValidationErrors("expected an object")
+        raise ValidationErrors(OBJECT_EXPECTED)
 
 
 def validate_dataclass(
@@ -175,7 +178,7 @@ def validate_dataclass(
     try:
         data = MultiDict(data)
     except TypeError:
-        raise ValidationErrors("expected an object")
+        raise ValidationErrors(OBJECT_EXPECTED)
     for field in fields(schema):
         try:
             required = field.metadata.get(REQUIRED, True)

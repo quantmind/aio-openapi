@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 from aiohttp import web
 
@@ -9,7 +9,7 @@ from ..utils import TypingInfo, as_list, compact
 from .dump import dump
 from .exc import ValidationErrors
 from .pagination import DEF_PAGINATION_LIMIT
-from .validate import validate
+from .validate import ErrorType, validate
 
 BAD_DATA_MESSAGE = os.getenv("BAD_DATA_MESSAGE", "Invalid data format")
 
@@ -101,9 +101,8 @@ class DataView:
             search_fields=params.pop("search_fields", []),
         )
 
-    def raiseValidationError(self, message=None, errors=None) -> None:
-        raw = compact(message=message, errors=as_list(errors or ()))
-        raise ValidationErrors(raw)
+    def raiseValidationError(self, message: str = "", errors: ErrorType = None) -> None:
+        raise ValidationErrors(self.as_errors(message, errors))
 
     def raise_bad_data(
         self, exc: Optional[Exception] = None, message: str = ""
@@ -111,3 +110,9 @@ class DataView:
         if not message and exc:
             raise exc from exc
         raise TypeError(message or BAD_DATA_MESSAGE)
+
+    def as_errors(self, message: str = "", errors: ErrorType = None) -> Dict:
+        if isinstance(errors, str):
+            message = cast(str, message or errors)
+            errors = None
+        return compact(message=message, errors=as_list(errors or ()))

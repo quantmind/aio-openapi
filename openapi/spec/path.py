@@ -7,9 +7,9 @@ from yarl import URL
 from openapi.json import dumps, loads
 
 from ..data.exc import ValidationErrors
-from ..data.view import BAD_DATA_MESSAGE, DataView
+from ..data.view import BAD_DATA_MESSAGE, DataView, ErrorType
 from ..types import DataType, QueryType, SchemaTypeOrStr
-from ..utils import as_list, compact
+from ..utils import compact
 from . import hdrs
 
 
@@ -67,8 +67,8 @@ class ApiPath(web.View, DataView):
                 **self.api_response_data({"message": "Invalid JSON payload"})
             )
 
-    def raiseValidationError(self, message=None, errors=None) -> None:
-        raw = compact(message=message, errors=as_list(errors or ()))
+    def raiseValidationError(self, message: str = "", errors: ErrorType = None) -> None:
+        raw = self.as_errors(message, errors)
         data = self.dump(ValidationErrors, raw)
         raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
