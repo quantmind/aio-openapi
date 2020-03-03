@@ -120,7 +120,7 @@ def validate_list(
     as_schema: bool = False,
 ) -> ValidatedData:
     validated = []
-    if isinstance(data, list):
+    if isinstance(data, (list, tuple)):
         for d in data:
             v = validate(
                 schema,
@@ -172,6 +172,7 @@ def validate_dataclass(
     strict: bool = True,
     multiple: bool = False,
     as_schema: bool = False,
+    **kw,
 ) -> ValidatedData:
     errors: Dict = {}
     cleaned: Dict = {}

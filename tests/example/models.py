@@ -110,3 +110,15 @@ class Foo:
     text: str
     param: Union[str, int]
     done: bool = False
+
+
+@dataclass
+class SourcePrice:
+    """An object containing prices for a single contract"""
+    id: int = fields.integer_field(description="ID", required=True)
+    prices: Dict[str, Decimal] = fields.number_field(
+        min_value=0,
+        max_value=100,
+        precision=4,
+        description="prices",
+    )
