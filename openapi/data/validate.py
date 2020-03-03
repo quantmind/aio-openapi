@@ -172,7 +172,10 @@ def validate_dataclass(
 ) -> ValidatedData:
     errors: Dict = {}
     cleaned: Dict = {}
-    data = MultiDict(data)
+    try:
+        data = MultiDict(data)
+    except TypeError:
+        raise ValidationErrors("expected an object")
     for field in fields(schema):
         try:
             required = field.metadata.get(REQUIRED, True)

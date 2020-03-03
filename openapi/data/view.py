@@ -46,10 +46,7 @@ class DataView:
         :param Error: optional :class:`.Exception` class
         """
         type_info = self.get_schema(schema)
-        try:
-            validated = validate(type_info, data, strict=strict, multiple=multiple)
-        except TypeError as exc:
-            self.raise_bad_data(exc=exc)
+        validated = validate(type_info, data, strict=strict, multiple=multiple)
         if validated.errors:
             if Error:
                 raise Error
