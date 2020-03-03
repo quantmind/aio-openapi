@@ -2,13 +2,12 @@ import asyncio
 import hashlib
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
 
 from aiohttp import web
 
 from .. import json
-from ..data import fields
 from ..data.validate import ValidationErrors, validated_schema
 from ..utils import compact
 from .channels import Channels
@@ -18,9 +17,9 @@ logger = logging.getLogger("openapi.ws")
 
 @dataclass
 class RpcProtocol:
-    id: str = fields.data_field(required=True)
-    method: str = fields.data_field(required=True)
-    payload: Dict = None
+    id: str
+    method: str
+    payload: Dict = field(default_factory=dict)
 
 
 class ProtocolError(RuntimeError):

@@ -7,10 +7,22 @@ Reference
 Data
 ====
 
+DataView
+--------
+
 .. module:: openapi.data.view
 
 .. autoclass:: DataView
    :members:
+
+TypeInfo
+--------
+
+.. module:: openapi.utils
+
+.. autoclass:: TypingInfo
+   :members:
+
 
 Data Fields
 ===========
@@ -18,6 +30,7 @@ Data Fields
 .. module:: openapi.data.fields
 
 .. autofunction:: data_field
+
 
 String field
 ------------
@@ -69,6 +82,26 @@ JSON field
 
 Data Validation
 ===============
+
+.. module:: openapi.data.validate
+
+Validate
+-----------------------
+
+The entry function to validate input data and return a python representation.
+The function accept as input a valid type annotation or a :class:`.TypingInfo` object.
+
+.. autofunction:: validate
+
+
+Validate Schema
+-----------------------
+
+Same as the :func:`.validate` but returns the validation schema object rather than
+simple data types (this is mainly different for dataclasses)
+
+.. autofunction:: validated_schema
+
 
 Dataclass from db table
 -----------------------

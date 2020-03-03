@@ -5,7 +5,7 @@ import pytest
 
 from openapi.data.fields import ListValidator, NumberValidator
 from openapi.data.validate import ValidationErrors, validate, validated_schema
-from tests.example.models import Moon, Permission, Role, TaskAdd
+from tests.example.models import Moon, Permission, Role, TaskAdd, Foo
 
 
 def test_validated_schema():
@@ -79,3 +79,14 @@ def test_validate_union_nested():
     assert d.data == 3
     d = validate(schema, dict(foo=3, bla="ciao"))
     assert d.data == dict(foo=3, bla="ciao")
+
+
+def test_foo():
+    assert validate(Foo, {}).errors
+    assert validate(Foo, dict(text="ciao")).errors
+    assert validate(Foo, dict(text="ciao"), strict=False).data == dict(text="ciao")
+    valid = dict(text="ciao", param=3)
+    assert validate(Foo, valid).data == dict(text="ciao", param=3, done=False)
+    d = validated_schema(List[Foo], [valid])
+    assert len(d) == 1
+    assert isinstance(d[0], Foo)
