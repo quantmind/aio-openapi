@@ -47,6 +47,17 @@ The main object for validation are python dataclasses:
     # ValidatedData(data={'text': 'ciao', 'param': 3, 'done': False}, errors={})
 
 
+Supported Schema
+================
+
+The library support the following schemas
+
+* Primitive types: `str`, `int`, `float`, `bool`, `date`, `datetime` and `Decimal`
+* Python dataclasses with fields from supported schemas
+* `List` from `typing` annotation with items from supported schemas
+* `Dict` from `typing` with keys as string and items from supported schemas
+* `Union` from `typing` with items from supported schemas
+
 Validated Schema
 ================
 

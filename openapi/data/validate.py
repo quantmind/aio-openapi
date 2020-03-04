@@ -1,15 +1,24 @@
 from dataclasses import MISSING, Field, fields
-from typing import Any, Dict, NamedTuple, Tuple, Union
+from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple, Union
 
 from multidict import MultiDict
 
 from ..utils import TypingInfo
-from .fields import POST_PROCESS, REQUIRED, VALIDATOR, ValidationError, field_ops
+from .fields import (
+    ITEMS,
+    POST_PROCESS,
+    REQUIRED,
+    VALIDATOR,
+    ValidationError,
+    as_field,
+    field_ops,
+)
 
 NOT_VALID_TYPE = "not valid type"
 OBJECT_EXPECTED = "expected an object"
 
 ErrorType = Union[Dict, str, None]
+ValidatorType = Optional[Callable[[Any], Any]]
 
 
 class ValidatedData(NamedTuple):
@@ -41,6 +50,7 @@ def validate(
     strict: bool = True,
     multiple: bool = False,
     raise_on_errors: bool = False,
+    items: Optional[Field] = None,
     as_schema: bool = False,
 ) -> Any:
     """Validate data with a given schema
@@ -53,6 +63,7 @@ def validate(
     :param raise_on_errors: when `True` failure of validation will result in a
         `ValidationErrors` error, otherwise a :class:`.ValidatedData` object
         is returned.
+    :param items: an optional Field for items in a composite type (`List` or `Dict`)
     :param as_schema: return the schema object rather than simple data type
         (dataclass rather than dict for example)
     """
@@ -64,6 +75,7 @@ def validate(
                 data,
                 strict=strict,
                 multiple=multiple,
+                items=items,
                 as_schema=as_schema,
             )
         elif type_info.container is dict:
@@ -72,6 +84,7 @@ def validate(
                 data,
                 strict=strict,
                 multiple=multiple,
+                items=items,
                 as_schema=as_schema,
             )
         elif type_info.is_dataclass:
@@ -94,15 +107,25 @@ def validate(
         return vdata if raise_on_errors else ValidatedData(data=vdata, errors={})
 
 
-def validate_simple(schema: type, data: Any) -> Any:
+def validate_simple(
+    schema: type, data: Any, *, validator: Optional[ValidatorType] = None
+) -> Any:
+    if validator:
+        data = validator(data)
     if isinstance(data, schema):
         return data
     raise ValidationErrors(NOT_VALID_TYPE)
 
 
 def validate_union(
-    schema: Tuple[TypingInfo, ...], data: Any, as_schema: bool = False
+    schema: Tuple[TypingInfo, ...],
+    data: Any,
+    validator: Optional[ValidatorType] = None,
+    as_schema: bool = False,
+    **kw,
 ) -> Any:
+    if validator:
+        data = validator(data)
     for type_info in schema:
         try:
             return validate(type_info, data, raise_on_errors=True, as_schema=as_schema)
@@ -118,17 +141,14 @@ def validate_list(
     strict: bool = True,
     multiple: bool = False,
     as_schema: bool = False,
+    items: Optional[Field] = None,
 ) -> ValidatedData:
     validated = []
     if isinstance(data, (list, tuple)):
+        items = as_field(schema, field=items)
         for d in data:
-            v = validate(
-                schema,
-                d,
-                strict=strict,
-                multiple=multiple,
-                raise_on_errors=True,
-                as_schema=as_schema,
+            v = collect_value(
+                items, d, strict=strict, multiple=multiple, as_schema=as_schema,
             )
             validated.append(v)
         return validated
@@ -143,18 +163,15 @@ def validate_dict(
     strict: bool = True,
     multiple: bool = False,
     as_schema: bool = False,
+    items: Optional[Field] = None,
 ) -> ValidatedData:
     if isinstance(data, dict):
         validated = ValidatedData(data={}, errors={})
+        items = as_field(schema, field=items)
         for name, d in data.items():
             try:
-                validated.data[name] = validate(
-                    schema,
-                    d,
-                    strict=strict,
-                    multiple=multiple,
-                    raise_on_errors=True,
-                    as_schema=as_schema,
+                validated.data[name] = collect_value(
+                    items, d, strict=strict, multiple=multiple, as_schema=as_schema,
                 )
             except ValidationErrors as exc:
                 validated.errors[name] = exc.errors
@@ -199,14 +216,14 @@ def validate_dataclass(
                     if len(values) > 1:
                         collected = []
                         for v in values:
-                            v = collect_value(field, name, v)
+                            v = collect_value(field, v)
                             if v is not None:
                                 collected.append(v)
                         value = collected if collected else None
                     else:
-                        value = collect_value(field, name, values[0])
+                        value = collect_value(field, values[0])
                 else:
-                    value = collect_value(field, name, data[name])
+                    value = collect_value(field, data[name])
 
                 cleaned[name] = value
 
@@ -225,7 +242,7 @@ def validate_dataclass(
     return schema(**cleaned) if as_schema else cleaned
 
 
-def collect_value(field: Field, name: str, value: Any) -> Any:
+def collect_value(field: Field, value: Any, **kw) -> Any:
     if is_null(value):
         return None
 
@@ -233,7 +250,8 @@ def collect_value(field: Field, name: str, value: Any) -> Any:
     if validator:
         value = validator(field, value)
 
-    value = validate(field.type, value, raise_on_errors=True)
+    kw.update(raise_on_errors=True, items=field.metadata.get(ITEMS))
+    value = validate(field.type, value, **kw)
 
     post_process = field.metadata.get(POST_PROCESS)
     return post_process(value) if post_process else value
