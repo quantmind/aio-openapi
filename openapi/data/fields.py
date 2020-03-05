@@ -1,6 +1,6 @@
-import decimal
 from dataclasses import Field, dataclass, field, fields
 from datetime import date, datetime, time
+from decimal import Decimal, InvalidOperation
 from numbers import Number
 from typing import Any, Callable, Dict, Iterator, Optional, Tuple
 from uuid import UUID
@@ -18,8 +18,20 @@ POST_PROCESS = "post_process"
 DUMP = "dump"
 FORMAT = "format"
 OPS = "ops"
+ITEMS = "items"
 
 DataClass = Any
+
+
+PRIMITIVE_TYPES: Dict[Any, Dict] = {
+    str: {"type": "string"},
+    int: {"type": "integer", FORMAT: "int32"},
+    float: {"type": "number", FORMAT: "float"},
+    bool: {"type": "boolean"},
+    date: {"type": "string", FORMAT: "date"},
+    datetime: {"type": "string", FORMAT: "date-time"},
+    Decimal: {"type": "number"},
+}
 
 
 class ValidationError(ValueError):
@@ -34,10 +46,11 @@ def field_dict(dc: type) -> Dict[str, Field]:
 
 def data_field(
     required: bool = False,
-    validator: Callable[[Field, Any, Dict], Any] = None,
+    validator: Callable[[str, Any, Dict], Any] = None,
     dump: Callable[[Any], Any] = None,
     format: str = None,
     description: str = None,
+    items: Optional[Field] = None,
     post_process: Callable[[Any], Any] = None,
     ops: Tuple = (),
     **kwargs,
@@ -51,7 +64,9 @@ def data_field(
                  the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
     :param description: optional field description
-    :param prost_process: post processor function executed after validation
+    :param items: field for items of the current field
+        (only used for `List` and `Dict` fields)
+    :param post_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
     """
     if isinstance(validator, Validator) and not dump:
@@ -66,6 +81,7 @@ def data_field(
                 REQUIRED: required,
                 DUMP: dump,
                 DESCRIPTION: description,
+                ITEMS: items,
                 POST_PROCESS: post_process,
                 FORMAT: format,
                 OPS: ops,
@@ -172,10 +188,12 @@ def date_time_field(timezone=False, **kw) -> Field:
     return data_field(**kw)
 
 
-def as_field(item, **kw) -> Field:
+def as_field(item: Any, *, field: Optional[Field] = None, **kw) -> Field:
     if isinstance(item, Field):
         return item
-    field = data_field(**kw)
+    field = field or data_field(**kw)
+    if field.type and field.type is not item:
+        raise RuntimeError("Cannot override field type")
     field.type = item
     return field
 
@@ -202,7 +220,7 @@ def field_ops(field: Field) -> Iterator[str]:
 class Validator:
     dump = None
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         raise ValidationError(field.name, "invalid")
 
     def openapi(self, prop):
@@ -214,7 +232,7 @@ class StrValidator(Validator):
     min_length: int = 0
     max_length: int = 0
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if not isinstance(value, str):
             raise ValidationError(field.name, "Must be a string")
         if self.min_length and len(value) < self.min_length:
@@ -232,7 +250,7 @@ class StrValidator(Validator):
 
 @dataclass
 class EmailValidator(StrValidator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         value = super().__call__(field, value, data=data)
         try:
             validate_email(value, check_deliverability=False)
@@ -245,9 +263,9 @@ class ListValidator(Validator):
     def __init__(self, validators):
         self.validators = validators
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         for validator in self.validators:
-            value = validator(field, value, data)
+            value = validator(field.name, value, data)
         return value
 
     def dump(self, value):
@@ -264,7 +282,7 @@ class ListValidator(Validator):
 
 
 class UUIDValidator(Validator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             if not isinstance(value, UUID):
                 value = UUID(str(value))
@@ -305,7 +323,7 @@ class Choice(Validator):
     def __init__(self, choices):
         self.choices = choices
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if value not in self.choices:
             raise ValidationError(field.name, "%s not valid" % value)
         return value
@@ -319,7 +337,7 @@ class DateValidator(Validator):
             return value.isoformat()
         return value
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if isinstance(value, str):
             try:
                 value = parse_date(value).date()
@@ -339,7 +357,7 @@ class DateTimeValidator(Validator):
             return value.isoformat()
         return value
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if isinstance(value, str):
             try:
                 value = parse_date(value)
@@ -355,7 +373,7 @@ class DateTimeValidator(Validator):
         return value
 
 
-NumericErrors = (TypeError, ValueError, decimal.InvalidOperation)
+NumericErrors = (TypeError, ValueError, InvalidOperation)
 
 
 class BoundedNumberValidator(Validator):
@@ -363,7 +381,7 @@ class BoundedNumberValidator(Validator):
         self.min_value = min_value
         self.max_value = max_value
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(
                 field.name, "%s less than %s" % (value, self.min_value)
@@ -388,7 +406,7 @@ class BoundedNumberValidator(Validator):
             try:
                 return int(value)
             except ValueError:
-                return decimal.Decimal(value)
+                return Decimal(value)
         else:
             return value
 
@@ -398,7 +416,7 @@ class NumberValidator(BoundedNumberValidator):
         super().__init__(min_value=min_value, max_value=max_value)
         self.precision = precision
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             value = self.to_number(value)
             if self.precision is not None:
@@ -414,7 +432,7 @@ class NumberValidator(BoundedNumberValidator):
 
 
 class IntegerValidator(BoundedNumberValidator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             value = self.to_number(value)
             if not isinstance(value, int):
@@ -425,18 +443,18 @@ class IntegerValidator(BoundedNumberValidator):
 
 
 class DecimalValidator(NumberValidator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             value = self.to_number(value)
-            if not isinstance(value, decimal.Decimal):
-                value = decimal.Decimal(str(value))
+            if not isinstance(value, Decimal):
+                value = Decimal(str(value))
         except NumericErrors:
             raise ValidationError(field.name, "%s not valid Decimal" % value)
         return super().__call__(field, value, data=None)
 
 
 class BoolValidator(Validator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         return str2bool(value)
 
     def dump(self, value):
@@ -444,10 +462,10 @@ class BoolValidator(Validator):
 
 
 class JSONValidator(Validator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             return self.dump(value)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError):
             raise ValidationError(field.name, "%s not valid" % value)
 
     def dump(self, value):

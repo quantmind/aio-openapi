@@ -2,10 +2,8 @@ from collections import OrderedDict
 from dataclasses import Field, asdict, dataclass
 from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
-from datetime import date, datetime
-from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, TypeVar, cast
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 from aiohttp import hdrs, web
 
@@ -50,17 +48,6 @@ class OpenApi:
 class SchemaParser:
     """Utility class for parsing schemas"""
 
-    _fields_mapping: Dict[Any, Dict] = {
-        str: {"type": "string"},
-        int: {"type": "integer", fields.FORMAT: "int32"},
-        float: {"type": "number", fields.FORMAT: "float"},
-        bool: {"type": "boolean"},
-        date: {"type": "string", fields.FORMAT: "date"},
-        datetime: {"type": "string", fields.FORMAT: "date-time"},
-        Decimal: {"type": "number"},
-        TypeVar: {"type": "string"},
-    }
-
     def __init__(self, validate_docs: bool = False) -> None:
         self.validate_docs = validate_docs
         self.schemas_to_parse: Dict[str, type] = {}
@@ -68,7 +55,7 @@ class SchemaParser:
     def get_parameters(self, schema: Any, default_in: str = "path") -> List:
         """Extract parameters list from a dataclass schema"""
         params = []
-        json_schema = self.schema2json(schema)
+        json_schema = self.dataclass2json(schema)
         required = set(json_schema.get("required", ()))
         for name, entry in json_schema["properties"].items():
             entry = compact(
@@ -84,8 +71,9 @@ class SchemaParser:
     def field2json(self, field: Field) -> Dict[str, str]:
         """Convert a dataclass field to Json schema"""
         field = fields.as_field(field)
-        json_property = self.get_schema_info(field.type)
         meta = field.metadata
+        items = meta.get(fields.ITEMS)
+        json_property = self.get_schema_info(field.type, items=items)
         field_description = meta.get(fields.DESCRIPTION)
         if not field_description:
             if self.validate_docs:
@@ -103,12 +91,13 @@ class SchemaParser:
             validator.openapi(json_property)
         return json_property
 
-    def schema2json(self, schema: Any) -> Dict[str, str]:
+    def dataclass2json(self, schema: Any) -> Dict[str, str]:
         """Extract the object representation of a dataclass schema"""
         type_info = cast(TypingInfo, TypingInfo.get(schema))
         if not type_info or not type_info.is_dataclass:
             raise InvalidSpecException(
-                f"Schema must be a dataclass, got {type_info.typing}"
+                "Schema must be a dataclass, got "
+                f"{type_info.typing if type_info else None}"
             )
         properties = {}
         required = []
@@ -131,14 +120,21 @@ class SchemaParser:
             json_schema["required"] = required
         return json_schema
 
-    def get_schema_info(self, schema: Any) -> Dict[str, str]:
+    schema2json = dataclass2json
+    # for backward compatibility
+
+    def get_schema_info(
+        self, schema: Any, items: Optional[Field] = None
+    ) -> Dict[str, str]:
         type_info = TypingInfo.get(schema)
         if type_info.container is list:
-            return {"type": "array", "items": self.get_schema_info(type_info.element)}
+            field = fields.as_field(type_info.element, field=items)
+            return {"type": "array", "items": self.field2json(field)}
         elif type_info.container is dict:
+            field = fields.as_field(type_info.element, field=items)
             return {
                 "type": "object",
-                "additionalProperties": self.get_schema_info(type_info.element),
+                "additionalProperties": self.field2json(field),
             }
         elif type_info.is_union:
             return {"oneOf": [self.get_schema_info(e) for e in type_info.element]}
@@ -149,7 +145,7 @@ class SchemaParser:
             return self.get_primitive_info(type_info.element)
 
     def get_primitive_info(self, schema: type) -> Dict[str, str]:
-        mapping = self._fields_mapping.get(schema)
+        mapping = fields.PRIMITIVE_TYPES.get(schema)
         if not mapping:
             if is_subclass(schema, Enum):
                 return {"type": "string", "enum": [e.name for e in schema]}
@@ -170,7 +166,10 @@ class SchemaParser:
             to_parse = self.schemas_to_parse
             self.schemas_to_parse = {}
             parsed.update(
-                ((name, self.schema2json(schema)) for name, schema in to_parse.items())
+                (
+                    (name, self.dataclass2json(schema))
+                    for name, schema in to_parse.items()
+                )
             )
         return parsed
 

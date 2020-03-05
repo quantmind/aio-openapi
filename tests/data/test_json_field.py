@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import pytest
 
-from openapi.data.fields import VALIDATOR, JSONValidator, json_field
+from openapi.data.fields import VALIDATOR, JSONValidator, json_field, ValidationError
 from openapi.data.validate import ValidationErrors, validated_schema
 
 
@@ -31,3 +31,10 @@ def test_validattionb_fail_list():
 def test_validattionb_fail_dict():
     with pytest.raises(ValidationErrors):
         validated_schema(TJson, dict(a="[]", b="[]"))
+
+
+def test_json_field_error():
+    field = json_field()
+    validator = field.metadata[VALIDATOR]
+    with pytest.raises(ValidationError):
+        validator(field, object())
