@@ -46,7 +46,7 @@ def field_dict(dc: type) -> Dict[str, Field]:
 
 def data_field(
     required: bool = False,
-    validator: Callable[[Field, Any, Dict], Any] = None,
+    validator: Callable[[str, Any, Dict], Any] = None,
     dump: Callable[[Any], Any] = None,
     format: str = None,
     description: str = None,
@@ -220,8 +220,8 @@ def field_ops(field: Field) -> Iterator[str]:
 class Validator:
     dump = None
 
-    def __call__(self, name: str, value: Any, data=None):
-        raise ValidationError(name, "invalid")
+    def __call__(self, field: Field, value: Any, data=None):
+        raise ValidationError(field.name, "invalid")
 
     def openapi(self, prop):
         pass
@@ -232,13 +232,13 @@ class StrValidator(Validator):
     min_length: int = 0
     max_length: int = 0
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if not isinstance(value, str):
-            raise ValidationError(name, "Must be a string")
+            raise ValidationError(field.name, "Must be a string")
         if self.min_length and len(value) < self.min_length:
-            raise ValidationError(name, "Too short")
+            raise ValidationError(field.name, "Too short")
         if self.max_length and len(value) > self.max_length:
-            raise ValidationError(name, "Too long")
+            raise ValidationError(field.name, "Too long")
         return value
 
     def openapi(self, prop):
@@ -250,12 +250,12 @@ class StrValidator(Validator):
 
 @dataclass
 class EmailValidator(StrValidator):
-    def __call__(self, name: str, value: Any, data=None):
-        value = super().__call__(name, value, data=data)
+    def __call__(self, field: Field, value: Any, data=None):
+        value = super().__call__(field, value, data=data)
         try:
             validate_email(value, check_deliverability=False)
         except EmailNotValidError:
-            raise ValidationError(name, "%s not a valid email" % value) from None
+            raise ValidationError(field.name, "%s not a valid email" % value) from None
         return value
 
 
@@ -263,9 +263,9 @@ class ListValidator(Validator):
     def __init__(self, validators):
         self.validators = validators
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         for validator in self.validators:
-            value = validator(name, value, data)
+            value = validator(field.name, value, data)
         return value
 
     def dump(self, value):
@@ -282,13 +282,13 @@ class ListValidator(Validator):
 
 
 class UUIDValidator(Validator):
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             if not isinstance(value, UUID):
                 value = UUID(str(value))
             return value.hex
         except ValueError:
-            raise ValidationError(name, "%s not a valid uuid" % value)
+            raise ValidationError(field.name, "%s not a valid uuid" % value)
 
     def dump(self, value):
         if isinstance(value, UUID):
@@ -302,16 +302,16 @@ class EnumValidator(Validator):
     def __init__(self, EnumClass):
         self.EnumClass = EnumClass
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field, value, data=None):
         try:
             e = value
             if isinstance(e, str):
                 e = getattr(self.EnumClass, value)
             if isinstance(e, self.EnumClass):
-                return e
+                return e if field.type == self.EnumClass else e.name
             raise AttributeError
         except AttributeError:
-            raise ValidationError(name, "%s not valid" % value)
+            raise ValidationError(field.name, "%s not valid" % value)
 
     def dump(self, value):
         if isinstance(value, self.EnumClass):
@@ -323,7 +323,7 @@ class Choice(Validator):
     def __init__(self, choices):
         self.choices = choices
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if value not in self.choices:
             raise ValidationError(name, "%s not valid" % value)
         return value
@@ -337,14 +337,14 @@ class DateValidator(Validator):
             return value.isoformat()
         return value
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if isinstance(value, str):
             try:
                 value = parse_date(value).date()
             except ValueError:
                 pass
         if not isinstance(value, date):
-            raise ValidationError(name, "%s not valid format" % value)
+            raise ValidationError(field.name, "%s not valid format" % value)
         return value
 
 
@@ -357,19 +357,19 @@ class DateTimeValidator(Validator):
             return value.isoformat()
         return value
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if isinstance(value, str):
             try:
                 value = parse_date(value)
             except ValueError:
                 pass
         if not isinstance(value, datetime):
-            raise ValidationError(name, "%s not valid format" % value)
+            raise ValidationError(field.name, "%s not valid format" % value)
         if self.timezone and not value.tzinfo:
             if value.time() == time():
                 value = tz.as_utc(value)
             else:
-                raise ValidationError(name, "Timezone information required")
+                raise ValidationError(field.name, "Timezone information required")
         return value
 
 
@@ -381,11 +381,11 @@ class BoundedNumberValidator(Validator):
         self.min_value = min_value
         self.max_value = max_value
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError(name, "%s less than %s" % (value, self.min_value))
+            raise ValidationError(field.name, "%s less than %s" % (value, self.min_value))
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError(name, "%s greater than %s" % (value, self.max_value))
+            raise ValidationError(field.name, "%s greater than %s" % (value, self.max_value))
         return value
 
     def dump(self, value):
@@ -412,14 +412,14 @@ class NumberValidator(BoundedNumberValidator):
         super().__init__(min_value=min_value, max_value=max_value)
         self.precision = precision
 
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             value = self.to_number(value)
             if self.precision is not None:
                 value = round(value, self.precision)
         except NumericErrors:
-            raise ValidationError(name, "%s not valid number" % value)
-        return super().__call__(name, value, data=data)
+            raise ValidationError(field.name, "%s not valid number" % value)
+        return super().__call__(field, value, data=data)
 
     def dump(self, value):
         if self.precision is not None:
@@ -428,29 +428,29 @@ class NumberValidator(BoundedNumberValidator):
 
 
 class IntegerValidator(BoundedNumberValidator):
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             value = self.to_number(value)
             if not isinstance(value, int):
                 raise ValueError
         except NumericErrors:
-            raise ValidationError(name, "%s not valid integer" % value)
-        return super().__call__(name, value, data=data)
+            raise ValidationError(field.name, "%s not valid integer" % value)
+        return super().__call__(field, value, data=data)
 
 
 class DecimalValidator(NumberValidator):
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             value = self.to_number(value)
             if not isinstance(value, Decimal):
                 value = Decimal(str(value))
         except NumericErrors:
-            raise ValidationError(name, "%s not valid Decimal" % value)
-        return super().__call__(name, value, data=None)
+            raise ValidationError(field.name, "%s not valid Decimal" % value)
+        return super().__call__(field, value, data=None)
 
 
 class BoolValidator(Validator):
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         return str2bool(value)
 
     def dump(self, value):
@@ -458,11 +458,11 @@ class BoolValidator(Validator):
 
 
 class JSONValidator(Validator):
-    def __call__(self, name: str, value: Any, data=None):
+    def __call__(self, field: Field, value: Any, data=None):
         try:
             return self.dump(value)
         except json.JSONDecodeError:
-            raise ValidationError(name, "%s not valid" % value)
+            raise ValidationError(field.name, "%s not valid" % value)
 
     def dump(self, value):
         if isinstance(value, str):

@@ -1,5 +1,5 @@
 from dataclasses import MISSING, Field, fields
-from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, NamedTuple, Optional, Tuple, Union
 
 from multidict import MultiDict
 
@@ -11,14 +11,13 @@ from .fields import (
     VALIDATOR,
     ValidationError,
     as_field,
-    field_ops,
+    field_ops
 )
 
 NOT_VALID_TYPE = "not valid type"
 OBJECT_EXPECTED = "expected an object"
 
 ErrorType = Union[Dict, str, None]
-ValidatorType = Optional[Callable[[Any], Any]]
 
 
 class ValidatedData(NamedTuple):
@@ -107,25 +106,15 @@ def validate(
         return vdata if raise_on_errors else ValidatedData(data=vdata, errors={})
 
 
-def validate_simple(
-    schema: type, data: Any, *, validator: Optional[ValidatorType] = None
-) -> Any:
-    if validator:
-        data = validator(data)
+def validate_simple(schema: type, data: Any) -> Any:
     if isinstance(data, schema):
         return data
     raise ValidationErrors(NOT_VALID_TYPE)
 
 
 def validate_union(
-    schema: Tuple[TypingInfo, ...],
-    data: Any,
-    validator: Optional[ValidatorType] = None,
-    as_schema: bool = False,
-    **kw,
+    schema: Tuple[TypingInfo, ...], data: Any, as_schema: bool = False, **kw,
 ) -> Any:
-    if validator:
-        data = validator(data)
     for type_info in schema:
         try:
             return validate(type_info, data, raise_on_errors=True, as_schema=as_schema)

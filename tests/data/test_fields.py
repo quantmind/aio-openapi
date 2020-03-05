@@ -100,16 +100,16 @@ def test_UUIDValidator_dump():
 def test_EnumValidator_call_valid():
     field = enum_field(FakeEnum)
     validator = field.metadata.get(VALIDATOR)
-    assert validator(field, "VALUE_A") == FakeEnum.VALUE_A.name
+    assert validator(field.name, "VALUE_A") == FakeEnum.VALUE_A.name
 
 
 def test_EnumValidator_call_invalid():
     field = enum_field(FakeEnum)
     validator = field.metadata.get(VALIDATOR)
     with pytest.raises(ValidationError):
-        validator(field, "VALUE_D")
+        validator(field.name, "VALUE_D")
     with pytest.raises(ValidationError):
-        validator(field, 1)
+        validator(field.name, 1)
 
 
 def test_enum_validator_dump():
@@ -121,14 +121,14 @@ def test_enum_validator_dump():
 def test_Choice_call_valid():
     field = data_field()
     validator = Choice(["a", "b", "c"])
-    assert validator(field, "a") == "a"
+    assert validator(field.name, "a") == "a"
 
 
 def test_Choice_call_invalid():
     field = data_field()
     validator = Choice(["a", "b", "c"])
     with pytest.raises(ValidationError):
-        validator(field, "d")
+        validator(field.name, "d")
 
 
 def test_DateTimeValidator_call_valid():
