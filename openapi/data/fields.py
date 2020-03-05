@@ -325,7 +325,7 @@ class Choice(Validator):
 
     def __call__(self, field: Field, value: Any, data=None):
         if value not in self.choices:
-            raise ValidationError(name, "%s not valid" % value)
+            raise ValidationError(field.name, "%s not valid" % value)
         return value
 
 
@@ -383,9 +383,13 @@ class BoundedNumberValidator(Validator):
 
     def __call__(self, field: Field, value: Any, data=None):
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError(field.name, "%s less than %s" % (value, self.min_value))
+            raise ValidationError(
+                field.name, "%s less than %s" % (value, self.min_value)
+            )
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError(field.name, "%s greater than %s" % (value, self.max_value))
+            raise ValidationError(
+                field.name, "%s greater than %s" % (value, self.max_value)
+            )
         return value
 
     def dump(self, value):
