@@ -17,6 +17,7 @@ from openapi.data.fields import (
     UUIDValidator,
     ValidationError,
     Validator,
+    as_field,
     bool_field,
     data_field,
     date_time_field,
@@ -306,3 +307,11 @@ def test_BoolValidator_dump():
     assert validator.dump(False) is False
     assert validator.dump("TrUe") is True
     assert validator.dump("fAlSe") is False
+
+
+def test_override_field_type():
+    field = bool_field()
+    assert not field.type
+    field.type = bool
+    with pytest.raises(RuntimeError):
+        as_field(float, field=field)

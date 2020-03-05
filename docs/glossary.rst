@@ -10,6 +10,10 @@
 .. glossary::
    :sorted:
 
+   asyncio
+
+      Python :mod:`asyncio` module for asynchronous IO programming
+
    dataclasses
 
-      Python dataclasses module
+      Python :mod:`dataclasses` module

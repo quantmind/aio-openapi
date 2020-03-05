@@ -465,7 +465,7 @@ class JSONValidator(Validator):
     def __call__(self, field: Field, value: Any, data=None):
         try:
             return self.dump(value)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError):
             raise ValidationError(field.name, "%s not valid" % value)
 
     def dump(self, value):

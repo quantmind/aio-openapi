@@ -30,11 +30,11 @@ class ValidationErrors(ValueError):
         self.errors = errors
 
 
-def validated_schema(schema, data, *, strict: bool = True) -> Any:
+def validated_schema(schema: Any, data: Any, *, strict: bool = True) -> Any:
     """Validate data with a given schema and return a valid representation of the data
     as a schema instance
 
-    :param schema: a typing annotation or a :class:`.TypingInfo` object
+    :param schema: a valid  :ref:`aio-openapi-schema` or a :class:`.TypingInfo` object
     :param data: a data object to validate against the schema
     :param strict: if `True` validation is strict, i.e. missing required parameters
         will cause validation to fails
