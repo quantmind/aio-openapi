@@ -117,6 +117,7 @@ class SourcePrice:
     """An object containing prices for a single contract"""
 
     id: int = fields.integer_field(description="ID", required=True)
+    extra: Dict = fields.data_field(description="JSON blob")
     prices: Dict[str, Decimal] = fields.data_field(
         description="source-price mapping",
         items=fields.decimal_field(

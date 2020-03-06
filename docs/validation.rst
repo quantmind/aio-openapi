@@ -59,6 +59,7 @@ The library support the following schemas
 * ``List`` from ``typing`` annotation with items from this supported schema
 * ``Dict`` from ``typing`` with keys as string and items from this supported schema
 * ``Union`` from ``typing`` with items from this supported schema
+* ``Any`` to skip validation and allow for any value
 
 Validated Schema
 ================

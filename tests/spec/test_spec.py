@@ -3,6 +3,7 @@ import pytest
 from openapi.exc import InvalidSpecException
 from openapi.rest import rest
 from openapi.spec import OpenApi, OpenApiSpec
+from openapi.testing import json_body
 from tests.example import endpoints, endpoints_additional
 
 
@@ -81,3 +82,13 @@ async def test_tags_missing_description():
     )
     with pytest.raises(InvalidSpecException):
         spec.build(app)
+
+
+async def test_spec_root(cli):
+    response = await cli.get("/spec")
+    spec = await json_body(response)
+    assert "paths" in spec
+    assert "tags" in spec
+    assert len(spec["tags"]) == 5
+    assert spec["tags"][3]["name"] == "Task"
+    assert spec["tags"][3]["description"] == "Simple description"
