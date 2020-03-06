@@ -77,8 +77,8 @@ MultiKeyUnique = dataclass_from_table("MultiKeyUnique", db.multi_key_unique)
 
 @dataclass
 class MultiKey:
-    x: Union[int, str, datetime] = fields.json_field(required=True)
-    y: Union[int, str, datetime] = fields.json_field(required=True)
+    x: Union[int, str, datetime] = fields.json_field(required=True, description="x")
+    y: Union[int, str, datetime] = fields.json_field(required=True, description="y")
 
 
 @dataclass

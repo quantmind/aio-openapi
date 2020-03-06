@@ -68,7 +68,7 @@ class SchemaParser:
             params.append(entry)
         return params
 
-    def field2json(self, field: Field) -> Dict[str, str]:
+    def field2json(self, field: Field, validate: bool = True) -> Dict[str, str]:
         """Convert a dataclass field to Json schema"""
         field = fields.as_field(field)
         meta = field.metadata
@@ -76,7 +76,7 @@ class SchemaParser:
         json_property = self.get_schema_info(field.type, items=items)
         field_description = meta.get(fields.DESCRIPTION)
         if not field_description:
-            if self.validate_docs:
+            if self.validate_docs and validate:
                 raise InvalidSpecException(
                     f'Missing description for field "{field.name}"'
                 )
@@ -132,14 +132,18 @@ class SchemaParser:
                 "type": "array",
                 "items": {"type": "object", "additionalProperties": True}
                 if type_info.element is Any
-                else self.field2json(fields.as_field(type_info.element, field=items)),
+                else self.field2json(
+                    fields.as_field(type_info.element, field=items), False
+                ),
             }
         elif type_info.container is dict:
             return {
                 "type": "object",
                 "additionalProperties": True
                 if type_info.element is Any
-                else self.field2json(fields.as_field(type_info.element, field=items)),
+                else self.field2json(
+                    fields.as_field(type_info.element, field=items), False
+                ),
             }
         elif type_info.is_union:
             return {"oneOf": [self.get_schema_info(e) for e in type_info.element]}
@@ -276,12 +280,9 @@ class OpenApiSpec(SchemaParser):
             if include:
                 N = len(base_path)
                 path = path[N:]
-                try:
-                    paths[path] = self._build_path_object(handler, app, public, private)
-                except (InvalidSpecException, InvalidTypeException) as exc:
-                    raise InvalidSpecException(
-                        f'Invalid spec in route "{path}": {exc}'
-                    ) from None
+                paths[path] = self._build_path_object(
+                    path, handler, app, public, private
+                )
 
         if self.validate_docs:
             self._validate_tags()
@@ -293,39 +294,46 @@ class OpenApiSpec(SchemaParser):
             if "description" not in tag_obj:
                 raise InvalidSpecException(f'Missing tag "{tag_name}" description')
 
-    def _build_path_object(self, handler, path_obj, public, private):
+    def _build_path_object(self, path: str, handler, path_obj, public, private):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
         doc_tags = path_obj.pop("tags", None)
         if not doc_tags and self.validate_docs:
-            raise InvalidSpecException(f'Missing tags docstring for "{handler}"')
+            raise InvalidSpecException(f"Missing tags docstring for route '{path}'")
 
         tags = self._extend_tags(doc_tags)
         if handler.path_schema:
             path_obj["parameters"] = self.get_parameters(handler.path_schema)
         for method in METHODS:
-            method_handler = getattr(handler, method, None)
-            if method_handler is None:
-                continue
+            try:
+                method_handler = getattr(handler, method, None)
+                if method_handler is None:
+                    continue
 
-            operation = getattr(method_handler, "op", None)
-            if operation is None:
-                self.logger.warning(
-                    "No operation defined for %s.%s", handler.__name__, method
-                )
-                continue
+                operation = getattr(method_handler, "op", None)
+                if operation is None:
+                    self.logger.warning(
+                        "No operation defined for %s.%s", handler.__name__, method
+                    )
+                    continue
 
-            method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
-            if not self._include(method_doc.pop("private", private), public, private):
-                continue
-            mtags = tags.copy()
-            mtags.update(self._extend_tags(method_doc.pop("tags", None)))
-            self._get_response_object(operation.response_schema, method_doc)
-            self._get_request_body_object(operation.body_schema, method_doc)
-            self._get_query_parameters(operation.query_schema, method_doc)
-            method_info = self._get_method_info(method_handler, method_doc)
-            method_doc.update(method_info)
-            method_doc["tags"] = list(mtags)
-            path_obj[method] = method_doc
+                method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
+                if not self._include(
+                    method_doc.pop("private", private), public, private
+                ):
+                    continue
+                mtags = tags.copy()
+                mtags.update(self._extend_tags(method_doc.pop("tags", None)))
+                self._get_response_object(operation.response_schema, method_doc)
+                self._get_request_body_object(operation.body_schema, method_doc)
+                self._get_query_parameters(operation.query_schema, method_doc)
+                method_info = self._get_method_info(method_handler, method_doc)
+                method_doc.update(method_info)
+                method_doc["tags"] = list(mtags)
+                path_obj[method] = method_doc
+            except (InvalidSpecException, InvalidTypeException) as exc:
+                raise InvalidSpecException(
+                    f"Invalid spec in route '{method} {path}': {exc}"
+                ) from None
 
         return path_obj
 

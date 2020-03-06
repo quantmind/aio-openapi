@@ -30,6 +30,7 @@ def create_app():
             }
         ),
         setup_app=setup_app,
+        # validate_docs=True
     )
 
 
