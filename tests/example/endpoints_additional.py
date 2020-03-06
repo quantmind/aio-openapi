@@ -295,7 +295,8 @@ class MultiKeyPath(SqlApiPath):
     ---
     summary: Create rows in multikey constraint table
     tags:
-        - MultiKey
+        - name: Multikey
+          description: several keys
     """
 
     table = "multi_key"
@@ -305,6 +306,7 @@ class MultiKeyPath(SqlApiPath):
         """
         ---
         summary: Create row in multi-column constrained table
+        description: Create row in multi-column constrained table
         responses:
             201:
                 description: New row
@@ -317,6 +319,7 @@ class MultiKeyPath(SqlApiPath):
         """
         ---
         summary: List multi-column constrained items
+        description: List multi-column constrained items
         responses:
             200:
                 description: List of items
@@ -331,7 +334,7 @@ class MultiKeyUniquePath(SqlApiPath):
     ---
     summary: Create rows in multikey constraint table
     tags:
-        - MultiKey
+        - Multikey
     """
 
     table = "multi_key_unique"
@@ -341,6 +344,7 @@ class MultiKeyUniquePath(SqlApiPath):
         """
         ---
         summary: Create row in multi-column constrained table
+        description: Create row in multi-column constrained table
         responses:
             201:
                 description: New row
@@ -353,6 +357,7 @@ class MultiKeyUniquePath(SqlApiPath):
         """
         ---
         summary: List multi-column constrained items
+        description: List multi-column constrained items
         responses:
             200:
                 description: List of items
@@ -367,7 +372,8 @@ class SourcePath(ApiPath):
     ---
     summary: Sources
     tags:
-        - Sources
+        - name: Sources
+          description: Sources
     """
 
     @op(response_schema=List[SourcePrice])
@@ -375,6 +381,7 @@ class SourcePath(ApiPath):
         """
         ---
         summary: List sources
+        description: List sources
         responses:
             200:
                 description: List of sources
