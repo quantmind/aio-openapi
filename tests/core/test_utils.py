@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
@@ -57,8 +57,8 @@ def test_typing_info() -> None:
 
 
 def test_typing_info_dict_list() -> None:
-    assert TypingInfo.get(Dict) == utils.TypingInfo(str, dict)
-    assert TypingInfo.get(List) == utils.TypingInfo(str, list)
+    assert TypingInfo.get(Dict) == utils.TypingInfo(Any, dict)
+    assert TypingInfo.get(List) == utils.TypingInfo(Any, list)
 
 
 def test_bad_typing_info() -> None:

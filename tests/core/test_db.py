@@ -177,16 +177,6 @@ async def test_validation_error_if_field_not_allowed(cli):
     await json_body(response, 422)
 
 
-async def test_spec_root(cli):
-    response = await cli.get("/spec")
-    spec = await json_body(response)
-    assert "paths" in spec
-    assert "tags" in spec
-    assert len(spec["tags"]) == 4
-    assert spec["tags"][2]["name"] == "Task"
-    assert spec["tags"][2]["description"] == "Simple description"
-
-
 async def test_transaction_create(cli):
     response = await cli.post("/transaction/tasks", json=dict(title="tran"))
     data = await json_body(response, status=201)

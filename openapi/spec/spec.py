@@ -128,13 +128,18 @@ class SchemaParser:
     ) -> Dict[str, str]:
         type_info = TypingInfo.get(schema)
         if type_info.container is list:
-            field = fields.as_field(type_info.element, field=items)
-            return {"type": "array", "items": self.field2json(field)}
+            return {
+                "type": "array",
+                "items": {"type": "object", "additionalProperties": True}
+                if type_info.element is Any
+                else self.field2json(fields.as_field(type_info.element, field=items)),
+            }
         elif type_info.container is dict:
-            field = fields.as_field(type_info.element, field=items)
             return {
                 "type": "object",
-                "additionalProperties": self.field2json(field),
+                "additionalProperties": True
+                if type_info.element is Any
+                else self.field2json(fields.as_field(type_info.element, field=items)),
             }
         elif type_info.is_union:
             return {"oneOf": [self.get_schema_info(e) for e in type_info.element]}

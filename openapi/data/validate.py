@@ -96,6 +96,8 @@ def validate(
             )
         elif type_info.is_union:
             vdata = validate_union(type_info.element, data, as_schema=as_schema)
+        elif type_info.element is Any:
+            vdata = data
         else:
             vdata = validate_simple(type_info.element, data)
     except ValidationErrors as e:

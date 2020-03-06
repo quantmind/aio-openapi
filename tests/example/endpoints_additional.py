@@ -9,6 +9,7 @@ from openapi.spec import op
 from .models import (
     MultiKey,
     MultiKeyUnique,
+    SourcePrice,
     Task,
     TaskAdd,
     TaskOrderableQuery,
@@ -37,7 +38,7 @@ class TaskBulkPath(SqlApiPath):
 
     table = "tasks"
 
-    @op(body_schema=[TaskAdd], response_schema=List[Task])
+    @op(body_schema=List[TaskAdd], response_schema=List[Task])
     async def post(self):
         """
         ---
@@ -197,7 +198,7 @@ class TaskBulkTransactionPath(SqlApiPath):
             await self.delete_list(query=dict(self.request.query), conn=conn)
             return web.Response(status=204)
 
-    @op(body_schema=List[TaskAdd], response_schema=[Task])
+    @op(body_schema=List[TaskAdd], response_schema=List[Task])
     async def post(self):
         """
         ---
@@ -358,6 +359,27 @@ class MultiKeyUniquePath(SqlApiPath):
         """
         paginated = await self.get_list()
         return paginated.json_response()
+
+
+@additional_routes.view("/sources")
+class SourcePath(ApiPath):
+    """
+    ---
+    summary: Sources
+    tags:
+        - Sources
+    """
+
+    @op(response_schema=List[SourcePrice])
+    async def get(self):
+        """
+        ---
+        summary: List sources
+        responses:
+            200:
+                description: List of sources
+        """
+        return self.json_response([])
 
 
 @invalid_path_routes.view("/tasks")

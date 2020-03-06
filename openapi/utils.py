@@ -1,6 +1,5 @@
 import os
 import sys
-import warnings
 from dataclasses import is_dataclass
 from inspect import isclass
 from typing import (
@@ -88,15 +87,7 @@ class TypingInfo(NamedTuple):
             return value
         origin = get_origin(value)
         if not origin:
-            if isinstance(value, list):
-                warnings.warn(
-                    "typing via lists is deprecated in version 1.5.* and "
-                    "will be removed in version 1.8, use typing.List instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                return cls(value[0], list)
-            elif isclass(value):
+            if value is Any or isclass(value):
                 return cls(value)
             else:
                 raise InvalidTypeException(
@@ -105,7 +96,7 @@ class TypingInfo(NamedTuple):
         elif origin is list:
             (val,) = value.__args__ or (T,)
             if val is T:
-                val = str
+                val = Any
             elem_info = cast(TypingInfo, cls.get(val))
             elem = elem_info if elem_info.is_complex else elem_info.element
             return cls(elem, list)
@@ -114,7 +105,7 @@ class TypingInfo(NamedTuple):
             if key is KT:
                 key = str
             if val is VT:
-                val = str
+                val = Any
             if key is not str:
                 raise InvalidTypeException(
                     f"Dict key annotation must be a string, got {key}"
