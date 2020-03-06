@@ -1,12 +1,10 @@
 import pytest
 
+from openapi.exc import InvalidSpecException
 from openapi.rest import rest
 from openapi.spec import OpenApi, OpenApiSpec
-from openapi.exc import InvalidSpecException
-
-from ..example import endpoints
-
-#  from openapi_spec_validator import validate_spec
+from openapi.testing import json_body
+from tests.example import endpoints, endpoints_additional
 
 
 def create_spec_app(routes):
@@ -29,23 +27,6 @@ async def test_spec_validation(test_app):
     # validate_spec(spec.doc)
 
 
-async def test_spec_security(test_app):
-    open_api = OpenApi(
-        security=dict(
-            auth_key={
-                "type": "apiKey",
-                "name": "X-Api-Key",
-                "description": "The authentication key",
-                "in": "header",
-            }
-        )
-    )
-    spec = OpenApiSpec(open_api)
-    spec.build(test_app)
-    assert spec.doc["info"]["security"] == ["auth_key"]
-    assert spec.doc["components"]["securitySchemes"]
-
-
 async def test_spec_422(test_app):
     spec = OpenApiSpec()
     spec.build(test_app)
@@ -58,7 +39,7 @@ async def test_spec_422(test_app):
 
 
 async def test_invalid_path():
-    app = create_spec_app(endpoints.invalid_path_routes)
+    app = create_spec_app(endpoints_additional.invalid_path_routes)
     spec = OpenApiSpec(validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
@@ -66,7 +47,7 @@ async def test_invalid_path():
 
 
 async def test_invalid_method_missing_summary():
-    app = create_spec_app(endpoints.invalid_method_summary_routes)
+    app = create_spec_app(endpoints_additional.invalid_method_summary_routes)
     spec = OpenApiSpec(validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
@@ -74,7 +55,7 @@ async def test_invalid_method_missing_summary():
 
 
 async def test_invalid_method_missing_description():
-    app = create_spec_app(endpoints.invalid_method_description_routes)
+    app = create_spec_app(endpoints_additional.invalid_method_description_routes)
     spec = OpenApiSpec(validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
@@ -95,9 +76,19 @@ async def test_allowed_tags_invalid():
 
 
 async def test_tags_missing_description():
-    app = create_spec_app(endpoints.invalid_tag_missing_description_routes)
+    app = create_spec_app(endpoints_additional.invalid_tag_missing_description_routes)
     spec = OpenApiSpec(
         validate_docs=True, allowed_tags=set(("Task", "Transaction", "Random"))
     )
     with pytest.raises(InvalidSpecException):
         spec.build(app)
+
+
+async def test_spec_root(cli):
+    response = await cli.get("/spec")
+    spec = await json_body(response)
+    assert "paths" in spec
+    assert "tags" in spec
+    assert len(spec["tags"]) == 5
+    assert spec["tags"][3]["name"] == "Task"
+    assert spec["tags"][3]["description"] == "Simple description"

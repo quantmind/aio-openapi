@@ -1,5 +1,5 @@
-import typing as t
 from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Sequence
 
 from aiohttp.web import Application
 
@@ -11,13 +11,14 @@ from .spec.utils import docjoin
 
 
 def rest(
-    openapi: t.Dict = None,
-    setup_app: t.Callable[[Application], None] = None,
+    openapi: Optional[Dict] = None,
+    setup_app: Callable[[Application], None] = None,
     base_path: str = "",
-    commands: t.Optional[t.List] = None,
-    allowed_tags: t.Optional[t.Set[str]] = None,
+    commands: Optional[List] = None,
+    allowed_tags: Sequence[str] = (),
     validate_docs: bool = False,
-    servers: t.Optional[t.List[str]] = None,
+    servers: Optional[List[str]] = None,
+    security: Optional[Dict[str, Dict]] = None,
     OpenApiSpecClass: type = OpenApiSpec,
     **kwargs,
 ) -> OpenApiClient:
@@ -29,6 +30,7 @@ def rest(
             allowed_tags=allowed_tags,
             validate_docs=validate_docs,
             servers=servers,
+            security=security,
         ),
         base_path=base_path,
         commands=commands,
@@ -39,6 +41,8 @@ def rest(
 
 @dataclass
 class Query:
+    """Base dataclass for querying pagination"""
+
     limit: int = data_field(
         validator=IntegerValidator(min_value=1, max_value=MAX_PAGINATION_LIMIT),
         description="Limit the number of objects returned from the endpoint",
@@ -53,6 +57,12 @@ class Query:
 
 
 def orderable(*orderable_fields) -> type:
+    """Create a dataclass with `order_by` choice field and the `order_desc`
+    boolean field.
+
+    :param *orderable_fields: fields which can be used for ordering
+    """
+
     @dataclass
     class Orderable:
         order_by: str = data_field(
@@ -70,7 +80,12 @@ def orderable(*orderable_fields) -> type:
 
 
 def searchable(*searchable_fields) -> type:
-    """Create a dataclass for search fields
+    """Create a dataclass with `search_fields` class attribute and `search` field.
+    The search field is a set of field which can be used for searching and it is used
+    internally by the library, while the `search` field is the query string passed
+    in the url.
+
+    :param searchable_fields: fields which can be used for searching
     """
     fields = docjoin(searchable_fields)
 

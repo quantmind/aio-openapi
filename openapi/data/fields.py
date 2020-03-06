@@ -1,15 +1,15 @@
-import decimal
-from dataclasses import Field, dataclass, field
+from dataclasses import Field, dataclass, field, fields
 from datetime import date, datetime, time
+from decimal import Decimal, InvalidOperation
 from numbers import Number
-from typing import Any, Callable, Dict, Iterator, Tuple
+from typing import Any, Callable, Dict, Iterator, Optional, Tuple
 from uuid import UUID
 
 from dateutil.parser import parse as parse_date
 from email_validator import EmailNotValidError, validate_email
 
 from .. import json, tz
-from ..utils import compact_dict
+from ..utils import compact_dict, str2bool
 
 REQUIRED = "required"
 VALIDATOR = "OPENAPI_VALIDATOR"
@@ -18,36 +18,55 @@ POST_PROCESS = "post_process"
 DUMP = "dump"
 FORMAT = "format"
 OPS = "ops"
+ITEMS = "items"
 
 DataClass = Any
 
 
+PRIMITIVE_TYPES: Dict[Any, Dict] = {
+    str: {"type": "string"},
+    int: {"type": "integer", FORMAT: "int32"},
+    float: {"type": "number", FORMAT: "float"},
+    bool: {"type": "boolean"},
+    date: {"type": "string", FORMAT: "date"},
+    datetime: {"type": "string", FORMAT: "date-time"},
+    Decimal: {"type": "number"},
+}
+
+
 class ValidationError(ValueError):
-    def __init__(self, field, message):
+    def __init__(self, field: str, message: str) -> None:
         self.field = field
         self.message = message
 
 
+def field_dict(dc: type) -> Dict[str, Field]:
+    return {f.name: f for f in fields(dc)}
+
+
 def data_field(
     required: bool = False,
-    validator: Callable[[Field, Any, Dict], Any] = None,
-    dump: Callable[[Any], Any] = None,
+    validator: Optional[Callable[[Field, Any], Any]] = None,
+    dump: Optional[Callable[[Any], Any]] = None,
     format: str = None,
     description: str = None,
+    items: Optional[Field] = None,
     post_process: Callable[[Any], Any] = None,
     ops: Tuple = (),
     **kwargs,
 ) -> Field:
-    """Extend a dataclass field with
+    """Extend a dataclass field with the following metadata
 
-    :param validator: optional callable which accept (field, value, data)
-                      as inputs and return the validated value
+    :param validator: optional callable which accept field and raw value
+        as inputs and return the validated value
     :param required: boolean specifying if field is required
     :param dump: optional callable which receive the field value and convert to
-                 the desired value to serve in requests
+        the desired value to serve in requests
     :param format: optional string which represents the JSON schema format
-    :params description: optional field description
-    :params prost_process: post processor function executed after validation
+    :param description: optional field description
+    :param items: field for items of the current field
+        (only used for `List` and `Dict` fields)
+    :param post_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
     """
     if isinstance(validator, Validator) and not dump:
@@ -62,6 +81,7 @@ def data_field(
                 REQUIRED: required,
                 DUMP: dump,
                 DESCRIPTION: description,
+                ITEMS: items,
                 POST_PROCESS: post_process,
                 FORMAT: format,
                 OPS: ops,
@@ -72,7 +92,12 @@ def data_field(
     return f
 
 
-def str_field(max_length=None, min_length=None, **kw) -> Field:
+def str_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> Field:
+    """A specialized :func:`.data_field` for strings
+
+    :param min_length: minim length of string
+    :param max_length: maximum length of string
+    """
     kw.setdefault(
         "validator", StrValidator(min_length=min_length, max_length=max_length)
     )
@@ -80,23 +105,42 @@ def str_field(max_length=None, min_length=None, **kw) -> Field:
 
 
 def bool_field(**kw) -> Field:
+    """Specialized :func:`.data_field` for bool types"""
     kw.setdefault("validator", BoolValidator())
     return data_field(**kw)
 
 
-def uuid_field(format="uuid", **kw) -> Field:
+def uuid_field(format: str = "uuid", **kw) -> Field:
     """A UUID field with validation
     """
     kw.setdefault("validator", UUIDValidator())
     return data_field(format=format, **kw)
 
 
-def number_field(min_value=None, max_value=None, precision=None, **kw) -> Field:
+def number_field(
+    min_value: Optional[float] = None,
+    max_value: Optional[float] = None,
+    precision: Optional[int] = None,
+    **kw,
+) -> Field:
+    """ A specialized :func:`.data_field` for numeric values
+
+    :param min_value: minimum value
+    :param max_value: maximum value
+    :param precision: decimal precision
+    """
     kw.setdefault("validator", NumberValidator(min_value, max_value, precision))
     return data_field(**kw)
 
 
-def integer_field(min_value=None, max_value=None, **kw) -> Field:
+def integer_field(
+    min_value: Optional[int] = None, max_value: Optional[int] = None, **kw
+) -> Field:
+    """ A specialized :func:`.data_field` for integer values
+
+    :param min_value: minimum value
+    :param max_value: maximum value
+    """
     kw.setdefault("validator", IntegerValidator(min_value, max_value))
     return data_field(**kw)
 
@@ -106,7 +150,13 @@ def decimal_field(min_value=None, max_value=None, precision=None, **kw) -> Field
     return data_field(**kw)
 
 
-def email_field(max_length=None, min_length=None, **kw) -> Field:
+def email_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> Field:
+    """A specialized :func:`.data_field` for emails, validation via the
+    `email_validator` third party library
+
+    :param min_length: minim length of email
+    :param max_length: maximum length of email
+    """
     kw.setdefault(
         "validator", EmailValidator(min_length=min_length, max_length=max_length)
     )
@@ -114,29 +164,43 @@ def email_field(max_length=None, min_length=None, **kw) -> Field:
 
 
 def enum_field(EnumClass, **kw) -> Field:
+    """A specialized :func:`.data_field` for enums
+
+    :param EnumClass: enum for validation
+    """
     kw.setdefault("validator", EnumValidator(EnumClass))
     return data_field(**kw)
 
 
 def date_field(**kw) -> Field:
+    """A specialized :func:`.data_field` for dates
+    """
     kw.setdefault("validator", DateValidator())
     return data_field(**kw)
 
 
 def date_time_field(timezone=False, **kw) -> Field:
+    """A specialized :func:`.data_field` for datetimes
+
+    :param timezone: timezone for validation
+    """
     kw.setdefault("validator", DateTimeValidator(timezone=timezone))
     return data_field(**kw)
 
 
-def as_field(item, **kw) -> Field:
+def as_field(item: Any, *, field: Optional[Field] = None, **kw) -> Field:
     if isinstance(item, Field):
         return item
-    field = data_field(**kw)
+    field = field or data_field(**kw)
+    if field.type and field.type is not item:
+        raise RuntimeError("Cannot override field type")
     field.type = item
     return field
 
 
 def json_field(**kw) -> Field:
+    """A specialized :func:`.data_field` for JSON data
+    """
     kw.setdefault("validator", JSONValidator())
     return data_field(**kw)
 
@@ -156,10 +220,10 @@ def field_ops(field: Field) -> Iterator[str]:
 class Validator:
     dump = None
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         raise ValidationError(field.name, "invalid")
 
-    def openapi(self, prop):
+    def openapi(self, prop: Dict) -> None:
         pass
 
 
@@ -168,7 +232,7 @@ class StrValidator(Validator):
     min_length: int = 0
     max_length: int = 0
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         if not isinstance(value, str):
             raise ValidationError(field.name, "Must be a string")
         if self.min_length and len(value) < self.min_length:
@@ -177,7 +241,7 @@ class StrValidator(Validator):
             raise ValidationError(field.name, "Too long")
         return value
 
-    def openapi(self, prop):
+    def openapi(self, prop: Dict) -> None:
         if self.min_length:
             prop["minLength"] = self.min_length
         if self.max_length:
@@ -186,8 +250,8 @@ class StrValidator(Validator):
 
 @dataclass
 class EmailValidator(StrValidator):
-    def __call__(self, field, value, data=None):
-        value = super().__call__(field, value, data=data)
+    def __call__(self, field: Field, value: Any) -> Any:
+        value = super().__call__(field, value)
         try:
             validate_email(value, check_deliverability=False)
         except EmailNotValidError:
@@ -196,29 +260,29 @@ class EmailValidator(StrValidator):
 
 
 class ListValidator(Validator):
-    def __init__(self, validators):
+    def __init__(self, validators) -> None:
         self.validators = validators
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         for validator in self.validators:
-            value = validator(field, value, data)
+            value = validator(field.name, value)
         return value
 
-    def dump(self, value):
+    def dump(self, value: Any) -> Any:
         for validator in self.validators:
             dump = getattr(validator, "dump", None)
             if hasattr(dump, "__call__"):
                 value = dump(value)
         return value
 
-    def openapi(self, prop):
+    def openapi(self, prop: Dict) -> None:
         for validator in self.validators:
             if isinstance(validator, Validator):
                 validator.openapi(prop)
 
 
 class UUIDValidator(Validator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         try:
             if not isinstance(value, UUID):
                 value = UUID(str(value))
@@ -226,7 +290,7 @@ class UUIDValidator(Validator):
         except ValueError:
             raise ValidationError(field.name, "%s not a valid uuid" % value)
 
-    def dump(self, value):
+    def dump(self, value: Any) -> Any:
         if isinstance(value, UUID):
             return value.hex
         return value
@@ -235,10 +299,10 @@ class UUIDValidator(Validator):
 class EnumValidator(Validator):
     """Enum validator to and from name (str) and value (int)"""
 
-    def __init__(self, EnumClass):
+    def __init__(self, EnumClass) -> None:
         self.EnumClass = EnumClass
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         try:
             e = value
             if isinstance(e, str):
@@ -249,31 +313,31 @@ class EnumValidator(Validator):
         except AttributeError:
             raise ValidationError(field.name, "%s not valid" % value)
 
-    def dump(self, value):
+    def dump(self, value: Any) -> Any:
         if isinstance(value, self.EnumClass):
             return value.name
         return value
 
 
 class Choice(Validator):
-    def __init__(self, choices):
+    def __init__(self, choices) -> None:
         self.choices = choices
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         if value not in self.choices:
             raise ValidationError(field.name, "%s not valid" % value)
         return value
 
 
 class DateValidator(Validator):
-    def dump(self, value):
+    def dump(self, value: Any) -> Any:
         if isinstance(value, datetime):
             return value.date().isoformat()
         elif isinstance(value, date):
             return value.isoformat()
         return value
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         if isinstance(value, str):
             try:
                 value = parse_date(value).date()
@@ -285,15 +349,15 @@ class DateValidator(Validator):
 
 
 class DateTimeValidator(Validator):
-    def __init__(self, timezone=False):
+    def __init__(self, timezone=False) -> None:
         self.timezone = timezone
 
-    def dump(self, value):
+    def dump(self, value: Any) -> Any:
         if isinstance(value, datetime):
             return value.isoformat()
         return value
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         if isinstance(value, str):
             try:
                 value = parse_date(value)
@@ -309,15 +373,17 @@ class DateTimeValidator(Validator):
         return value
 
 
-NumericErrors = (TypeError, ValueError, decimal.InvalidOperation)
+NumericErrors = (TypeError, ValueError, InvalidOperation)
 
 
 class BoundedNumberValidator(Validator):
-    def __init__(self, min_value=None, max_value=None):
+    def __init__(
+        self, min_value: Optional[Number] = None, max_value: Optional[Number] = None
+    ) -> None:
         self.min_value = min_value
         self.max_value = max_value
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(
                 field.name, "%s less than %s" % (value, self.min_value)
@@ -328,10 +394,10 @@ class BoundedNumberValidator(Validator):
             )
         return value
 
-    def dump(self, value):
-        return value
+    def dump(self, value: Any) -> Number:
+        return self.to_number(value)
 
-    def openapi(self, prop):
+    def openapi(self, prop: Dict) -> None:
         if self.min_value is not None:
             prop["minimum"] = self.min_value
         if self.max_value is not None:
@@ -342,70 +408,78 @@ class BoundedNumberValidator(Validator):
             try:
                 return int(value)
             except ValueError:
-                return decimal.Decimal(value)
+                return Decimal(value)
         else:
             return value
 
 
 class NumberValidator(BoundedNumberValidator):
-    def __init__(self, min_value=None, max_value=None, precision=None):
+    def __init__(
+        self,
+        min_value: Optional[Number] = None,
+        max_value: Optional[Number] = None,
+        precision: Optional[int] = None,
+    ) -> None:
         super().__init__(min_value=min_value, max_value=max_value)
         self.precision = precision
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         try:
             value = self.to_number(value)
             if self.precision is not None:
                 value = round(value, self.precision)
         except NumericErrors:
             raise ValidationError(field.name, "%s not valid number" % value)
-        return super().__call__(field, value, data=data)
+        return super().__call__(field, value)
 
-    def dump(self, value):
+    def dump(self, value: Any) -> Any:
+        value = self.to_number(value)
         if self.precision is not None:
             return round(value, self.precision)
         return value
 
 
 class IntegerValidator(BoundedNumberValidator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         try:
             value = self.to_number(value)
             if not isinstance(value, int):
                 raise ValueError
         except NumericErrors:
             raise ValidationError(field.name, "%s not valid integer" % value)
-        return super().__call__(field, value, data=data)
+        return super().__call__(field, value)
 
 
 class DecimalValidator(NumberValidator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         try:
             value = self.to_number(value)
-            if not isinstance(value, decimal.Decimal):
-                value = decimal.Decimal(str(value))
+            if not isinstance(value, Decimal):
+                value = Decimal(str(value))
         except NumericErrors:
             raise ValidationError(field.name, "%s not valid Decimal" % value)
-        return super().__call__(field, value, data=None)
+        return super().__call__(field, value)
 
 
 class BoolValidator(Validator):
-    def __call__(self, field, value, data=None):
-        value = str(value).lower()
-        if value not in ("true", "false"):
-            raise ValidationError(field.name, "%s not valid" % value)
-        return value == "true"
+    def __call__(self, field: Field, value: Any) -> Any:
+        return str2bool(value)
 
-    def dump(self, value):
-        return str(value).lower() == "true"
+    def dump(self, value: Any) -> bool:
+        return str2bool(value)
 
 
 class JSONValidator(Validator):
-    def __call__(self, field, value, data=None):
+    def __call__(self, field: Field, value: Any) -> Any:
         try:
             return self.dump(value)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError):
             raise ValidationError(field.name, "%s not valid" % value)
 
-    def dump(self, value):
-        return json.loads(value if isinstance(value, str) else json.dumps(value))
+    def dump(self, value: Any) -> Any:
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        return json.loads(json.dumps(value))

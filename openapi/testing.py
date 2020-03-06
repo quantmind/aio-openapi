@@ -1,19 +1,27 @@
 """Testing utilities
 """
 import asyncio
+from typing import Any
+
+from aiohttp.client import ClientResponse
 
 from .db.dbmodel import CrudDB
 from .json import dumps, loads
 from .utils import asynccontextmanager
 
 
-async def jsonBody(response, status=200):
+async def json_body(response: ClientResponse, status: int = 200) -> Any:
     assert response.content_type == "application/json"
     data = await response.json(loads=loads)
     if response.status != status:  # pragma: no cover
         print(dumps({"status": response.status, "data": data}, indent=4))
+
     assert response.status == status
     return data
+
+
+# backward compatibility
+jsonBody = json_body
 
 
 def equal_dict(d1, d2):

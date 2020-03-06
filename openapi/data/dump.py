@@ -1,7 +1,7 @@
 from dataclasses import asdict, fields
 from typing import Any, Dict, List, Optional, cast
 
-from ..utils import iter_items, TypingInfo
+from ..utils import TypingInfo, iter_items
 from .fields import DUMP
 
 
@@ -9,6 +9,24 @@ def is_nothing(value: Any) -> bool:
     if value == 0 or value is False:
         return False
     return not value
+
+
+def dump(schema: Any, data: Any) -> Any:
+    """Dump data with a given schema.
+
+    :param schema: a valid :ref:`aio-openapi-schema`
+    :param data: data to dump, if dataclasses are part of the schema,
+        the `dump` metadata function will be used if available (see :func:`.data_field`)
+    """
+    type_info = TypingInfo.get(schema)
+    if type_info.container is list:
+        return dump_list(type_info.element, cast(List, data))
+    elif type_info.container is dict:
+        return dump_dict(type_info.element, cast(Dict, data))
+    elif type_info.is_dataclass:
+        return dump_dataclass(type_info.element, cast(Dict, data))
+    else:
+        return data
 
 
 def dump_dataclass(schema: type, data: Optional[Dict] = None) -> Dict:
@@ -41,15 +59,3 @@ def dump_dict(schema: Any, data: Dict[str, Any]) -> List[Dict]:
     """Validate a dictionary of data with a given dataclass
     """
     return {name: dump(schema, d) for name, d in data.items()}
-
-
-def dump(schema: Any, data: Any):
-    type_info = TypingInfo.get(schema)
-    if type_info.container is list:
-        return dump_list(type_info.element, cast(List, data))
-    elif type_info.container is dict:
-        return dump_dict(type_info.element, cast(Dict, data))
-    elif type_info.is_dataclass:
-        return dump_dataclass(type_info.element, cast(Dict, data))
-    else:
-        return data

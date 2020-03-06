@@ -1,6 +1,5 @@
 import os
 import sys
-import warnings
 from dataclasses import is_dataclass
 from inspect import isclass
 from typing import (
@@ -13,6 +12,7 @@ from typing import (
     NamedTuple,
     Optional,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -56,28 +56,38 @@ KT, VT = Dict.__args__ or (TypeVar("KT"), TypeVar("VT"))
 
 
 class TypingInfo(NamedTuple):
+    """Information about a type annotation"""
+
     element: ElementType
     container: Optional[type] = None
 
     @property
     def is_dataclass(self) -> bool:
+        """True if :attr:`.element` is a dataclass"""
         return not self.container and is_dataclass(self.element)
+
+    @property
+    def is_union(self) -> bool:
+        """True if :attr:`.element` is a union of typing info"""
+        return isinstance(self.element, tuple)
+
+    @property
+    def is_complex(self) -> bool:
+        """True if :attr:`.element` is either a dataclass or a union"""
+        return self.container or self.is_union
 
     @classmethod
     def get(cls, value: Any) -> Optional["TypingInfo"]:
+        """Create a :class:`.TypingInfo` from a typing annotation or
+        another typing info
+
+        :param value: typing annotation
+        """
         if value is None or isinstance(value, cls):
             return value
         origin = get_origin(value)
         if not origin:
-            if isinstance(value, list):
-                warnings.warn(
-                    "typing via lists is deprecated in version 1.5.* and "
-                    "will be removed in version 1.6, use typing.List instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                return cls(value[0], list)
-            elif isclass(value):
+            if value is Any or isclass(value):
                 return cls(value)
             else:
                 raise InvalidTypeException(
@@ -86,24 +96,27 @@ class TypingInfo(NamedTuple):
         elif origin is list:
             (val,) = value.__args__ or (T,)
             if val is T:
-                val = str
+                val = Any
             elem_info = cast(TypingInfo, cls.get(val))
-            elem = elem_info if elem_info.container else elem_info.element
+            elem = elem_info if elem_info.is_complex else elem_info.element
             return cls(elem, list)
         elif origin is dict:
             key, val = value.__args__ or (KT, VT)
             if key is KT:
                 key = str
             if val is VT:
-                val = str
+                val = Any
             if key is not str:
                 raise InvalidTypeException(
                     f"Dict key annotation must be a string, got {key}"
                 )
 
             elem_info = cast(TypingInfo, cls.get(val))
-            elem = elem_info if elem_info.container else elem_info.element
+            elem = elem_info if elem_info.is_complex else elem_info.element
             return cls(elem, dict)
+        elif origin is Union:
+            elem = tuple(cls.get(val) for val in value.__args__)
+            return cls(elem)
         else:
             raise InvalidTypeException(
                 f"Types or List and Dict typing is required, got {value}"
@@ -156,3 +169,10 @@ def as_list(errors: Iterable) -> List[Dict[str, Any]]:
 
 def error_dict(errors: List) -> Dict:
     return dict(((d["field"], d["message"]) for d in errors))
+
+
+TRUE_VALUES = frozenset(("yes", "true", "t", "1"))
+
+
+def str2bool(v: Union[str, bool, int]):
+    return str(v).lower() in TRUE_VALUES

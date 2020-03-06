@@ -1,16 +1,14 @@
-import enum
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from openapi.data import fields
+from openapi.data.db import dataclass_from_table
 from openapi.rest import Query, orderable, searchable
 
-
-class TaskType(enum.Enum):
-    todo = 0
-    issue = 1
+from .db import TaskType
+from .dba import db
 
 
 @dataclass
@@ -41,7 +39,7 @@ class Task(TaskAdd):
 @dataclass
 class TaskQuery(Query):
     title: str = fields.str_field(description="Task title")
-    done: bool = fields.str_field(description="Done timestamp")
+    done: bool = fields.bool_field(description="done flag")
     type: TaskType = fields.enum_field(TaskType, description="Task type")
     severity: int = fields.integer_field(
         ops=("lt", "le", "gt", "ge", "ne"), description="Task severity"
@@ -66,15 +64,21 @@ class TaskPathSchema:
     id: str = fields.uuid_field(required=True, description="Task ID")
 
 
+# Additional models for testing
+
+
 @dataclass
 class TaskPathSchema2:
     task_id: str = fields.uuid_field(required=True, description="Task ID")
 
 
+MultiKeyUnique = dataclass_from_table("MultiKeyUnique", db.multi_key_unique)
+
+
 @dataclass
 class MultiKey:
-    x: int
-    y: int
+    x: Union[int, str, datetime] = fields.json_field(required=True, description="x")
+    y: Union[int, str, datetime] = fields.json_field(required=True, description="y")
 
 
 @dataclass
@@ -98,4 +102,25 @@ class Moon:
     names: str = fields.str_field(
         description="Comma separated list of names",
         post_process=lambda values: [v.strip() for v in values.split(",")],
+    )
+
+
+@dataclass
+class Foo:
+    text: str
+    param: Union[str, int]
+    done: bool = False
+
+
+@dataclass
+class SourcePrice:
+    """An object containing prices for a single contract"""
+
+    id: int = fields.integer_field(description="ID", required=True)
+    extra: Dict = fields.data_field(description="JSON blob")
+    prices: Dict[str, Decimal] = fields.data_field(
+        description="source-price mapping",
+        items=fields.decimal_field(
+            min_value=0, max_value=100, precision=4, description="price",
+        ),
     )

@@ -1,21 +1,21 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Dict, List
 
 import pytest
 
-from openapi.data import fields
+from openapi.data.fields import VALIDATOR, JSONValidator, json_field, ValidationError
 from openapi.data.validate import ValidationErrors, validated_schema
 
 
 @dataclass
 class TJson:
-    a: List = fields.json_field()
-    b: Dict = fields.json_field()
+    a: List = json_field()
+    b: Dict = json_field()
 
 
 def test_validator():
-    dfields = TJson.__dataclass_fields__
-    assert isinstance(dfields["a"].metadata[fields.VALIDATOR], fields.JSONValidator)
+    dfields = fields(TJson)
+    assert isinstance(dfields[0].metadata[VALIDATOR], JSONValidator)
     with pytest.raises(ValidationErrors):
         validated_schema(TJson, dict(a="{]}", b="{}"))
 
@@ -31,3 +31,10 @@ def test_validattionb_fail_list():
 def test_validattionb_fail_dict():
     with pytest.raises(ValidationErrors):
         validated_schema(TJson, dict(a="[]", b="[]"))
+
+
+def test_json_field_error():
+    field = json_field()
+    validator = field.metadata[VALIDATOR]
+    with pytest.raises(ValidationError):
+        validator(field, object())

@@ -10,7 +10,7 @@ from sqlalchemy.sql import or_
 from ..data.pagination import PaginatedData, Pagination
 from ..db.dbmodel import CrudDB
 from ..spec.path import ApiPath
-from ..types import DataType, SchemaTypeOrStr, StrDict
+from ..types import DataType, Records, SchemaTypeOrStr, StrDict
 from .compile import Select, Update, compile_query, count
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
@@ -207,8 +207,8 @@ class SqlApiPath(ApiPath):
         table: Optional[sa.Table] = None,
         query_schema: SchemaTypeOrStr = "query_schema",
         conn: Optional[Connection] = None,
-    ):
-        """delete a single model
+    ) -> Records:
+        """Delete a single model
         """
         table = table if table is not None else self.db_table
         if filters is None:
@@ -225,7 +225,7 @@ class SqlApiPath(ApiPath):
         query: Optional[StrDict] = None,
         table: Optional[sa.Table] = None,
         conn: Optional[Connection] = None,
-    ):
+    ) -> Records:
         """delete multiple models
         """
         table = table if table is not None else self.db_table

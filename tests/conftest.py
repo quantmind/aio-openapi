@@ -16,7 +16,6 @@ DEFAULT_DB = "postgresql://postgres:postgres@localhost:5432/openapi"
 
 @pytest.fixture(autouse=True)
 def clean_migrations():
-    """Return an instance of the event loop."""
     if os.path.isdir("migrations"):
         shutil.rmtree("migrations")
 

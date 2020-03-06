@@ -4,19 +4,26 @@ from sqlalchemy import Column, Table
 from sqlalchemy.sql import and_
 
 from ..db.container import Database
+from ..types import Records
 from .compile import QueryType, Select, compile_query, count
 
 
 class CrudDB(Database):
     """A :class:`.Database` with additional methods for CRUD operations"""
 
-    async def db_select(self, table: Table, filters: Dict, *, conn=None, consumer=None):
+    async def db_select(
+        self, table: Table, filters: Dict, *, conn=None, consumer=None
+    ) -> Records:
+        """Select rows from a given table"""
         query = self.get_query(table, table.select(), consumer, filters)
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_delete(self, table: Table, filters: Dict, *, conn=None, consumer=None):
+    async def db_delete(
+        self, table: Table, filters: Dict, *, conn=None, consumer=None
+    ) -> Records:
+        """Delete rows from a given table"""
         query = self.get_query(
             table, table.delete().returning(*table.columns), consumer, filters
         )

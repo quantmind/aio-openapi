@@ -2,7 +2,7 @@ import os
 
 from click.testing import CliRunner
 
-from .example.db import extra
+from tests.example.db_additional import extra
 
 
 def _migrate(cli, name="test", runner=None) -> CliRunner:
@@ -120,7 +120,9 @@ async def test_tables(cli):
     runner = CliRunner()
     result = runner.invoke(cli.app["cli"], ["db", "tables"])
     assert result.exit_code == 0
-    assert result.output == "\n".join(("multi_key_unique", "randoms", "tasks", ""))
+    assert result.output == "\n".join(
+        ("multi_key", "multi_key_unique", "randoms", "tasks", "")
+    )
 
 
 async def test_drop(cli):
