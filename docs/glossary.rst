@@ -17,3 +17,7 @@
    dataclasses
 
       Python :mod:`dataclasses` module
+
+   schema
+
+      Types and syntax for a valid :ref:`aio-openapi-schema`

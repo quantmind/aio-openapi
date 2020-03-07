@@ -17,11 +17,11 @@ unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
 
 
 class SqlApiPath(ApiPath):
-    """An OpenAPI path backed by an SQL model
+    """An :class:`.ApiPath` backed by an SQL model
     """
 
     table: str = ""
-    # sql table name
+    """sql table name"""
 
     @property
     def db(self) -> CrudDB:
@@ -31,6 +31,7 @@ class SqlApiPath(ApiPath):
 
     @property
     def db_table(self) -> sa.Table:
+        """Default database table for this route"""
         return self.db.metadata.tables[self.table]
 
     def get_search_clause(
@@ -102,7 +103,11 @@ class SqlApiPath(ApiPath):
         dump_schema: SchemaTypeOrStr = "response_schema",
         conn: Optional[Connection] = None,
     ) -> StrDict:
-        """Create a model
+        """Create a new database model
+
+        :param data: input data, if not given it loads it via :meth:`.json_data`
+        :param table: sqlalchemy table, if not given it uses the
+            default :attr:`db_table`
         """
         if data is None:
             data = self.insert_data(await self.json_data(), body_schema=body_schema)

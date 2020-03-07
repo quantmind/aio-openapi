@@ -18,6 +18,7 @@ class ApiPath(web.View, DataView):
     """
 
     path_schema: Optional[type] = None
+    """Optional dataclass for validating path variables"""
     private: bool = False
 
     # UTILITIES
@@ -41,10 +42,12 @@ class ApiPath(web.View, DataView):
         query: Optional[QueryType] = None,
         query_schema: SchemaTypeOrStr = "query_schema",
     ) -> Dict[str, Any]:
-        """Collect a dictionary of filters
+        """Collect a dictionary of filters. If :attr:`path_schema` is defined,
+        collect filter data from there as well.
 
         :param query: query dictionary (will be overwritten by the request.query)
         :param query_schema: a dataclass or an the name of an attribute in Operation
+            for collecting query filters
         """
         combined = MultiDict(query or ())
         combined.update(self.request.query)
@@ -58,7 +61,9 @@ class ApiPath(web.View, DataView):
         return params
 
     async def json_data(self) -> DataType:
-        """Load JSON data from the request
+        """Load JSON data from the request.
+
+        :raise HTTPBadRequest: when body data is not valid JSON
         """
         try:
             return await self.request.json(loads=loads)
