@@ -462,7 +462,7 @@ class DecimalValidator(NumberValidator):
 
 
 class BoolValidator(Validator):
-    def __call__(self, field: Field, value: Any) -> Any:
+    def __call__(self, field: Field, value: Any) -> bool:
         return str2bool(value)
 
     def dump(self, value: Any) -> bool:

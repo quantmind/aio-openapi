@@ -1,3 +1,4 @@
+.. _aio-openapi-reference:
 
 =========
 Reference
@@ -23,6 +24,8 @@ TypeInfo
 .. autoclass:: TypingInfo
    :members:
 
+
+.. _aio-openapi-data-fields:
 
 Data Fields
 ===========
@@ -143,10 +146,30 @@ DB
 .. autoclass:: CrudDB
    :members:
 
+
+Routes
+======
+
+
+ApiPath
+----------
+
+.. module:: openapi.spec.path
+
+.. autoclass:: ApiPath
+   :members:
+   :member-order: bysource
+
+
+SqlApiPath
+----------
+
 .. module:: openapi.db.path
 
 .. autoclass:: SqlApiPath
    :members:
+   :member-order: bysource
+
 
 Websocket
 =========

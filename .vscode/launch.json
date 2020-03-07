@@ -15,7 +15,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/data/test_fields.py"
+                "tests/data/test_validator.py"
             ]
         }
     ]

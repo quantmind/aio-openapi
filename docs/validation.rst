@@ -47,6 +47,21 @@ The main object for validation are python dataclasses:
     # ValidatedData(data={'text': 'ciao', 'param': 3, 'done': False}, errors={})
 
 
+
+Validated Schema
+================
+
+Use the :func:`.validated_schema` to validate input data and return an instance of the
+validation schema. This differs from :func:`.validate` only when dataclasses are involved
+
+.. code-block:: python
+
+    from openapi.data.validate import validated_schema
+
+    validated_schema(Foo, dict(text="ciao", param=3))
+    # Foo(text='ciao', param=3, done=False)
+
+
 .. _aio-openapi-schema:
 
 Supported Schema
@@ -61,18 +76,23 @@ The library support the following schemas
 * ``Union`` from ``typing`` with items from this supported schema
 * ``Any`` to skip validation and allow for any value
 
-Validated Schema
-================
-
-Use the :func:`.validated_schema` to validate input data and return an instance of the
-validation schema. This differs from :func:`.validate` only when dataclasses are involved
+Additional, and more powerful, validation can be achieved via the use of custom :func:`dataclasses.field`
+constructors (see :ref:`aio-openapi-data-fields` reference).
 
 .. code-block:: python
 
-    from openapi.data.validate import validated_schema
+    from dataclasses import dataclass
+    from typing import Union
+    from openapi.data import fields
 
-    validated_schema(Foo, dict(text="ciao", param=3))
-    # Foo(text='ciao', param=3, done=False)
+    @dataclass
+    class Foo:
+        text: str = fields.str_field(min_length=3, description="Just some text")
+        param: Union[str, int] = fields.integer_field(description="String accepted but convert to int")
+        done: bool = False = fields.bool_field(description="Is Foo done?")
+
+    validated_schema(Foo, dict(text="ciao", param="2", done="no"))
+    # Foo(text='ciao', param=2, done=False)
 
 
 Dump

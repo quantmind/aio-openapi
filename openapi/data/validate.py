@@ -167,7 +167,7 @@ def validate_dict(
             except ValidationErrors as exc:
                 validated.errors[name] = exc.errors
         if validated.errors:
-            raise ValidationErrors(errors=validated.errors)
+            raise ValidationErrors(validated.errors)
         return validated.data
     else:
         raise ValidationErrors(OBJECT_EXPECTED)
@@ -229,7 +229,7 @@ def validate_dataclass(
             validate(cleaned, errors)
 
     if errors:
-        raise ValidationErrors(errors=errors)
+        raise ValidationErrors(errors)
     return schema(**cleaned) if as_schema else cleaned
 
 

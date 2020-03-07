@@ -23,7 +23,7 @@ class Operation:
 
 
 class DataView:
-    """Utility class for data with schema
+    """Utility class for data with a valid :ref:`aio-openapi-schema`
     """
 
     operation: Operation = Operation()
@@ -39,7 +39,8 @@ class DataView:
     ) -> DataType:
         """Clean data using a given schema
 
-        :param schema: a dataclass or an the name of an attribute in :class:`.Operation`
+        :param schema: a valid :ref:`aio-openapi-schema` or an the name of an
+            attribute in :class:`.Operation`
         :param data: data to validate and clean
         :param multiple: multiple values for a given key are acceptable
         :param strict: all required attributes in schema must be available
@@ -63,18 +64,18 @@ class DataView:
         return validated.data
 
     def dump(self, schema: Any, data: DataType) -> DataType:
-        """Dump data using a given schema, if the schema is `None` it returns the
-        same `data` as the input.
+        """Dump data using a given a valid :ref:`aio-openapi-schema`,
+        if the schema is `None` it returns the same `data` as the input.
 
-        :param schema: a dataclass or an the name of an attribute in :class:`.Operation`
+        :param schema: a schema or an the name of an attribute in :class:`.Operation`
         :param data: data to clean and dump
         """
         return data if schema is None else dump(self.get_schema(schema), data)
 
     def get_schema(self, schema: Any = None) -> TypingInfo:
-        """Get the Schema dataclass. If not found it raises an exception
+        """Get the :ref:`aio-openapi-schema`. If not found it raises an exception
 
-        :param schema: a dataclass or an the name of an attribute in :class:`.Operation`
+        :param schema: a schema or an the name of an attribute in :class:`.Operation`
         """
         if isinstance(schema, str):
             Schema = getattr(self.operation, schema, None)

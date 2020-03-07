@@ -1,11 +1,20 @@
-from dataclasses import asdict
-from typing import List, Union, Dict
+from dataclasses import asdict, dataclass
+from typing import Dict, List, Union
 
 import pytest
 
-from openapi.data.fields import ListValidator, NumberValidator
+from openapi.data import fields
 from openapi.data.validate import ValidationErrors, validate, validated_schema
-from tests.example.models import Moon, Permission, Role, TaskAdd, Foo
+from tests.example.models import Foo, Moon, Permission, Role, TaskAdd
+
+
+@dataclass
+class Foo2:
+    text: str = fields.str_field(min_length=3, description="Just some text")
+    param: Union[str, int] = fields.integer_field(
+        description="String accepted but convert to int"
+    )
+    done: bool = fields.bool_field(description="Is Foo done?")
 
 
 def test_validated_schema():
@@ -23,7 +32,7 @@ def test_validated_schema_errors():
 
 
 def test_openapi_listvalidator():
-    validator = ListValidator([NumberValidator(-1, 1)])
+    validator = fields.ListValidator([fields.NumberValidator(-1, 1)])
     props = {}
     validator.openapi(props)
     assert props["minimum"] == -1
@@ -90,3 +99,8 @@ def test_foo():
     d = validated_schema(List[Foo], [valid])
     assert len(d) == 1
     assert isinstance(d[0], Foo)
+
+
+def test_foo2():
+    s = validated_schema(Foo2, dict(text="ciao", param="3", done="no"))
+    assert s.done is False
