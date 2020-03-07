@@ -4,6 +4,8 @@ import asyncio
 from typing import Any
 
 from aiohttp.client import ClientResponse
+from asyncpg import Connection
+from asyncpg.transaction import Transaction
 
 from .db.dbmodel import CrudDB
 from .json import dumps, loads
@@ -34,31 +36,35 @@ class SingleConnDatabase(CrudDB):
     """Useful for speedup testing
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._conn = None
         self._lock = asyncio.Lock()
 
-    async def get_connection(self):
+    async def get_connection(self) -> Connection:
         if not self._conn:
             self._conn = await super().get_connection()
         return self._conn
 
     @asynccontextmanager
-    async def connection(self):
+    async def connection(self) -> Connection:
         async with self._lock:
             conn = await self.get_connection()
             yield conn
 
     @asynccontextmanager
-    async def rollback(self):
+    async def rollback(self) -> Transaction:
+        """Async context manager for rolling back a transaction.
+
+        Very useful for speeding up tests
+        """
         conn = await self.get_connection()
         transaction = conn.transaction()
         await transaction.start()
-        yield
+        yield transaction
         await transaction.rollback()
 
-    async def close(self):
+    async def close(self) -> None:
         async with self._lock:
             if self._conn:
                 await self.release_connection(self._conn)
