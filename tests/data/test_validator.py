@@ -53,7 +53,7 @@ def test_role():
         permissions=[dict(paths=["bla"], methods=["get"], body=dict(a="test"))],
     )
     d = validated_schema(Role, data)
-    assert isinstance(d.permissions[0], dict)
+    assert isinstance(d.permissions[0], Permission)
 
 
 def test_post_process():
