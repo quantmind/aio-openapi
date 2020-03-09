@@ -45,7 +45,7 @@ py37:		## build python 3.7 image for testing
 	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.7.6 -t openapi37 .
 
 py38:		## build python 3.8 image for testing
-	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.8.1 -t openapi38 .
+	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.8.2 -t openapi38 .
 
 test-py36:	## test with python 3.6
 	@docker run --rm --network=host openapi36 pytest

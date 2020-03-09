@@ -1,3 +1,4 @@
+.. _aio-openapi-reference:
 
 =========
 Reference
@@ -23,6 +24,8 @@ TypeInfo
 .. autoclass:: TypingInfo
    :members:
 
+
+.. _aio-openapi-data-fields:
 
 Data Fields
 ===========
@@ -124,29 +127,67 @@ Spec
 
 .. autoclass:: op
 
-.. autoclass:: ApiPath
-   :members:
-
 
 DB
 ==
 
 .. module:: openapi.db.container
 
+Database
+--------
+
 .. autoclass:: Database
    :members:
    :member-order: bysource
    :special-members: __getattr__
 
+
 .. module:: openapi.db.dbmodel
+
+CrudDB
+------
+
+Database container with CRUD operations. Used extensively by the :class:`.SqlApiPath` routing class.
+
 
 .. autoclass:: CrudDB
    :members:
+
+
+.. module:: openapi.testing
+
+SingleConnDatabase
+------------------
+
+A :class:`.CrudDB` container for testing database driven Rest APIs.
+
+.. autoclass:: SingleConnDatabase
+   :members:
+
+
+Routes
+======
+
+
+ApiPath
+----------
+
+.. module:: openapi.spec.path
+
+.. autoclass:: ApiPath
+   :members:
+   :member-order: bysource
+
+
+SqlApiPath
+----------
 
 .. module:: openapi.db.path
 
 .. autoclass:: SqlApiPath
    :members:
+   :member-order: bysource
+
 
 Websocket
 =========
