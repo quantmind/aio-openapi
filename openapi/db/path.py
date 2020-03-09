@@ -54,6 +54,12 @@ class SqlApiPath(ApiPath):
         conn: Optional[Connection] = None,
     ) -> PaginatedData:
         """Get a list of models
+
+        :param filters: dictionary of filters, if not provided it will be created from
+            the query_schema
+        :param query: additional query paraeters, only used when filters is not provided
+        :param table: sqlalchemy table, if not provided the default :attr:`.db_table` is
+            used instead
         """
         table = table if table is not None else self.db_table
         if filters is None:

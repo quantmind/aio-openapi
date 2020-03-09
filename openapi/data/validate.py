@@ -212,9 +212,9 @@ def validate_dataclass(
                                 collected.append(v)
                         value = collected if collected else None
                     else:
-                        value = collect_value(field, values[0])
+                        value = collect_value(field, values[0], as_schema=as_schema)
                 else:
-                    value = collect_value(field, data[name])
+                    value = collect_value(field, data[name], as_schema=as_schema)
 
                 cleaned[name] = value
 

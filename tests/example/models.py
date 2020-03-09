@@ -123,4 +123,6 @@ class SourcePrice:
         items=fields.decimal_field(
             min_value=0, max_value=100, precision=4, description="price",
         ),
+        default_factory=dict,
     )
+    foos: List[Foo] = fields.data_field(default_factory=list)
