@@ -68,9 +68,7 @@ class ApiPath(web.View, DataView):
         try:
             return await self.request.json(loads=loads)
         except Exception:
-            raise web.HTTPBadRequest(
-                **self.api_response_data({"message": "Invalid JSON payload"})
-            )
+            self.raise_bad_data()
 
     def raiseValidationError(self, message: str = "", errors: ErrorType = None) -> None:
         raw = self.as_errors(message, errors)
