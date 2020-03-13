@@ -7,9 +7,8 @@ from aiohttp import web
 from ..types import DataType, QueryType, StrDict
 from ..utils import TypingInfo, as_list, compact
 from .dump import dump
-from .exc import ValidationErrors
 from .pagination import DEF_PAGINATION_LIMIT
-from .validate import ErrorType, validate
+from .validate import ErrorType, ValidationErrors, validate
 
 BAD_DATA_MESSAGE = os.getenv("BAD_DATA_MESSAGE", "Invalid data format")
 

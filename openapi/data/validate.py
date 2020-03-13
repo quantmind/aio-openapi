@@ -3,6 +3,8 @@ from typing import Any, Dict, NamedTuple, Optional, Tuple, Union
 
 from multidict import MultiDict
 
+from openapi import json
+
 from ..utils import TypingInfo
 from .fields import (
     ITEMS,
@@ -26,8 +28,17 @@ class ValidatedData(NamedTuple):
 
 
 class ValidationErrors(ValueError):
-    def __init__(self, errors) -> None:
+    def __init__(self, errors: Union[Dict, str]) -> None:
         self.errors = errors
+
+    def __repr__(self) -> str:
+        return (
+            self.errors
+            if isinstance(self.errors, str)
+            else json.dumps(self.errors, indent=4)
+        )
+
+    __str__ = __repr__
 
 
 def validated_schema(schema: Any, data: Any, *, strict: bool = True) -> Any:

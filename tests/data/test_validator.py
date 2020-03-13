@@ -3,6 +3,7 @@ from typing import Dict, List, Union
 
 import pytest
 
+from openapi import json
 from openapi.data import fields
 from openapi.data.validate import ValidationErrors, validate, validated_schema
 from tests.example.models import Foo, Moon, Permission, Role, TaskAdd
@@ -29,6 +30,8 @@ def test_validated_schema_errors():
     with pytest.raises(ValidationErrors) as e:
         validated_schema(TaskAdd, data)
     assert len(e.value.errors) == 1
+    assert repr(e.value)
+    assert repr(e.value) == json.dumps(e.value.errors, indent=4)
 
 
 def test_openapi_listvalidator():
