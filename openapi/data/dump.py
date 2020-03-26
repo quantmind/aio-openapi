@@ -41,10 +41,10 @@ def dump_dataclass(schema: type, data: Optional[Dict] = None) -> Dict:
         if name not in fields_ or is_nothing(value):
             continue
         field = fields_[name]
-        dump = field.metadata.get(DUMP)
-        if dump:
-            value = dump(value)
-        cleaned[field.name] = value
+        dump_value = field.metadata.get(DUMP)
+        if dump_value:
+            value = dump_value(value)
+        cleaned[field.name] = dump(field.type, value)
 
     return cleaned
 
