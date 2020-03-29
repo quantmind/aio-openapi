@@ -328,6 +328,9 @@ class Choice(Validator):
             raise ValidationError(field.name, "%s not valid" % value)
         return value
 
+    def openapi(self, prop: Dict) -> None:
+        prop["enum"] = sorted(self.choices)
+
 
 class DateValidator(Validator):
     def dump(self, value: Any) -> Any:
