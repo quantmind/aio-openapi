@@ -15,7 +15,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/data/test_validate_nested.py"
+                "tests/data/test_validator.py"
             ]
         }
     ]

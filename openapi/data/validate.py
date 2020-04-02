@@ -18,6 +18,7 @@ from .fields import (
 
 NOT_VALID_TYPE = "not valid type"
 OBJECT_EXPECTED = "expected an object"
+VALIDATION_SIMPLE_MAP = {float: (float, int)}
 
 ErrorType = Union[Dict, str, None]
 
@@ -120,7 +121,7 @@ def validate(
 
 
 def validate_simple(schema: type, data: Any) -> Any:
-    if isinstance(data, schema):
+    if isinstance(data, VALIDATION_SIMPLE_MAP.get(schema, schema)):
         return data
     raise ValidationErrors(NOT_VALID_TYPE)
 
