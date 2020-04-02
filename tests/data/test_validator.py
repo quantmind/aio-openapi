@@ -16,6 +16,7 @@ class Foo2:
         description="String accepted but convert to int"
     )
     done: bool = fields.bool_field(description="Is Foo done?")
+    value: float = fields.number_field()
 
 
 def test_validated_schema():
@@ -107,3 +108,8 @@ def test_foo():
 def test_foo2():
     s = validated_schema(Foo2, dict(text="ciao", param="3", done="no"))
     assert s.done is False
+
+
+def test_float_validation():
+    s = validated_schema(Foo2, dict(value=24500))
+    assert s.value == 24500
