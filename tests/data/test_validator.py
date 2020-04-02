@@ -113,3 +113,5 @@ def test_foo2():
 def test_float_validation():
     s = validated_schema(Foo2, dict(value=24500))
     assert s.value == 24500
+    s = validated_schema(Foo2, dict(value=24500.5))
+    assert s.value == 24500.5
