@@ -24,14 +24,16 @@ def rest(
 ) -> OpenApiClient:
     """Create the OpenApi Client
     """
-    return OpenApiClient(
-        OpenApiSpecClass(
+    if openapi is not None:
+        openapi = OpenApiSpecClass(
             OpenApi(**(openapi or {})),
             allowed_tags=allowed_tags,
             validate_docs=validate_docs,
             servers=servers,
             security=security,
-        ),
+        )
+    return OpenApiClient(
+        spec=openapi,
         base_path=base_path,
         commands=commands,
         setup_app=setup_app,

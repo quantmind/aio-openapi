@@ -22,6 +22,15 @@ def test_version():
     assert result.output.startswith("Open API")
 
 
+def test_version_openapi():
+    runner = CliRunner()
+    result = runner.invoke(
+        rest(openapi=dict(title="Test Version", version="1.0")), ["--version"]
+    )
+    assert result.exit_code == 0
+    assert result.output.startswith("Test Version 1.0")
+
+
 def test_serve():
     runner = CliRunner()
     cli = rest(base_path="/v1")
@@ -40,6 +49,19 @@ def test_serve():
         app = mock.call_args[0][0]
         assert app.router is not None
         assert logger.level == logging.DEBUG
+
+
+def test_serve_index():
+    runner = CliRunner()
+    cli = rest()
+    with patch("aiohttp.web.run_app") as mock:
+        result = runner.invoke(cli, ["serve", "--index", "1"])
+        assert result.exit_code == 0
+        assert mock.call_count == 1
+        app = mock.call_args[0][0]
+        assert app.router is not None
+        assert app["index"] == 1
+        assert logger.level == logging.INFO
 
 
 def test_commands():

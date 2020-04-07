@@ -125,6 +125,12 @@ Spec
 
 .. module:: openapi.spec
 
+op decorator
+------------
+
+Decorator for specifying schemas at route/method level. It is used by both
+the business logic as well the auto-documentation.
+
 .. autoclass:: op
 
 
