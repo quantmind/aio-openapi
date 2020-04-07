@@ -22,6 +22,15 @@ def test_version():
     assert result.output.startswith("Open API")
 
 
+def test_version_openapi():
+    runner = CliRunner()
+    result = runner.invoke(
+        rest(openapi=dict(title="Test Version", version="1.0")), ["--version"]
+    )
+    assert result.exit_code == 0
+    assert result.output.startswith("Test Version 1.0")
+
+
 def test_serve():
     runner = CliRunner()
     cli = rest(base_path="/v1")
