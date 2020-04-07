@@ -7,11 +7,11 @@ from .migrations import Migration
 
 
 def migration(ctx):
-    return Migration(ctx.obj["app"])
+    return Migration(ctx.obj["cli"].web())
 
 
 def get_db(ctx):
-    return ctx.obj["app"]["db"]
+    return ctx.obj["cli"].web()["db"]
 
 
 @click.group()

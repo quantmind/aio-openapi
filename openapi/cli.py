@@ -19,19 +19,22 @@ PORT = os.environ.get("MICRO_SERVICE_PORT", 8080)
 
 
 class OpenApiClient(click.Group):
+    index: int = -1
+
     def __init__(
         self,
-        spec: spec.OpenApiSpec,
+        spec: Optional[spec.OpenApiSpec] = None,
         setup_app: Optional[Callable[[Application], None]] = None,
         base_path: str = "",
         commands: Optional[List] = None,
+        serve_spec: bool = True,
         **extra,
     ) -> None:
         params = list(extra.pop("params", None) or ())
         self.spec = spec
         self.debug = get_debug_flag()
         self.setup_app = setup_app
-        self.base_path = base_path or ""
+        self.base_path: str = base_path or ""
         params.extend(
             (
                 click.Option(
@@ -69,10 +72,12 @@ class OpenApiClient(click.Group):
         if self._web is None:
             app = Application()
             app["cli"] = self
-            app["spec"] = self.spec
-            app["spec_doc"] = SpecDoc()
             app["cwd"] = os.getcwd()
-            spec.setup_app(app)
+            app["index"] = self.index
+            if self.spec:
+                app["spec"] = self.spec
+                app["spec_doc"] = SpecDoc()
+                spec.setup_app(app)
             if self.setup_app:
                 self.setup_app(app)
             self._web = app
@@ -88,11 +93,11 @@ class OpenApiClient(click.Group):
         return app
 
     def get_command(self, ctx: click.Context, name: str) -> Optional[click.Command]:
-        ctx.obj = dict(app=self.web())
+        ctx.obj = dict(cli=self)
         return super().get_command(ctx, name)
 
     def list_commands(self, ctx: click.Context) -> Iterable[str]:
-        ctx.obj = dict(app=self.web())
+        ctx.obj = dict(cli=self)
         return super().list_commands(ctx)
 
     def get_server_version(self, ctx, param, value) -> None:
@@ -103,8 +108,8 @@ class OpenApiClient(click.Group):
         click.echo(
             message
             % {
-                "title": spec.title,
-                "version": spec.version,
+                "title": spec.title if spec else self.name or "Open API",
+                "version": spec.version if spec else "",
                 "python_version": sys.version,
             },
             color=ctx.color,
@@ -120,15 +125,20 @@ class OpenApiClient(click.Group):
     "--port", "-p", default=PORT, help=f"The port to bind to (default to {PORT}."
 )
 @click.option(
+    "--index", default=0, type=int, help="Optional index for stateful set deployment",
+)
+@click.option(
     "--reload/--no-reload",
     default=None,
     help="Enable or disable the reloader. By default the reloader "
     "is active if debug is enabled.",
 )
 @click.pass_context
-def serve(ctx, host, port, reload):
+def serve(ctx, host, port, index, reload):
     """Run the aiohttp server.
     """
-    app = ctx.obj["app"]["cli"].get_serve_app()
+    cli = ctx.obj["cli"]
+    cli.index = index
+    app = cli.get_serve_app()
     access_log = logger if ctx.obj["log_level"] else None
     web.run_app(app, host=host, port=port, access_log=access_log)

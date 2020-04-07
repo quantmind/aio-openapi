@@ -42,6 +42,19 @@ def test_serve():
         assert logger.level == logging.DEBUG
 
 
+def test_serve_index():
+    runner = CliRunner()
+    cli = rest()
+    with patch("aiohttp.web.run_app") as mock:
+        result = runner.invoke(cli, ["serve", "--index", "1"])
+        assert result.exit_code == 0
+        assert mock.call_count == 1
+        app = mock.call_args[0][0]
+        assert app.router is not None
+        assert app["index"] == 1
+        assert logger.level == logging.INFO
+
+
 def test_commands():
     runner = CliRunner()
     cli = rest(base_path="/v1", commands=[hello])

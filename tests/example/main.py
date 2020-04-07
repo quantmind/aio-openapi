@@ -18,6 +18,7 @@ from .ws import ws_routes
 
 def create_app():
     return rest(
+        openapi=dict(title="Test API"),
         security=dict(
             auth_key={
                 "type": "apiKey",

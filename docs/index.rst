@@ -237,6 +237,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   tutorial
    reference
    validation
    queries
