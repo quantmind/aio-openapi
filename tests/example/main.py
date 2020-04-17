@@ -4,6 +4,7 @@ from aiohttp import web
 
 from openapi import sentry
 from openapi.db import get_db
+from openapi.db.commands import db
 from openapi.middleware import json_error
 from openapi.rest import rest
 from openapi.ws import LocalBroker, Sockets
@@ -31,7 +32,7 @@ def create_app():
             }
         ),
         setup_app=setup_app,
-        # validate_docs=True
+        commands=[db],
     )
 
 
