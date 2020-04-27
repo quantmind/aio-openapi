@@ -42,8 +42,10 @@ class SingleConnDatabase(CrudDB):
         self._lock = asyncio.Lock()
 
     async def get_connection(self) -> Connection:
+        """Acquire a :class:`asyncpg.connection.Connection`"""
         if not self._conn:
-            self._conn = await super().get_connection()
+            pool = await self.connect()
+            self._conn = await pool.acquire()
         return self._conn
 
     @asynccontextmanager

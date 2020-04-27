@@ -4,12 +4,9 @@ import typing as t
 from aiohttp.web import Application
 
 from ..db.dbmodel import CrudDB
-from .commands import db
 
 
-def get_db(
-    app: Application, store_url: str = None, command: bool = True
-) -> t.Optional[CrudDB]:
+def get_db(app: Application, store_url: str = None) -> t.Optional[CrudDB]:
     """Create an Open API db handler
 
     This function
@@ -26,8 +23,6 @@ def get_db(
     else:
         app["db"] = CrudDB(store_url)
         app.on_shutdown.append(close_db)
-        if command:
-            app["cli"].add_command(db)
         return app["db"]
 
 
