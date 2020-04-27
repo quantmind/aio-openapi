@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Any, Optional
 
@@ -26,6 +27,7 @@ class Database:
         self._metadata = metadata or sa.MetaData()
         self._pool = None
         self._engine = None
+        self._lock = asyncio.Lock()
 
     def __repr__(self) -> str:
         return self._dsn
@@ -68,18 +70,12 @@ class Database:
 
     async def connect(self) -> Pool:
         """Connect to the Postgres database server and return :attr:`.pool`"""
-        pool = await asyncpg.create_pool(
-            self._dsn, min_size=DBPOOL_MIN_SIZE, max_size=DBPOOL_MAX_SIZE
-        )
-        self._pool = pool
-        return pool
-
-    async def get_connection(self) -> Connection:
-        """Acquire a :class:`asyncpg.connection.Connection`"""
-        pool = self._pool
-        if pool is None:
-            pool = await self.connect()
-        return await pool.acquire()
+        async with self._lock:
+            if self._pool is None:
+                self._pool = await asyncpg.create_pool(
+                    self._dsn, min_size=DBPOOL_MIN_SIZE, max_size=DBPOOL_MAX_SIZE
+                )
+            return self._pool
 
     async def release_connection(self, conn: Connection) -> None:
         if self._pool is not None:
@@ -87,9 +83,7 @@ class Database:
 
     @asynccontextmanager
     async def connection(self) -> Connection:
-        pool = self._pool
-        if pool is None:
-            pool = await self.connect()
+        pool = await self.connect()
         async with pool.acquire() as conn:
             yield conn
 
