@@ -7,6 +7,7 @@ ERROR_500 = os.environ.get("ERROR_500_MESSSAGE", "Internal Server Error")
 
 def json_error(status_codes=None):
     status_codes = set(status_codes or (404, 405, 500))
+    content_type = "application/json"
 
     @web.middleware
     async def json_middleware(request, handler):
@@ -17,7 +18,7 @@ def json_error(status_codes=None):
             message = response.message
             status = response.status
         except web.HTTPException as ex:
-            if ex.status not in status_codes:
+            if ex.status not in status_codes or ex.content_type == content_type:
                 raise
             message = ex.reason
             status = ex.status
