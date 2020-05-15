@@ -265,7 +265,7 @@ class ListValidator(Validator):
 
     def __call__(self, field: Field, value: Any) -> Any:
         for validator in self.validators:
-            value = validator(field.name, value)
+            value = validator(field, value)
         return value
 
     def dump(self, value: Any) -> Any:
