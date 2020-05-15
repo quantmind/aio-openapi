@@ -90,8 +90,8 @@ async def test_pagination_with_forwarded_host(cli):
     assert len(data) == 0
     link = response.headers["Link"]
     assert link == (
-        f'<https://whenbeer.pub:1234/tasks?limit=10&offset=0>; rel="first", '
-        f'<https://whenbeer.pub:1234/tasks?limit=10&offset=10>; rel="prev"'
+        '<https://whenbeer.pub:1234/tasks?limit=10&offset=0>; rel="first", '
+        '<https://whenbeer.pub:1234/tasks?limit=10&offset=10>; rel="prev"'
     )
     assert response.headers["X-total-count"] == "2"
     #
@@ -108,7 +108,7 @@ async def test_pagination_with_forwarded_host(cli):
     assert len(data) == 0
     link = response.headers["Link"]
     assert link == (
-        f'<https://whenbeer.pub/tasks?limit=10&offset=0>; rel="first", '
-        f'<https://whenbeer.pub/tasks?limit=10&offset=10>; rel="prev"'
+        '<https://whenbeer.pub/tasks?limit=10&offset=0>; rel="first", '
+        '<https://whenbeer.pub/tasks?limit=10&offset=10>; rel="prev"'
     )
     assert response.headers["X-total-count"] == "2"

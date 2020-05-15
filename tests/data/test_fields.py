@@ -40,13 +40,13 @@ class FakeValidator(Validator):
     def dump(self, value):
         return str(value)
 
-    def __call__(self, field, value, data=None):
+    def __call__(self, field, value):
         return value
 
 
 class FakeValidatorError(Validator):
-    def __call__(self, field, value, data=None):
-        raise ValidationError(field, "invalid")
+    def __call__(self, field, value):
+        raise ValidationError(field.name, "invalid")
 
 
 def test_base_validator():

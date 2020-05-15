@@ -148,7 +148,7 @@ async def test_limit_list(cli):
     await json_body(response, status=201)
 
     params = {"order_by": "title", "limit": 2}
-    response = await cli.get(f"/tasks", params=params)
+    response = await cli.get("/tasks", params=params)
     data = await json_body(response, 200)
     titles = list(map(lambda t: t["title"], data))
     assert len(titles) == 2
@@ -161,7 +161,7 @@ async def test_limit_and_offset_list(cli):
     await json_body(response, status=201)
 
     params = {"order_by": "title", "limit": 2, "offset": 1}
-    response = await cli.get(f"/tasks", params=params)
+    response = await cli.get("/tasks", params=params)
     data = await json_body(response, 200)
     titles = list(map(lambda t: t["title"], data))
     assert len(titles) == 2
