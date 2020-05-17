@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union, cast
 
+from asyncpg import Connection
 from sqlalchemy import Column, Table
 from sqlalchemy.sql import and_
 
@@ -12,38 +13,113 @@ class CrudDB(Database):
     """A :class:`.Database` with additional methods for CRUD operations"""
 
     async def db_select(
-        self, table: Table, filters: Dict, *, conn=None, consumer=None
+        self,
+        table: Table,
+        filters: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
     ) -> Records:
-        """Select rows from a given table"""
-        query = self.get_query(table, table.select(), consumer, filters)
+        """Select rows from a given table
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
+        query = self.get_query(table, table.select(), consumer=consumer, params=filters)
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
     async def db_delete(
-        self, table: Table, filters: Dict, *, conn=None, consumer=None
+        self,
+        table: Table,
+        filters: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
     ) -> Records:
-        """Delete rows from a given table"""
+        """Delete rows from a given table
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
         query = self.get_query(
-            table, table.delete().returning(*table.columns), consumer, filters
+            table,
+            table.delete().returning(*table.columns),
+            consumer=consumer,
+            params=filters,
         )
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_count(self, table: Table, filters: Dict, *, conn=None, consumer=None):
-        query = self.get_query(table, table.select(), consumer, filters)
+    async def db_count(
+        self,
+        table: Table,
+        filters: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
+    ) -> int:
+        """Count rows in a table
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
+        query = self.get_query(table, table.select(), consumer=consumer, params=filters)
         sql, args = count(cast(Select, query))
         async with self.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql, *args)
         return total[0]
 
     async def db_insert(
-        self, table: Table, data: Union[List[Dict], Dict], *, conn=None
-    ):
+        self,
+        table: Table,
+        data: Union[List[Dict], Dict],
+        *,
+        conn: Optional[Connection] = None,
+    ) -> Records:
+        """Perform an insert into a table
+
+        :param table: sqlalchemy Table
+        :param data: key-value pairs for columns values
+        :param conn: optional db connection
+        """
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(table, data)
             return await conn.fetch(statement, *args)
+
+    async def db_update(
+        self,
+        table: Table,
+        filters: Dict,
+        data: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
+    ) -> Records:
+        """Perform an update of rows
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows to update
+        :param data: key-value pairs for updating columns values of selected rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
+        update = (
+            self.get_query(table, table.update(), consumer=consumer, params=filters)
+            .values(**data)
+            .returning(*table.columns)
+        )
+        sql, args = compile_query(update)
+        async with self.ensure_connection(conn) as conn:
+            return await conn.fetch(sql, *args)
 
     def get_insert(self, table: Table, records: Union[List[Dict], Dict]):
         if isinstance(records, dict):
@@ -55,9 +131,17 @@ class CrudDB(Database):
         self,
         table: Table,
         query: QueryType,
-        consumer: Any = None,
+        *,
         params: Optional[Dict] = None,
+        consumer: Any = None,
     ) -> QueryType:
+        """Build an SqlAlchemy query
+
+        :param table: sqlalchemy Table
+        :param query: sqlalchemy query type
+        :param params: key-value pairs for the query
+        :param consumer: optional consumer for manipulating parameters
+        """
         filters: List = []
         columns = table.c
         params = params or {}
