@@ -66,7 +66,8 @@ class SqlApiPath(ApiPath):
             filters = self.get_filters(query=query, query_schema=query_schema)
         specials = self.get_special_params(cast(Dict, filters))
         sql_query = cast(
-            Select, self.db.get_query(table, table.select(), self, filters)
+            Select,
+            self.db.get_query(table, table.select(), params=filters, consumer=self),
         )
         #
         sql_count, args_count = count(sql_query)

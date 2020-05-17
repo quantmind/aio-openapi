@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Union, cast
 
-from asyncpg import Connection, Record
+from asyncpg import Connection
 from sqlalchemy import Column, Table
 from sqlalchemy.sql import and_
 
@@ -64,7 +64,14 @@ class CrudDB(Database):
         *,
         conn: Optional[Connection] = None,
         consumer: Any = None,
-    ):
+    ) -> int:
+        """Count rows in a table
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
         query = self.get_query(table, table.select(), consumer=consumer, params=filters)
         sql, args = count(cast(Select, query))
         async with self.ensure_connection(conn) as conn:
@@ -77,8 +84,13 @@ class CrudDB(Database):
         data: Union[List[Dict], Dict],
         *,
         conn: Optional[Connection] = None,
-    ) -> List[Record]:
-        """Perform asn insert into a table"""
+    ) -> Records:
+        """Perform an insert into a table
+
+        :param table: sqlalchemy Table
+        :param data: key-value pairs for columns values
+        :param conn: optional db connection
+        """
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(table, data)
             return await conn.fetch(statement, *args)
@@ -91,8 +103,15 @@ class CrudDB(Database):
         *,
         conn: Optional[Connection] = None,
         consumer: Any = None,
-    ) -> List[Record]:
-        """Perform an update if possible"""
+    ) -> Records:
+        """Perform an update of rows
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows to update
+        :param data: key-value pairs for updating columns values of selected rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
         update = (
             self.get_query(table, table.update(), consumer=consumer, params=filters)
             .values(**data)
@@ -112,9 +131,17 @@ class CrudDB(Database):
         self,
         table: Table,
         query: QueryType,
-        consumer: Any = None,
+        *,
         params: Optional[Dict] = None,
+        consumer: Any = None,
     ) -> QueryType:
+        """Build an SqlAlchemy query
+
+        :param table: sqlalchemy Table
+        :param query: sqlalchemy query type
+        :param params: key-value pairs for the query
+        :param consumer: optional consumer for manipulating parameters
+        """
         filters: List = []
         columns = table.c
         params = params or {}
