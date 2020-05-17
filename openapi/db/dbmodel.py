@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union, cast
 
+from asyncpg import Connection, Record
 from sqlalchemy import Column, Table
 from sqlalchemy.sql import and_
 
@@ -12,7 +13,12 @@ class CrudDB(Database):
     """A :class:`.Database` with additional methods for CRUD operations"""
 
     async def db_select(
-        self, table: Table, filters: Dict, *, conn=None, consumer=None
+        self,
+        table: Table,
+        filters: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
     ) -> Records:
         """Select rows from a given table"""
         query = self.get_query(table, table.select(), consumer, filters)
@@ -21,7 +27,12 @@ class CrudDB(Database):
             return await conn.fetch(sql, *args)
 
     async def db_delete(
-        self, table: Table, filters: Dict, *, conn=None, consumer=None
+        self,
+        table: Table,
+        filters: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
     ) -> Records:
         """Delete rows from a given table"""
         query = self.get_query(
@@ -31,7 +42,14 @@ class CrudDB(Database):
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
-    async def db_count(self, table: Table, filters: Dict, *, conn=None, consumer=None):
+    async def db_count(
+        self,
+        table: Table,
+        filters: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
+    ):
         query = self.get_query(table, table.select(), consumer, filters)
         sql, args = count(cast(Select, query))
         async with self.ensure_connection(conn) as conn:
@@ -39,11 +57,34 @@ class CrudDB(Database):
         return total[0]
 
     async def db_insert(
-        self, table: Table, data: Union[List[Dict], Dict], *, conn=None
+        self,
+        table: Table,
+        data: Union[List[Dict], Dict],
+        *,
+        conn: Optional[Connection] = None,
     ):
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(table, data)
             return await conn.fetch(statement, *args)
+
+    async def db_update(
+        self,
+        table: Table,
+        filters: Dict,
+        data: Dict,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
+    ) -> List[Record]:
+        """Perform an update if possible"""
+        update = (
+            self.get_query(table, table.update(), params=filters)
+            .values(**data)
+            .returning(*table.columns)
+        )
+        sql, args = compile_query(update)
+        async with self.ensure_connection(conn) as conn:
+            return await conn.fetch(sql, *args)
 
     def get_insert(self, table: Table, records: Union[List[Dict], Dict]):
         if isinstance(records, dict):
