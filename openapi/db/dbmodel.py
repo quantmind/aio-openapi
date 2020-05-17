@@ -20,8 +20,14 @@ class CrudDB(Database):
         conn: Optional[Connection] = None,
         consumer: Any = None,
     ) -> Records:
-        """Select rows from a given table"""
-        query = self.get_query(table, table.select(), consumer, filters)
+        """Select rows from a given table
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
+        query = self.get_query(table, table.select(), consumer=consumer, params=filters)
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
@@ -34,9 +40,18 @@ class CrudDB(Database):
         conn: Optional[Connection] = None,
         consumer: Any = None,
     ) -> Records:
-        """Delete rows from a given table"""
+        """Delete rows from a given table
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
         query = self.get_query(
-            table, table.delete().returning(*table.columns), consumer, filters
+            table,
+            table.delete().returning(*table.columns),
+            consumer=consumer,
+            params=filters,
         )
         sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
@@ -50,7 +65,7 @@ class CrudDB(Database):
         conn: Optional[Connection] = None,
         consumer: Any = None,
     ):
-        query = self.get_query(table, table.select(), consumer, filters)
+        query = self.get_query(table, table.select(), consumer=consumer, params=filters)
         sql, args = count(cast(Select, query))
         async with self.ensure_connection(conn) as conn:
             total = await conn.fetchrow(sql, *args)
@@ -62,7 +77,8 @@ class CrudDB(Database):
         data: Union[List[Dict], Dict],
         *,
         conn: Optional[Connection] = None,
-    ):
+    ) -> List[Record]:
+        """Perform asn insert into a table"""
         async with self.ensure_connection(conn) as conn:
             statement, args = self.get_insert(table, data)
             return await conn.fetch(statement, *args)
@@ -78,7 +94,7 @@ class CrudDB(Database):
     ) -> List[Record]:
         """Perform an update if possible"""
         update = (
-            self.get_query(table, table.update(), params=filters)
+            self.get_query(table, table.update(), consumer=consumer, params=filters)
             .values(**data)
             .returning(*table.columns)
         )
