@@ -11,7 +11,7 @@ from ..data.pagination import PaginatedData, Pagination
 from ..db.dbmodel import CrudDB
 from ..spec.path import ApiPath
 from ..types import DataType, Records, SchemaTypeOrStr, StrDict
-from .compile import Select, Update, compile_query, count
+from .compile import Select, compile_query, count
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
 
@@ -66,7 +66,8 @@ class SqlApiPath(ApiPath):
             filters = self.get_filters(query=query, query_schema=query_schema)
         specials = self.get_special_params(cast(Dict, filters))
         sql_query = cast(
-            Select, self.db.get_query(table, table.select(), self, filters)
+            Select,
+            self.db.get_query(table, table.select(), params=filters, consumer=self),
         )
         #
         sql_count, args_count = count(sql_query)
@@ -193,17 +194,12 @@ class SqlApiPath(ApiPath):
             filters = self.get_filters(query=query, query_schema=query_schema)
 
         if data:
-            update = (
-                cast(Update, self.db.get_query(table, table.update(), self, filters))
-                .values(**data)
-                .returning(*table.columns)
-            )
-            sql, args = compile_query(update)
-            async with self.db.ensure_connection(conn) as conn:
-                try:
-                    values = await conn.fetch(sql, *args)
-                except UniqueViolationError as exc:
-                    self.handle_unique_violation(exc)
+            try:
+                values = await self.db.db_update(
+                    table, filters, data, conn=conn, consumer=self
+                )
+            except UniqueViolationError as exc:
+                self.handle_unique_violation(exc)
         else:
             values = await self.db.db_select(table, filters, conn=conn, consumer=self)
         if not values:
