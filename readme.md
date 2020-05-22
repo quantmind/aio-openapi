@@ -5,6 +5,7 @@
 [![Build](https://github.com/quantmind/aio-openapi/workflows/build/badge.svg)](https://github.com/quantmind/aio-openapi/actions?query=workflow%3Abuild)
 [![Coverage Status](https://coveralls.io/repos/github/quantmind/aio-openapi/badge.svg?branch=HEAD)](https://coveralls.io/github/quantmind/aio-openapi?branch=HEAD)
 [![Documentation Status](https://readthedocs.org/projects/aio-openapi/badge/?version=latest)](https://aio-openapi.readthedocs.io/en/latest/?badge=latest)
+[![Downloads](https://img.shields.io/pypi/dd/aio-openapi.svg)](https://pypi.org/project/aio-openapi/)
 
 Asynchronous web middleware for [aiohttp][] and serving Rest APIs with [OpenAPI][] v 3
 specification and with optional [PostgreSql][] database bindings.
