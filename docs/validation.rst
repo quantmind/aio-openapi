@@ -69,7 +69,7 @@ Supported Schema
 
 The library support the following schemas
 
-* Primitive types: ``str``, ``int``, ``float``, ``bool``, ``date``, ``datetime`` and ``Decimal``
+* Primitive types: ``str``, ``bytes``, ``int``, ``float``, ``bool``, ``date``, ``datetime`` and ``Decimal``
 * Python :mod:`dataclasses` with fields from this supported schema
 * ``List`` from ``typing`` annotation with items from this supported schema
 * ``Dict`` from ``typing`` with keys as string and items from this supported schema

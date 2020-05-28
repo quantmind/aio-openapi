@@ -92,3 +92,10 @@ async def test_spec_root(cli):
     assert len(spec["tags"]) == 5
     assert spec["tags"][3]["name"] == "Task"
     assert spec["tags"][3]["description"] == "Simple description"
+
+
+async def test_spec_bytes(cli):
+    response = await cli.get("/spec")
+    spec = await json_body(response)
+    upload = spec["paths"]["/upload"]["post"]
+    assert list(upload["requestBody"]["content"]) == ["multipart/form-data"]
