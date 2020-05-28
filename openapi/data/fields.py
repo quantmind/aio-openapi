@@ -25,6 +25,7 @@ DataClass = Any
 
 PRIMITIVE_TYPES: Dict[Any, Dict] = {
     str: {"type": "string"},
+    bytes: {"type": "string", FORMAT: "binary"},
     int: {"type": "integer", FORMAT: "int32"},
     float: {"type": "number", FORMAT: "float"},
     bool: {"type": "boolean"},

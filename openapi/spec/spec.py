@@ -361,9 +361,10 @@ class OpenApiSpec(SchemaParser):
                 rschema = schema
                 if response >= 400:
                     rschema = self.get_schema_info(error_response_schema(response))
+                content = data.get("content", self.default_content_type)
                 responses[response] = {
                     "description": data.get("description", ""),
-                    "content": {"application/json": {"schema": rschema}},
+                    "content": {content: {"schema": rschema}},
                 }
             doc["responses"] = responses
 
@@ -371,8 +372,9 @@ class OpenApiSpec(SchemaParser):
         self, type_info: Optional[TypingInfo], doc: Dict[str, str]
     ) -> None:
         if type_info:
+            content = doc.pop("body_content", self.default_content_type)
             schema = self.get_schema_info(type_info)
-            doc["requestBody"] = {"content": {"application/json": {"schema": schema}}}
+            doc["requestBody"] = {"content": {content: {"schema": schema}}}
 
     def _get_query_parameters(
         self, type_info: Optional[TypingInfo], doc: Dict[str, str]
