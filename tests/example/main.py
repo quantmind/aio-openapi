@@ -14,6 +14,7 @@ from .db_additional import additional_meta
 from .endpoints import routes
 from .endpoints_additional import additional_routes
 from .endpoints_base import base_routes
+from .endpoints_form import form_routes
 from .ws import ws_routes
 
 
@@ -49,6 +50,7 @@ def setup_app(app: web.Application) -> None:
     # Additional routes for testing
     additional_meta(db.metadata)
     app.router.add_routes(additional_routes)
+    app.router.add_routes(form_routes)
     app["broker"] = LocalBroker()
     app["web_sockets"] = Sockets(app)
     app.router.add_routes(ws_routes)

@@ -126,3 +126,8 @@ class SourcePrice:
         default_factory=dict,
     )
     foos: List[Foo] = fields.data_field(default_factory=list)
+
+
+@dataclass
+class BundleUpload:
+    files: List[bytes] = fields.data_field(description="list of bundles to upload")
