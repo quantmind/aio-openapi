@@ -27,10 +27,22 @@ class ApiPath(web.View, DataView):
         self,
         data: DataType,
         *,
+        multiple: bool = False,
         strict: bool = True,
         body_schema: SchemaTypeOrStr = "body_schema",
     ) -> Dict[str, Any]:
-        data = self.cleaned(body_schema, data)
+        """Validate data for insertion
+
+        if a :attr:`.path_schema` is given, it validate the request `match_info`
+        against it and add it to the validated data.
+
+        :param data: object to be validated against the body_schema, usually obtained
+            from the request body (JSON)
+        :param multiple: multiple values for a given key are acceptable
+        :param strict: all required attributes in schema must be available
+        :param body_schema: the schema to validate against
+        """
+        data = self.cleaned(body_schema, data, multiple=multiple, strict=strict)
         if self.path_schema:
             path = self.cleaned("path_schema", self.request.match_info)
             data.update(path)

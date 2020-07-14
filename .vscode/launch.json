@@ -6,7 +6,7 @@
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
-            "pythonPath": "${config:python.interpreterPath}",
+            "pythonPath": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "module": "pytest",

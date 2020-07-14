@@ -54,6 +54,7 @@ def data_field(
     items: Optional[Field] = None,
     post_process: Callable[[Any], Any] = None,
     ops: Tuple = (),
+    meta: Optional[Dict[str, any]] = None,
     **kwargs,
 ) -> Field:
     """Extend a dataclass field with the following metadata
@@ -69,11 +70,13 @@ def data_field(
         (only used for `List` and `Dict` fields)
     :param post_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
+    :param meta: optional dictionary with additional metadata
     """
     if isinstance(validator, Validator) and not dump:
         dump = validator.dump
     if "default_factory" not in kwargs:
         kwargs.setdefault("default", None)
+    meta = meta or {}
 
     f = field(
         metadata=compact_dict(
@@ -86,6 +89,7 @@ def data_field(
                 POST_PROCESS: post_process,
                 FORMAT: format,
                 OPS: ops,
+                **meta,
             }
         ),
         **kwargs,
