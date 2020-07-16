@@ -315,3 +315,8 @@ def test_override_field_type():
     field.type = bool
     with pytest.raises(RuntimeError):
         as_field(float, field=field)
+
+
+def test_additional_metadata():
+    field = bool_field(meta=dict(ciao="luca"))
+    assert field.metadata["ciao"] == "luca"

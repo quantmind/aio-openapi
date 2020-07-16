@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from dataclasses import Field, asdict, dataclass
+from dataclasses import MISSING, Field, asdict, dataclass
 from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
 from enum import Enum
@@ -16,10 +16,12 @@ from .path import ApiPath
 from .server import default_server, get_spec
 from .utils import load_yaml_from_docstring, trim_docstring
 
-OPENAPI = "3.0.2"
+OPENAPI = "3.1.0"
 METHODS = [method.lower() for method in hdrs.METH_ALL]
 SCHEMAS_TO_SCHEMA = ("response_schema", "body_schema")
 SCHEMA_BASE_REF = "#/components/schemas/"
+
+EMPTY_DEFAULTS = frozenset((None, MISSING, ""))
 
 
 @dataclass
@@ -85,6 +87,7 @@ class SchemaParser:
         fmt = meta.get(fields.FORMAT)
         if fmt:
             json_property[fields.FORMAT] = fmt
+        self.add_default(field, json_property)
         validator = meta.get(fields.VALIDATOR)
         # add additional parameters fields from validators
         if isinstance(validator, fields.Validator):
@@ -181,6 +184,20 @@ class SchemaParser:
                 )
             )
         return parsed
+
+    def add_default(self, field: Field, json_property: Dict):
+        if field.default in EMPTY_DEFAULTS or field.metadata.get(fields.REQUIRED):
+            return
+        default = field.default
+        type_info = TypingInfo.get(field.type)
+        if type_info.element not in fields.PRIMITIVE_TYPES:
+            if is_subclass(type_info.element, Enum) and isinstance(
+                default, type_info.element
+            ):
+                default = default.name
+            else:
+                return
+        json_property["default"] = default
 
 
 class OpenApiSpec(SchemaParser):
