@@ -59,11 +59,6 @@ async def test_app(db_url):
 
 
 @pytest.fixture
-async def db(test_app):
-    return test_app["db"]
-
-
-@pytest.fixture
 async def cli(loop, test_app):
     server = test_utils.TestServer(test_app, loop=loop)
     client = test_utils.TestClient(server, loop=loop, json_serialize=dumps)
@@ -72,3 +67,8 @@ async def cli(loop, test_app):
         yield client
     finally:
         await client.close()
+
+
+@pytest.fixture
+async def db(test_app, cli):
+    return test_app["db"]
