@@ -1,25 +1,20 @@
 from aiohttp import web
-
-routes = web.RouteTableDef()
-
-defaut_favicon = (
-    "https://raw.githubusercontent.com/Redocly/redoc/master/demo/favicon.png"
-)
+from dataclasses import dataclass
 
 
-PATH = "/docs"
-
-
-@routes.view(PATH)
-class ApiDocs(web.View):
+@dataclass
+class Redoc:
+    path: str = "/doc"
+    favicon_url: str = (
+        "https://raw.githubusercontent.com/Redocly/redoc/master/demo/favicon.png"
+    )
     redoc_js_url: str = (
         "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"
     )
     font: str = "family=Montserrat:300,400,700|Roboto:300,400,700"
 
-    async def get(self) -> web.Response:
+    def __call__(self, request: web.Request) -> web.Response:
         spec = self.request.app["spec"]
-        favicon = self.request.app.get("redoc_favicon_url") or defaut_favicon
         base_path = "/".join(self.request.path.split("/")[:-1])
         title = spec.info.title
         html = f"""
@@ -36,7 +31,7 @@ class ApiDocs(web.View):
         <link href="https://fonts.googleapis.com/css?{self.font}" rel="stylesheet">
         """
         html += f"""
-        <link rel="shortcut icon" href="{favicon}">
+        <link rel="shortcut icon" href="{self.favicon}">
         <!--
         ReDoc doesn't change outer page styles
         -->

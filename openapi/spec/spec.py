@@ -1,10 +1,10 @@
 import os
 from collections import OrderedDict
-from dataclasses import MISSING, Field, asdict, dataclass
-from dataclasses import field, fields as get_fields
+from dataclasses import MISSING, Field, asdict, dataclass, field
+from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, cast, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
 from aiohttp import hdrs, web
 
@@ -13,6 +13,7 @@ from ..data.exc import ErrorMessage, FieldError, ValidationErrors, error_respons
 from ..exc import InvalidSpecException, InvalidTypeException
 from ..utils import TypingInfo, compact, is_subclass
 from .path import ApiPath
+from .redoc import Redoc
 from .server import default_server
 from .utils import load_yaml_from_docstring, trim_docstring
 
@@ -57,9 +58,11 @@ class OpenApiSpec:
     default_content_type: str = "application/json"
     default_responses: Dict = field(default_factory=dict)
     security: Dict = field(default_factory=dict)
+    servers: List[Dict] = field(default_factory=list)
     validate_docs: bool = False
     allowed_tags: Set = field(default_factory=set)
     spec_url: str = SPEC_ROUTE
+    redoc: Optional[Redoc] = None
 
     def routes(self, request: web.Request) -> Iterable:
         """Routes to include in the spec"""
@@ -68,6 +71,8 @@ class OpenApiSpec:
     def setup_app(self, app: web.Application):
         app["spec"] = self
         app.router.add_get(self.spec_url, self.spec_route)
+        if self.redoc:
+            app.router.add_get(self.redoc.path, self.redoc)
 
     def spec_route(self, request: web.Request) -> web.Response:
         """Return the OpenApi spec
@@ -77,7 +82,7 @@ class OpenApiSpec:
     def build(self, request: web.Request) -> Dict:
         doc = SpecDoc(request, self)
         security = self.security.copy()
-        servers = self.servers[:]
+        servers = self.servers[:] if self.servers else []
         return doc(security, servers)
 
 
