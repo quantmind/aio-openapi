@@ -248,4 +248,4 @@ class SqlApiPath(ApiPath):
 
         column = match.group("column")
         message = f"{column} already exists"
-        self.raiseValidationError(message=message)
+        self.raise_validation_error(message=message)
