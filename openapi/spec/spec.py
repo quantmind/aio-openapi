@@ -271,18 +271,6 @@ class SpecDoc(SchemaParser):
     def app(self) -> web.Application:
         return self.request.app
 
-    @property
-    def paths(self) -> Dict[str, Dict]:
-        return self.doc["paths"]
-
-    @property
-    def title(self) -> str:
-        return self.doc["info"]["title"]
-
-    @property
-    def version(self) -> str:
-        return self.doc["info"]["version"]
-
     def __call__(self) -> Dict:
         # Add errors schemas
         self.add_schema_to_parse(ValidationErrors)
@@ -323,7 +311,7 @@ class SpecDoc(SchemaParser):
         """Loop through app paths and add
         schemas, parameters and paths objects to the spec
         """
-        paths = self.paths
+        paths = self.doc["paths"]
         base_path = self.app["cli"].base_path
         for route in self.spec.routes(self.request):
             route_info = route.get_info()
