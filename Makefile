@@ -23,6 +23,9 @@ docs:		## build sphinx docs
 version:	## display software version
 	@python -c "import openapi; print(openapi.__version__)"
 
+install: 	## install packages in virtualenv
+	@./dev/install
+
 isort: 		## run isort
 	@isort -rc
 
