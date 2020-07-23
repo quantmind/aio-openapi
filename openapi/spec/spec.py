@@ -1,10 +1,10 @@
 import os
 from collections import OrderedDict
 from dataclasses import MISSING, Field, asdict, dataclass
-from dataclasses import fields as get_fields
+from dataclasses import field, fields as get_fields
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, cast
+from typing import Any, Dict, Iterable, List, Optional, cast, Set
 
 from aiohttp import hdrs, web
 
@@ -46,6 +46,39 @@ class OpenApi:
     termsOfService: str = ""
     contact: Contact = Contact()
     license: License = License()
+
+
+@dataclass
+class OpenApiSpec:
+    """Open API Specification
+    """
+
+    info: OpenApi = field(default_factory=OpenApi)
+    default_content_type: str = "application/json"
+    default_responses: Dict = field(default_factory=dict)
+    security: Dict = field(default_factory=dict)
+    validate_docs: bool = False
+    allowed_tags: Set = field(default_factory=set)
+    spec_url: str = SPEC_ROUTE
+
+    def routes(self, request: web.Request) -> Iterable:
+        """Routes to include in the spec"""
+        return request.app.router.routes()
+
+    def setup_app(self, app: web.Application):
+        app["spec"] = self
+        app.router.add_get(self.spec_url, self.spec_route)
+
+    def spec_route(self, request: web.Request) -> web.Response:
+        """Return the OpenApi spec
+        """
+        return web.json_response(self.build(request))
+
+    def build(self, request: web.Request) -> Dict:
+        doc = SpecDoc(request, self)
+        security = self.security.copy()
+        servers = self.servers[:]
+        return doc(security, servers)
 
 
 class SchemaParser:
@@ -199,50 +232,6 @@ class SchemaParser:
             else:
                 return
         json_property["default"] = default
-
-
-class OpenApiSpec:
-    """Open API Specification
-    """
-
-    def __init__(
-        self,
-        info: Optional[OpenApi] = None,
-        default_content_type: str = "",
-        default_responses: Optional[Dict] = None,
-        allowed_tags: Iterable = None,
-        validate_docs: bool = False,
-        servers: Optional[List] = None,
-        security: Optional[Dict[str, Dict]] = None,
-        spec_url: str = SPEC_ROUTE,
-    ) -> None:
-        self.validate_docs: bool = validate_docs
-        self.servers: List = servers or []
-        self.default_content_type = default_content_type or "application/json"
-        self.default_responses = default_responses or {}
-        self.security = security or {}
-        self.info = info
-        self.spec_url = spec_url
-        self.allowed_tags = allowed_tags
-
-    def routes(self, request: web.Request) -> Iterable:
-        """Routes to include in the spec"""
-        return request.app.router.routes()
-
-    def setup_app(self, app: web.Application):
-        app["spec"] = self
-        app.router.add_get(self.spec_url, self.spec_route)
-
-    def spec_route(self, request: web.Request) -> web.Response:
-        """Return the OpenApi spec
-        """
-        return web.json_response(self.build(request))
-
-    def build(self, request: web.Request) -> Dict:
-        doc = SpecDoc(request, self)
-        security = self.security.copy()
-        servers = self.servers[:]
-        return doc(security, servers)
 
 
 class SpecDoc(SchemaParser):
