@@ -240,7 +240,9 @@ class OpenApiSpec:
 
     def build(self, request: web.Request) -> Dict:
         doc = SpecDoc(request, self)
-        return doc()
+        security = self.security.copy()
+        servers = self.servers[:]
+        return doc(security, servers)
 
 
 class SpecDoc(SchemaParser):
@@ -264,19 +266,20 @@ class SpecDoc(SchemaParser):
         self.tags: Dict = {}
         self.plugins: Dict = {}
         self.doc: Dict = dict(
-            openapi=OPENAPI, info=asdict(spec.info or OpenApi()), paths=OrderedDict()
+            openapi=OPENAPI,
+            info=asdict(self.spec.info or OpenApi()),
+            paths=OrderedDict(),
         )
 
     @property
     def app(self) -> web.Application:
         return self.request.app
 
-    def __call__(self) -> Dict:
+    def __call__(self, security: Dict, servers: List) -> Dict:
         # Add errors schemas
         self.add_schema_to_parse(ValidationErrors)
         self.add_schema_to_parse(ErrorMessage)
         self.add_schema_to_parse(FieldError)
-        security = self.spec.security.copy()
         self.doc["security"] = [
             {name: value.pop("scopes", [])} for name, value in security.items()
         ]
@@ -297,7 +300,7 @@ class SpecDoc(SchemaParser):
                         (((k, security[k]) for k in sorted(security)))
                     ),
                 ),
-                servers=self.spec.servers[:],
+                servers=servers,
             )
         )
         if not doc.get("servers"):
