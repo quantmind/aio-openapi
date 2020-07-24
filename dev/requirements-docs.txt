@@ -1,5 +1,7 @@
+-r ./requirements.txt
+
 # docs
-sphinx
+sphinx>=3.1.2
 sphinx-copybutton
 sphinx-autodoc-typehints
 aiohttp-theme

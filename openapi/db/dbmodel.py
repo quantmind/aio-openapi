@@ -121,6 +121,35 @@ class CrudDB(Database):
         async with self.ensure_connection(conn) as conn:
             return await conn.fetch(sql, *args)
 
+    async def db_upsert(
+        self,
+        table: Table,
+        filters: Dict,
+        data: Optional[Dict] = None,
+        *,
+        conn: Optional[Connection] = None,
+        consumer: Any = None,
+    ) -> Records:
+        """Perform an upsert
+
+        :param table: sqlalchemy Table
+        :param filters: key-value pairs for filtering rows to update
+        :param data: key-value pairs for updating columns values of selected rows
+        :param conn: optional db connection
+        :param consumer: optional consumer (see :meth:`.get_query`)
+        """
+        if data:
+            rows = await self.db_update(
+                table, filters, data, conn=conn, consumer=consumer
+            )
+        else:
+            rows = await self.db_select(table, filters, conn=conn, consumer=consumer)
+        if not rows:
+            insert_data = data.copy() if data else {}
+            insert_data.update(filters)
+            rows = await self.db_insert(table, insert_data, conn=conn)
+        return rows
+
     def get_insert(self, table: Table, records: Union[List[Dict], Dict]):
         if isinstance(records, dict):
             records = [records]

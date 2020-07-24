@@ -3,9 +3,9 @@ from aiohttp import web
 from .exc import ImproperlyConfigured
 
 try:
-    from raven_aiohttp import AioHttpTransport
     from raven import Client
     from raven.conf.remote import RemoteConfig
+    from raven_aiohttp import AioHttpTransport
 except ImportError:  # pragma: no cover
     AioHttpTransport = None
 

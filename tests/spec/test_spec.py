@@ -5,15 +5,16 @@ from openapi.rest import rest
 from openapi.spec import OpenApi, OpenApiSpec
 from openapi.testing import json_body
 from tests.example import endpoints, endpoints_additional
+from tests.utils import FakeRequest
 
 
-def create_spec_app(routes):
+def create_spec_request(routes) -> FakeRequest:
     def setup_app(app):
         app.router.add_routes(routes)
 
     cli = rest(setup_app=setup_app)
     app = cli.web()
-    return app
+    return FakeRequest.from_app(app)
 
 
 def test_init():
@@ -23,14 +24,13 @@ def test_init():
 
 async def test_spec_validation(test_app):
     spec = OpenApiSpec()
-    spec.build(test_app)
-    # validate_spec(spec.doc)
+    spec.build(FakeRequest.from_app(test_app))
 
 
 async def test_spec_422(test_app):
     spec = OpenApiSpec()
-    spec.build(test_app)
-    tasks = spec.doc["paths"]["/tasks"]
+    doc = spec.build(FakeRequest.from_app(test_app))
+    tasks = doc["paths"]["/tasks"]
     resp = tasks["post"]["responses"]
     assert (
         resp[422]["content"]["application/json"]["schema"]["$ref"]
@@ -39,49 +39,53 @@ async def test_spec_422(test_app):
 
 
 async def test_invalid_path():
-    app = create_spec_app(endpoints_additional.invalid_path_routes)
+    request = create_spec_request(endpoints_additional.invalid_path_routes)
     spec = OpenApiSpec(validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
-        spec.build(app)
+        spec.build(request)
 
 
 async def test_invalid_method_missing_summary():
-    app = create_spec_app(endpoints_additional.invalid_method_summary_routes)
+    request = create_spec_request(endpoints_additional.invalid_method_summary_routes)
     spec = OpenApiSpec(validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
-        spec.build(app)
+        spec.build(request)
 
 
 async def test_invalid_method_missing_description():
-    app = create_spec_app(endpoints_additional.invalid_method_description_routes)
+    request = create_spec_request(
+        endpoints_additional.invalid_method_description_routes
+    )
     spec = OpenApiSpec(validate_docs=True)
 
     with pytest.raises(InvalidSpecException):
-        spec.build(app)
+        spec.build(request)
 
 
 async def test_allowed_tags_ok():
-    app = create_spec_app(endpoints.routes)
+    request = create_spec_request(endpoints.routes)
     spec = OpenApiSpec(allowed_tags=set(("Task", "Transaction", "Random")))
-    spec.build(app)
+    spec.build(request)
 
 
 async def test_allowed_tags_invalid():
-    app = create_spec_app(endpoints.routes)
+    request = create_spec_request(endpoints.routes)
     spec = OpenApiSpec(validate_docs=True, allowed_tags=set(("Task", "Transaction")))
     with pytest.raises(InvalidSpecException):
-        spec.build(app)
+        spec.build(request)
 
 
 async def test_tags_missing_description():
-    app = create_spec_app(endpoints_additional.invalid_tag_missing_description_routes)
+    request = create_spec_request(
+        endpoints_additional.invalid_tag_missing_description_routes
+    )
     spec = OpenApiSpec(
         validate_docs=True, allowed_tags=set(("Task", "Transaction", "Random"))
     )
     with pytest.raises(InvalidSpecException):
-        spec.build(app)
+        spec.build(request)
 
 
 async def test_spec_root(cli):
@@ -99,3 +103,10 @@ async def test_spec_bytes(cli):
     spec = await json_body(response)
     upload = spec["paths"]["/upload"]["post"]
     assert list(upload["requestBody"]["content"]) == ["multipart/form-data"]
+
+
+async def test_redoc(cli):
+    response = await cli.get("/docs")
+    docs = await response.text()
+    assert response.status == 200
+    assert docs

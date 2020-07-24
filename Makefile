@@ -23,104 +23,60 @@ docs:		## build sphinx docs
 version:	## display software version
 	@python -c "import openapi; print(openapi.__version__)"
 
-isort: 		## run isort
-	@isort -rc
 
-black: 		## run black and fix files
-	@./dev/run-black.sh
+install: 	## install packages in virtualenv
+	@./dev/install
+
+
+lint: 		## run linters
+	flake8
+	isort .
+	./dev/run-black.sh
+
 
 mypy:		## run mypy
 	@mypy openapi
 
+
 postgresql:	## run postgresql for testing
 	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db -d postgres:12
+
 
 postgresql-nd:	## run postgresql for testing - non daemon
 	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db postgres:12
 
-py36:		## build python 3.6 image for testing
-	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.6.10 -t openapi36 .
 
-py37:		## build python 3.7 image for testing
-	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.7.7 -t openapi37 .
+test:		## test with coverage
+	@pytest --cov --cov-report xml --cov-report html
 
-py38:		## build python 3.8 image for testing
-	docker build -f dev/Dockerfile --build-arg PY_VERSION=python:3.8.3 -t openapi38 .
 
-test-py36:	## test with python 3.6
-	@docker run --rm --network=host openapi36 pytest
+test-lint:	## run linters
+	flake8
+	isort . --check
+	./dev/run-black.sh --check
 
-test-py37:	## test with python 3.7
-	@docker run --rm --network=host openapi37 pytest
-
-test-py38:	## test with python 3.8 with coverage
-	@docker run --rm --network=host \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		pytest --cov --cov-report xml
 
 test-docs: 	## run docs in CI
-	@docker run --rm \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		make docs
+	make docs
 
-test-black: 	## run black check in CI
-	@docker run --rm \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		./dev/run-black.sh --check
-
-test-flake8: 	## run flake8 in CI
-	@docker run --rm \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		flake8
-
-test-codecov:	## upload code coverage
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		codecov --token $(CODECOV_TOKEN) --file ./build/coverage.xml
-
-test-coveralls:	## upload code coverage
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		-e COVERALLS_REPO_TOKEN=$(COVERALLS_REPO_TOKEN) \
-		openapi38 \
-		coveralls
 
 test-version:	## validate version with pypi
-	@docker run \
-		-v $(PWD):/workspace \
-		openapi38 \
-		agilekit git validate
+	@agilekit git validate
 
-terminal:	## enter terminal
-	@docker run -it --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		/bin/bash
 
-bundle:		## build python 3.8 bundle
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		python setup.py sdist bdist_wheel
+bundle3.6:		## build python 3.6 bundle
+	@python setup.py bdist_wheel --python-tag py36
 
-github-tag:	## new tag in github
-	@docker run \
-		-v $(PWD):/workspace \
-		-e GITHUB_TOKEN=$(GITHUB_SECRET) \
-		openapi38 \
-		agilekit git release --yes
+bundle3.7:		## build python 3.7 bundle
+	@python setup.py bdist_wheel --python-tag py37
 
-pypi:		## release to pypi and github tag
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		twine upload dist/* --username lsbardel --password $(PYPI_PASSWORD)
+bundle3.8:		## build python 3.8 bundle
+	@python setup.py sdist bdist_wheel --python-tag py38
 
-release:	## release to pypi and github tag
-	make pypi
-	make github-tag
+
+release-github:	## new tag in github
+	@agilekit git release --yes
+
+
+release-pypi:		## release to pypi and github tag
+	@twine upload dist/* --username lsbardel --password $(PYPI_PASSWORD)

@@ -7,6 +7,7 @@ from openapi.db import get_db
 from openapi.db.commands import db
 from openapi.middleware import json_error
 from openapi.rest import rest
+from openapi.spec import Redoc
 from openapi.ws import LocalBroker, Sockets
 
 from .db import meta
@@ -34,6 +35,7 @@ def create_app():
         ),
         setup_app=setup_app,
         commands=[db],
+        redoc=Redoc(),
     )
 
 

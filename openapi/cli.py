@@ -8,9 +8,8 @@ import uvloop
 from aiohttp import web
 from aiohttp.web import Application
 
-from . import spec
 from .logger import logger, setup_logging
-from .spec.spec import SpecDoc
+from .spec import OpenApiSpec
 from .utils import get_debug_flag
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -23,7 +22,7 @@ class OpenApiClient(click.Group):
 
     def __init__(
         self,
-        spec: Optional[spec.OpenApiSpec] = None,
+        spec: Optional[OpenApiSpec] = None,
         setup_app: Optional[Callable[[Application], None]] = None,
         base_path: str = "",
         commands: Optional[List] = None,
@@ -75,9 +74,7 @@ class OpenApiClient(click.Group):
             app["cwd"] = os.getcwd()
             app["index"] = self.index
             if self.spec:
-                app["spec"] = self.spec
-                app["spec_doc"] = SpecDoc()
-                spec.setup_app(app)
+                self.spec.setup_app(app)
             if self.setup_app:
                 self.setup_app(app)
             self._web = app
@@ -108,8 +105,8 @@ class OpenApiClient(click.Group):
         click.echo(
             message
             % {
-                "title": spec.title if spec else self.name or "Open API",
-                "version": spec.version if spec else "",
+                "title": spec.info.title if spec else self.name or "Open API",
+                "version": spec.info.version if spec else "",
                 "python_version": sys.version,
             },
             color=ctx.color,
