@@ -9,8 +9,11 @@ from openapi.json import dumps
 from openapi.utils import ExpectedOneOnly, TypingInfo, one_only
 
 
+TEST_ENVS = frozenset(("test", "ci"))
+
+
 def test_env():
-    assert utils.get_env() == "test"
+    assert utils.get_env() in TEST_ENVS
 
 
 def test_debug_flag():
