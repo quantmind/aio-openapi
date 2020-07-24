@@ -37,54 +37,46 @@ lint: 		## run linters
 mypy:		## run mypy
 	@mypy openapi
 
+
 postgresql:	## run postgresql for testing
 	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db -d postgres:12
+
 
 postgresql-nd:	## run postgresql for testing - non daemon
 	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db postgres:12
 
+
 test:		## test with coverage
 	@pytest --cov --cov-report xml --cov-report html
+
 
 test-lint:	## run linters
 	flake8
 	isort . --check
 	./dev/run-black.sh --check
 
+
 test-docs: 	## run docs in CI
 	make docs
 
+
 test-version:	## validate version with pypi
-	@docker run \
-		-v $(PWD):/workspace \
-		openapi38 \
-		agilekit git validate
+	@agilekit git validate
 
-terminal:	## enter terminal
-	@docker run -it --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		/bin/bash
 
-bundle:		## build python 3.8 bundle
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		python setup.py sdist bdist_wheel
+bundle3.6:		## build python 3.6 bundle
+	@python setup.py bdist_wheel --python-tag py36
 
-github-tag:	## new tag in github
-	@docker run \
-		-v $(PWD):/workspace \
-		-e GITHUB_TOKEN=$(GITHUB_SECRET) \
-		openapi38 \
-		agilekit git release --yes
+bundle3.7:		## build python 3.7 bundle
+	@python setup.py bdist_wheel --python-tag py37
 
-pypi:		## release to pypi and github tag
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		twine upload dist/* --username lsbardel --password $(PYPI_PASSWORD)
+bundle3.8:		## build python 3.8 bundle
+	@python setup.py sdist bdist_wheel --python-tag py38
 
-release:	## release to pypi and github tag
-	make pypi
-	make github-tag
+
+release-github:	## new tag in github
+	@agilekit git release --yes
+
+
+release-pypi:		## release to pypi and github tag
+	@twine upload dist/* --username lsbardel --password $(PYPI_PASSWORD)
