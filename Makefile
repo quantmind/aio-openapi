@@ -54,20 +54,6 @@ test-lint:	## run linters
 test-docs: 	## run docs in CI
 	make docs
 
-
-test-codecov:	## upload code coverage
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		openapi38 \
-		codecov --token $(CODECOV_TOKEN) --file ./build/coverage.xml
-
-test-coveralls:	## upload code coverage
-	@docker run --rm \
-		-v $(PWD):/workspace \
-		-e COVERALLS_REPO_TOKEN=$(COVERALLS_REPO_TOKEN) \
-		openapi38 \
-		coveralls
-
 test-version:	## validate version with pypi
 	@docker run \
 		-v $(PWD):/workspace \
