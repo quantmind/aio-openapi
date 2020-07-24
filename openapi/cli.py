@@ -8,8 +8,8 @@ import uvloop
 from aiohttp import web
 from aiohttp.web import Application
 
-from .spec import OpenApiSpec
 from .logger import logger, setup_logging
+from .spec import OpenApiSpec
 from .utils import get_debug_flag
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())

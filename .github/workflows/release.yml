@@ -14,7 +14,7 @@ jobs:
       PYTHON_ENV: ci
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: run postgres
         run: make postgresql
       - name: build image
@@ -37,10 +37,10 @@ jobs:
       PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: build python 3.8 image
         run: make py38
       - name: build python 3.8 bundle
         run: make bundle
-      - name: release to pypi
+      - name: release to pypi and github tag
         run: make release

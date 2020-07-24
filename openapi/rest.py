@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 from aiohttp.web import Application
 
 from .cli import OpenApiClient
-from .data.fields import Choice, IntegerValidator, bool_field, data_field, str_field
+from .data.fields import Choice, bool_field, integer_field, str_field
 from .data.pagination import MAX_PAGINATION_LIMIT
 from .spec import OpenApi, OpenApiSpec, Redoc
 from .spec.utils import docjoin
@@ -47,12 +47,13 @@ def rest(
 class Query:
     """Base dataclass for querying pagination"""
 
-    limit: int = data_field(
-        validator=IntegerValidator(min_value=1, max_value=MAX_PAGINATION_LIMIT),
+    limit: int = integer_field(
+        min_value=1,
+        max_value=MAX_PAGINATION_LIMIT,
         description="Limit the number of objects returned from the endpoint",
     )
-    offset: int = data_field(
-        validator=IntegerValidator(min_value=0),
+    offset: int = integer_field(
+        min_value=0,
         description=(
             "Number of objects to exclude. "
             "Use in conjunction with limit to paginate results"
@@ -69,7 +70,7 @@ def orderable(*orderable_fields) -> type:
 
     @dataclass
     class Orderable:
-        order_by: str = data_field(
+        order_by: str = str_field(
             validator=Choice(orderable_fields),
             description=(
                 "Order results by given column (default ascending order). "

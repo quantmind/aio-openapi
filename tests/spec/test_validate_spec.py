@@ -1,4 +1,5 @@
 from openapi_spec_validator import validate_spec
+
 from openapi.testing import json_body
 
 

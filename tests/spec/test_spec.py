@@ -1,4 +1,5 @@
 import pytest
+
 from openapi.exc import InvalidSpecException
 from openapi.rest import rest
 from openapi.spec import OpenApi, OpenApiSpec
