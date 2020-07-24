@@ -1,5 +1,6 @@
+from typing import Dict, NamedTuple
+
 import yarl
-from typing import NamedTuple, Dict
 from aiohttp.web import Application
 
 

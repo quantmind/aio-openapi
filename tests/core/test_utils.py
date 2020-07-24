@@ -6,11 +6,13 @@ from openapi import utils
 from openapi.db.container import Database
 from openapi.exc import ImproperlyConfigured, JsonHttpException
 from openapi.json import dumps
-from openapi.utils import TypingInfo, one_only, ExpectedOneOnly
+from openapi.utils import ExpectedOneOnly, TypingInfo, one_only
+
+TEST_ENVS = frozenset(("test", "ci"))
 
 
 def test_env():
-    assert utils.get_env() == "test"
+    assert utils.get_env() in TEST_ENVS
 
 
 def test_debug_flag():

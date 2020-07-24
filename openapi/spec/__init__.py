@@ -1,7 +1,7 @@
 from .operation import op
 from .path import ApiPath
-from .spec import OpenApi, OpenApiSpec, SchemaParser, SpecDoc
 from .redoc import Redoc
+from .spec import OpenApi, OpenApiSpec, SchemaParser, SpecDoc
 
 __all__ = [
     "op",

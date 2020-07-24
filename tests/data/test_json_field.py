@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import pytest
 
-from openapi.data.fields import VALIDATOR, JSONValidator, json_field, ValidationError
+from openapi.data.fields import VALIDATOR, JSONValidator, ValidationError, json_field
 from openapi.data.validate import ValidationErrors, validated_schema
 
 

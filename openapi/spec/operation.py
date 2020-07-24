@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable
 
-from ..data.view import Operation, DataView
+from ..data.view import DataView, Operation
 from ..utils import TypingInfo
 
 
