@@ -23,14 +23,16 @@ docs:		## build sphinx docs
 version:	## display software version
 	@python -c "import openapi; print(openapi.__version__)"
 
+
 install: 	## install packages in virtualenv
 	@./dev/install
 
-isort: 		## run isort
-	isort .
 
-black: 		## run black and fix files
-	@./dev/run-black.sh
+lint: 		## run linters
+	flake8
+	isort .
+	./dev/run-black.sh
+
 
 mypy:		## run mypy
 	@mypy openapi
@@ -50,22 +52,8 @@ test-lint:	## run linters
 	./dev/run-black.sh --check
 
 test-docs: 	## run docs in CI
-	@docker run --rm \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		make docs
+	make docs
 
-test-black: 	## run black check in CI
-	@docker run --rm \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		./dev/run-black.sh --check
-
-test-flake8: 	## run flake8 in CI
-	@docker run --rm \
-		-v $(PWD)/build:/workspace/build \
-		openapi38 \
-		flake8
 
 test-codecov:	## upload code coverage
 	@docker run --rm \
