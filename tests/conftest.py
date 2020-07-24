@@ -1,9 +1,9 @@
 import asyncio
 import os
 import shutil
-
 import pytest
 from aiohttp import test_utils
+from aiohttp.web import Application
 from asynctest import CoroutineMock
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
@@ -59,7 +59,7 @@ async def test_app(db_url):
 
 
 @pytest.fixture
-async def cli(loop, test_app):
+async def cli(loop, test_app: Application):
     server = test_utils.TestServer(test_app, loop=loop)
     client = test_utils.TestClient(server, loop=loop, json_serialize=dumps)
     await client.start_server()

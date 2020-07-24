@@ -1,25 +1,32 @@
-# devs
-flake8
+# linters
 black
+isort[requirements]
+flake8
+flake8-blind-except
+flake8-builtins
+flake8-commas
+
+# coverage
 codecov
 coverage
 coveralls
-mypy
-isort
+
+# test
 pytest
 pytest-cov
 pytest-aiohttp
 pytest-mock
-twine
-agile-toolkit
 asynctest
 
-# stubs
+# mypy & stubs
+mypy
 sqlalchemy-stubs
+
+# deploy
+twine
+agile-toolkit
 
 # additional features
 raven-aiohttp
 python-dotenv
-
-#
 openapi-spec-validator

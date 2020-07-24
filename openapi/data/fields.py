@@ -139,7 +139,7 @@ def number_field(
 
 
 def integer_field(
-    min_value: Optional[int] = None, max_value: Optional[int] = None, **kw
+    min_value: Optional[int] = None, max_value: Optional[int] = None, **kw,
 ) -> Field:
     """ A specialized :func:`.data_field` for integer values
 

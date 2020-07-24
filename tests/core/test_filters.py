@@ -3,6 +3,7 @@ from multidict import MultiDict
 
 from openapi.spec import OpenApiSpec
 from openapi.testing import jsonBody
+from tests.utils import FakeRequest
 
 tests = [
     {"title": "test1", "unique_title": "thefirsttest", "severity": 1},
@@ -34,8 +35,8 @@ async def assert_query(cli, params, expected):
 
 async def test_spec(test_app):
     spec = OpenApiSpec()
-    spec.build(test_app)
-    query = spec.paths["/tasks"]["get"]["parameters"]
+    doc = spec.build(FakeRequest.from_app(test_app))
+    query = doc["paths"]["/tasks"]["get"]["parameters"]
     filters = [q["name"] for q in query]
     assert set(filters) == {
         "title",

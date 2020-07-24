@@ -6,7 +6,7 @@ from aiohttp.web import Application
 from .cli import OpenApiClient
 from .data.fields import Choice, IntegerValidator, bool_field, data_field, str_field
 from .data.pagination import MAX_PAGINATION_LIMIT
-from .spec import OpenApi, OpenApiSpec
+from .spec import OpenApi, OpenApiSpec, Redoc
 from .spec.utils import docjoin
 
 
@@ -19,6 +19,7 @@ def rest(
     validate_docs: bool = False,
     servers: Optional[List[str]] = None,
     security: Optional[Dict[str, Dict]] = None,
+    redoc: Optional[Redoc] = None,
     OpenApiSpecClass: type = OpenApiSpec,
     **kwargs,
 ) -> OpenApiClient:
@@ -31,6 +32,7 @@ def rest(
             validate_docs=validate_docs,
             servers=servers,
             security=security,
+            redoc=redoc,
         )
     return OpenApiClient(
         spec=openapi,

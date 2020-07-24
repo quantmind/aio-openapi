@@ -1,19 +1,20 @@
+import os
 from collections import OrderedDict
-from dataclasses import MISSING, Field, asdict, dataclass
+from dataclasses import MISSING, Field, asdict, dataclass, field
 from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, cast
+from typing import Any, Dict, Iterable, List, Optional, Set, cast
 
 from aiohttp import hdrs, web
 
 from ..data import fields
 from ..data.exc import ErrorMessage, FieldError, ValidationErrors, error_response_schema
 from ..exc import InvalidSpecException, InvalidTypeException
-from ..types import JSONType
 from ..utils import TypingInfo, compact, is_subclass
 from .path import ApiPath
-from .server import default_server, get_spec
+from .redoc import Redoc
+from .server import default_server
 from .utils import load_yaml_from_docstring, trim_docstring
 
 OPENAPI = "3.1.0"
@@ -22,6 +23,7 @@ SCHEMAS_TO_SCHEMA = ("response_schema", "body_schema")
 SCHEMA_BASE_REF = "#/components/schemas/"
 
 EMPTY_DEFAULTS = frozenset((None, MISSING, ""))
+SPEC_ROUTE = os.environ.get("SPEC_ROUTE", "/spec")
 
 
 @dataclass
@@ -45,6 +47,43 @@ class OpenApi:
     termsOfService: str = ""
     contact: Contact = Contact()
     license: License = License()
+
+
+@dataclass
+class OpenApiSpec:
+    """Open API Specification
+    """
+
+    info: OpenApi = field(default_factory=OpenApi)
+    default_content_type: str = "application/json"
+    default_responses: Dict = field(default_factory=dict)
+    security: Dict = field(default_factory=dict)
+    servers: List[Dict] = field(default_factory=list)
+    validate_docs: bool = False
+    allowed_tags: Set = field(default_factory=set)
+    spec_url: str = SPEC_ROUTE
+    redoc: Optional[Redoc] = None
+
+    def routes(self, request: web.Request) -> Iterable:
+        """Routes to include in the spec"""
+        return request.app.router.routes()
+
+    def setup_app(self, app: web.Application):
+        app["spec"] = self
+        app.router.add_get(self.spec_url, self.spec_route, name="openapi_spec")
+        if self.redoc:
+            app.router.add_get(self.redoc.path, self.redoc.handle_doc)
+
+    def spec_route(self, request: web.Request) -> web.Response:
+        """Return the OpenApi spec
+        """
+        return web.json_response(self.build(request))
+
+    def build(self, request: web.Request) -> Dict:
+        doc = SpecDoc(request, self)
+        security = self.security.copy()
+        servers = self.servers[:] if self.servers else []
+        return doc(security, servers)
 
 
 class SchemaParser:
@@ -200,62 +239,46 @@ class SchemaParser:
         json_property["default"] = default
 
 
-class OpenApiSpec(SchemaParser):
-    """Open API document builder
-    """
+class SpecDoc(SchemaParser):
+    """Build the OpenAPI Spec doc"""
 
     def __init__(
         self,
-        info: Optional[OpenApi] = None,
-        default_content_type: str = "",
-        default_responses: Optional[Dict] = None,
-        allowed_tags: Iterable = None,
-        validate_docs: bool = False,
-        servers: Optional[List] = None,
-        security: Optional[Dict[str, Dict]] = None,
+        request: web.Request,
+        spec: OpenApiSpec,
+        public: bool = True,
+        private: bool = False,
     ) -> None:
-        super().__init__(validate_docs=validate_docs)
+        super().__init__(spec.validate_docs)
+        self.request: web.Request = request
+        self.spec: OpenApiSpec = spec
+        self.logger = request.app.logger
+        self.public: bool = public
+        self.private: bool = private
         self.parameters: Dict = {}
         self.responses: Dict = {}
         self.tags: Dict = {}
         self.plugins: Dict = {}
-        self.servers: List = servers or []
-        self.default_content_type = default_content_type or "application/json"
-        self.default_responses = default_responses or {}
-        self.security = security
-        self.doc = dict(
-            openapi=OPENAPI, info=asdict(info or OpenApi()), paths=OrderedDict()
+        self.doc: Dict = dict(
+            openapi=OPENAPI,
+            info=asdict(self.spec.info or OpenApi()),
+            paths=OrderedDict(),
         )
-        self.allowed_tags = allowed_tags
 
     @property
-    def paths(self) -> Dict[str, Dict]:
-        return self.doc["paths"]
+    def app(self) -> web.Application:
+        return self.request.app
 
-    @property
-    def title(self) -> str:
-        return self.doc["info"]["title"]
-
-    @property
-    def version(self) -> str:
-        return self.doc["info"]["version"]
-
-    def build(
-        self, app: web.Application, public: bool = True, private: bool = False
-    ) -> Dict[str, JSONType]:
-        """Build the ``doc`` dictionary by adding paths
-        """
-        self.logger = app.logger
+    def __call__(self, security: Dict, servers: List) -> Dict:
         # Add errors schemas
         self.add_schema_to_parse(ValidationErrors)
         self.add_schema_to_parse(ErrorMessage)
         self.add_schema_to_parse(FieldError)
-        security = self.security or {}
         self.doc["security"] = [
             {name: value.pop("scopes", [])} for name, value in security.items()
         ]
         # Build paths
-        self._build_paths(app, public, private)
+        self._build_paths()
         s = self.parsed_schemas()
         p = self.parameters
         r = self.responses
@@ -271,47 +294,42 @@ class OpenApiSpec(SchemaParser):
                         (((k, security[k]) for k in sorted(security)))
                     ),
                 ),
-                servers=self.servers,
+                servers=servers,
             )
         )
+        if not doc.get("servers"):
+            # build the server info
+            doc["servers"] = [default_server(self.request)]
         return doc
-
-    def routes(self, app: web.Application) -> List:
-        return app.router.routes()
 
     # Internals
 
-    def _build_paths(self, app: web.Application, public: bool, private: bool) -> None:
+    def _build_paths(self) -> None:
         """Loop through app paths and add
         schemas, parameters and paths objects to the spec
         """
-        paths = self.paths
-        base_path = app["cli"].base_path
-        for route in self.routes(app):
+        paths = self.doc["paths"]
+        base_path = self.app["cli"].base_path
+        for route in self.spec.routes(self.request):
             route_info = route.get_info()
             path = route_info.get("path", route_info.get("formatter", None))
             handler = route.handler
-            include = is_subclass(handler, ApiPath) and self._include(
-                handler.private, public, private
-            )
-            if include:
+            if is_subclass(handler, ApiPath) and self._include(handler.private):
                 N = len(base_path)
                 path = path[N:]
-                paths[path] = self._build_path_object(
-                    path, handler, app, public, private
-                )
+                paths[path] = self._build_path_object(path, handler)
 
         if self.validate_docs:
             self._validate_tags()
 
     def _validate_tags(self) -> None:
         for tag_name, tag_obj in self.tags.items():
-            if self.allowed_tags and tag_name not in self.allowed_tags:
+            if self.spec.allowed_tags and tag_name not in self.spec.allowed_tags:
                 raise InvalidSpecException(f'Tag "{tag_name}" not allowed')
             if "description" not in tag_obj:
                 raise InvalidSpecException(f'Missing tag "{tag_name}" description')
 
-    def _build_path_object(self, path: str, handler, path_obj, public, private):
+    def _build_path_object(self, path: str, handler):
         path_obj = load_yaml_from_docstring(handler.__doc__) or {}
         doc_tags = path_obj.pop("tags", None)
         if not doc_tags and self.validate_docs:
@@ -334,9 +352,7 @@ class OpenApiSpec(SchemaParser):
                     continue
 
                 method_doc = load_yaml_from_docstring(method_handler.__doc__) or {}
-                if not self._include(
-                    method_doc.pop("private", private), public, private
-                ):
+                if not self._include(method_doc.pop("private", self.private)):
                     continue
                 mtags = tags.copy()
                 mtags.update(self._extend_tags(method_doc.pop("tags", None)))
@@ -378,7 +394,7 @@ class OpenApiSpec(SchemaParser):
                 rschema = schema
                 if response >= 400:
                     rschema = self.get_schema_info(error_response_schema(response))
-                content = data.get("content", self.default_content_type)
+                content = data.get("content", self.spec.default_content_type)
                 responses[response] = {
                     "description": data.get("description", ""),
                     "content": {content: {"schema": rschema}},
@@ -389,7 +405,7 @@ class OpenApiSpec(SchemaParser):
         self, type_info: Optional[TypingInfo], doc: Dict[str, str]
     ) -> None:
         if type_info:
-            content = doc.pop("body_content", self.default_content_type)
+            content = doc.pop("body_content", self.spec.default_content_type)
             schema = self.get_schema_info(type_info)
             doc["requestBody"] = {"content": {content: {"schema": schema}}}
 
@@ -413,25 +429,5 @@ class OpenApiSpec(SchemaParser):
                 names.add(name)
         return names
 
-    def _include(self, is_private, public, private):
-        return (is_private and private) or (not is_private and public)
-
-
-class SpecDoc:
-    _spec_doc = None
-
-    def get(self, request) -> Dict:
-        if not self._spec_doc:
-            app = request.app
-            doc = app["spec"].build(app)
-            if not doc.get("servers"):
-                # build the server info
-                doc["servers"] = [default_server(request)]
-            self._spec_doc = doc
-        return self._spec_doc
-
-
-async def spec_root(request: web.Request) -> web.Response:
-    """Return the OpenApi spec
-    """
-    return web.json_response(get_spec(request))
+    def _include(self, is_private: bool) -> bool:
+        return (is_private and self.private) or (not is_private and self.public)
