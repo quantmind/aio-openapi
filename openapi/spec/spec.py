@@ -70,9 +70,9 @@ class OpenApiSpec:
 
     def setup_app(self, app: web.Application):
         app["spec"] = self
-        app.router.add_get(self.spec_url, self.spec_route)
+        app.router.add_get(self.spec_url, self.spec_route, name="openapi_spec")
         if self.redoc:
-            app.router.add_get(self.redoc.path, self.redoc)
+            app.router.add_get(self.redoc.path, self.redoc.handle_doc)
 
     def spec_route(self, request: web.Request) -> web.Response:
         """Return the OpenApi spec

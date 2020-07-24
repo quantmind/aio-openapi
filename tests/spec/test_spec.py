@@ -102,3 +102,10 @@ async def test_spec_bytes(cli):
     spec = await json_body(response)
     upload = spec["paths"]["/upload"]["post"]
     assert list(upload["requestBody"]["content"]) == ["multipart/form-data"]
+
+
+async def test_redoc(cli):
+    response = await cli.get("/docs")
+    docs = await response.text()
+    assert response.status == 200
+    assert docs

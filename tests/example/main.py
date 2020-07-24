@@ -4,6 +4,7 @@ from aiohttp import web
 
 from openapi import sentry
 from openapi.db import get_db
+from openapi.spec import Redoc
 from openapi.db.commands import db
 from openapi.middleware import json_error
 from openapi.rest import rest
@@ -34,6 +35,7 @@ def create_app():
         ),
         setup_app=setup_app,
         commands=[db],
+        redoc=Redoc(),
     )
 
 

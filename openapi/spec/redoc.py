@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Redoc:
-    path: str = "/doc"
+    path: str = "/docs"
     favicon_url: str = (
         "https://raw.githubusercontent.com/Redocly/redoc/master/demo/favicon.png"
     )
@@ -13,9 +13,9 @@ class Redoc:
     )
     font: str = "family=Montserrat:300,400,700|Roboto:300,400,700"
 
-    def __call__(self, request: web.Request) -> web.Response:
-        spec = self.request.app["spec"]
-        base_path = "/".join(self.request.path.split("/")[:-1])
+    def handle_doc(self, request: web.Request) -> web.Response:
+        spec = request.app["spec"]
+        spec_url = request.app.router["openapi_spec"].url_for()
         title = spec.info.title
         html = f"""
         <!DOCTYPE html>
@@ -31,7 +31,7 @@ class Redoc:
         <link href="https://fonts.googleapis.com/css?{self.font}" rel="stylesheet">
         """
         html += f"""
-        <link rel="shortcut icon" href="{self.favicon}">
+        <link rel="shortcut icon" href="{self.favicon_url}">
         <!--
         ReDoc doesn't change outer page styles
         -->
@@ -43,7 +43,7 @@ class Redoc:
         </style>
         </head>
         <body>
-        <redoc spec-url="{base_path}/spec"></redoc>
+        <redoc spec-url="{spec_url}"></redoc>
         <script src="{self.redoc_js_url}"> </script>
         </body>
         </html>
