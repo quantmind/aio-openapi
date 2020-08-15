@@ -6,6 +6,7 @@ from aiohttp import web
 @dataclass
 class Redoc:
     """A dataclass for redoc rendering"""
+
     path: str = "/docs"
     favicon_url: str = (
         "https://raw.githubusercontent.com/Redocly/redoc/master/demo/favicon.png"

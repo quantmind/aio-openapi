@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+from functools import lru_cache
 from typing import Callable, Iterable, List, Optional
 
 import click
@@ -18,8 +19,6 @@ PORT = os.environ.get("MICRO_SERVICE_PORT", 8080)
 
 
 class OpenApiClient(click.Group):
-    index: int = -1
-
     def __init__(
         self,
         spec: Optional[OpenApiSpec] = None,
@@ -27,6 +26,7 @@ class OpenApiClient(click.Group):
         base_path: str = "",
         commands: Optional[List] = None,
         serve_spec: bool = True,
+        index: int = -1,
         **extra,
     ) -> None:
         params = list(extra.pop("params", None) or ())
@@ -34,6 +34,7 @@ class OpenApiClient(click.Group):
         self.debug = get_debug_flag()
         self.setup_app = setup_app
         self.base_path: str = base_path or ""
+        self.index = index
         params.extend(
             (
                 click.Option(
@@ -63,25 +64,25 @@ class OpenApiClient(click.Group):
         self.add_command(serve)
         for command in commands or ():
             self.add_command(command)
-        self._web: Optional[Application] = None
 
-    def web(self) -> Application:
+    @lru_cache(None)
+    def web(self, server: bool = False) -> Application:
         """Return the web application
         """
-        if self._web is None:
-            app = Application()
-            app["cli"] = self
-            app["cwd"] = os.getcwd()
-            app["index"] = self.index
-            if self.spec:
-                self.spec.setup_app(app)
-            if self.setup_app:
-                self.setup_app(app)
-            self._web = app
-        return self._web
+        app = Application()
+        app["cli"] = self
+        app["cwd"] = os.getcwd()
+        app["index"] = self.index
+        app["server"] = server
+        if self.spec:
+            self.spec.setup_app(app)
+        if self.setup_app:
+            self.setup_app(app)
+        return app
 
     def get_serve_app(self) -> Application:
-        app = self.web()
+        """Create the application which runs the server"""
+        app = self.web(server=True)
         if self.base_path:
             base = Application()
             base.add_subapp(self.base_path, app)
