@@ -47,6 +47,7 @@ Features
 - Migrations with alembic_
 - SqlAlchemy tables as python dataclasses
 - Support click_ command line interface
+- Redoc_ document rendering (like https://api.metablock.io/v1/docs)
 - Optional sentry_ middleware
 
 
@@ -64,6 +65,7 @@ The `main` implementation:
     from openapi import sentry
     from openapi.db import get_db
     from openapi.middleware import json_error
+    from openapi.spec import Redoc
     from openapi.rest import rest
 
     from .db import meta
@@ -72,7 +74,7 @@ The `main` implementation:
 
 
     def create_app():
-        return rest(setup_app=setup_app)
+        return rest(redoc=Redoc(), setup_app=setup_app)
 
 
     def setup_app(app: web.Application) -> None:
@@ -260,3 +262,4 @@ Indices and tables
 .. _SqlAlchemy: https://www.sqlalchemy.org/
 .. _alembic: http://alembic.zzzcomputing.com/en/latest/
 .. _asyncpg: https://github.com/MagicStack/asyncpg
+.. _Redoc: https://github.com/Redocly/redoc

@@ -120,10 +120,16 @@ Dump data
 .. autofunction:: dump
 
 
-Spec
-====
+Openapi Spec
+==================
 
 .. module:: openapi.spec
+
+OpenApiSpec
+-------------
+
+.. autoclass:: OpenApiSpec
+
 
 op decorator
 ------------
@@ -133,6 +139,12 @@ the business logic as well the auto-documentation.
 
 .. autoclass:: op
 
+Redoc
+------------
+
+Allow to add redoc_ redering to your api.
+
+.. autoclass:: Redoc
 
 DB
 ==
@@ -197,3 +209,6 @@ SqlApiPath
 
 Websocket
 =========
+
+
+.. _redoc: https://github.com/Redocly/redoc
