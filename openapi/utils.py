@@ -74,7 +74,7 @@ class TypingInfo(NamedTuple):
     @property
     def is_complex(self) -> bool:
         """True if :attr:`.element` is either a dataclass or a union"""
-        return self.container or self.is_union
+        return self.container is not None or self.is_union
 
     @classmethod
     def get(cls, value: Any) -> Optional["TypingInfo"]:

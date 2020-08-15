@@ -29,9 +29,9 @@ install: 		## install packages in virtualenv
 
 
 lint: 			## run linters
-	flake8
 	isort .
 	./dev/run-black.sh
+	flake8
 
 
 mypy:			## run mypy
