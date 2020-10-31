@@ -440,7 +440,7 @@ class NoDescriptionMethodPath(SqlApiPath):
 
 @invalid_tag_missing_description_routes.view("/tasks")
 class NoTagDescriptionPath(SqlApiPath):
-    """"
+    """ "
     ---
     tags:
         - name: Task

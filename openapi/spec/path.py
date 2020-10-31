@@ -14,8 +14,7 @@ from . import hdrs
 
 
 class ApiPath(web.View, DataView):
-    """A :class:`.DataView` class for OpenAPI path
-    """
+    """A :class:`.DataView` class for OpenAPI path"""
 
     path_schema: Optional[type] = None
     """Optional dataclass for validating path variables"""
@@ -104,7 +103,7 @@ class ApiPath(web.View, DataView):
 
     @classmethod
     def api_response_data(cls, data: DataType) -> Dict[str, Any]:
-        return dict(body=dumps(data), content_type="application/json")
+        return dict(text=dumps(data), content_type="application/json")
 
     @classmethod
     def json_response(cls, data, **kwargs):

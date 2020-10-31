@@ -6,8 +6,7 @@ HandlerType = Callable[[str, Any], None]
 
 
 class Broker(abc.ABC):
-    """Abstract class for pubsub brokers
-    """
+    """Abstract class for pubsub brokers"""
 
     async def start(self) -> None:
         """
@@ -21,18 +20,15 @@ class Broker(abc.ABC):
 
     @abc.abstractmethod
     async def publish(self, channel: str, body: Dict) -> None:
-        """Publish a new payload to a channel/exchange
-        """
+        """Publish a new payload to a channel/exchange"""
 
     @abc.abstractmethod
     async def subscribe(self, channel: str, handler: HandlerType) -> None:
-        """Bind the broker to a channel/exchange
-        """
+        """Bind the broker to a channel/exchange"""
 
     @abc.abstractmethod
     async def unsubscribe(self, channel: str) -> None:
-        """Bind the broker to a channel/exchange
-        """
+        """Bind the broker to a channel/exchange"""
 
     def on_connection_lost(self, lost):
         pass

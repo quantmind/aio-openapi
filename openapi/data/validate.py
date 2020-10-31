@@ -127,7 +127,10 @@ def validate_simple(schema: type, data: Any) -> Any:
 
 
 def validate_union(
-    schema: Tuple[TypingInfo, ...], data: Any, as_schema: bool = False, **kw,
+    schema: Tuple[TypingInfo, ...],
+    data: Any,
+    as_schema: bool = False,
+    **kw,
 ) -> Any:
     for type_info in schema:
         try:
@@ -151,7 +154,11 @@ def validate_list(
         items = as_field(schema, field=items)
         for d in data:
             v = collect_value(
-                items, d, strict=strict, multiple=multiple, as_schema=as_schema,
+                items,
+                d,
+                strict=strict,
+                multiple=multiple,
+                as_schema=as_schema,
             )
             validated.append(v)
         return validated
@@ -174,7 +181,11 @@ def validate_dict(
         for name, d in data.items():
             try:
                 validated.data[name] = collect_value(
-                    items, d, strict=strict, multiple=multiple, as_schema=as_schema,
+                    items,
+                    d,
+                    strict=strict,
+                    multiple=multiple,
+                    as_schema=as_schema,
                 )
             except ValidationErrors as exc:
                 validated.errors[name] = exc.errors

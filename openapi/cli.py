@@ -67,8 +67,7 @@ class OpenApiClient(click.Group):
 
     @lru_cache(None)
     def web(self, server: bool = False) -> Application:
-        """Return the web application
-        """
+        """Return the web application"""
         app = Application()
         app["cli"] = self
         app["cwd"] = os.getcwd()
@@ -123,7 +122,10 @@ class OpenApiClient(click.Group):
     "--port", "-p", default=PORT, help=f"The port to bind to (default to {PORT}."
 )
 @click.option(
-    "--index", default=0, type=int, help="Optional index for stateful set deployment",
+    "--index",
+    default=0,
+    type=int,
+    help="Optional index for stateful set deployment",
 )
 @click.option(
     "--reload/--no-reload",
@@ -133,8 +135,7 @@ class OpenApiClient(click.Group):
 )
 @click.pass_context
 def serve(ctx, host, port, index, reload):
-    """Run the aiohttp server.
-    """
+    """Run the aiohttp server."""
     cli = ctx.obj["cli"]
     cli.index = index
     app = cli.get_serve_app()

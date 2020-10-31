@@ -19,8 +19,7 @@ def backoff(value):
 
 
 class Channels:
-    """Manage channels for publish/subscribe
-    """
+    """Manage channels for publish/subscribe"""
 
     statusType = StatusType
 
@@ -66,8 +65,7 @@ class Channels:
     async def register(
         self, channel_name: str, event: str, callback: Callable
     ) -> Channel:
-        """Register a callback to ``channel_name`` and ``event``
-        """
+        """Register a callback to ``channel_name`` and ``event``"""
         channel = self.get_channel(channel_name)
         channel.register(event, callback)
         await self.connect()
@@ -89,15 +87,13 @@ class Channels:
         return channel
 
     async def connect(self, next_time=None):
-        """Connect with broker if possible
-        """
+        """Connect with broker if possible"""
         if self.status in CAN_CONNECT:
             self.status = self.statusType.connecting
             await self._connect(next_time)
 
     async def publish(self, channel_name, event=None, data=None):
-        """Publish a new ``event`` on a ``channel_name``
-        """
+        """Publish a new ``event`` on a ``channel_name``"""
         await self.connect()
         msg = compact(event=event, channel=channel_name, data=data)
         try:
@@ -123,8 +119,7 @@ class Channels:
             await self.broker.start()
 
     async def close(self):
-        """Close channels and underlying broker handler
-        """
+        """Close channels and underlying broker handler"""
         self.status = self.statusType.closed
         if self.broker:
             await self.broker.close()
@@ -138,8 +133,7 @@ class Channels:
         return channel
 
     def event_pattern(self, event):
-        """Channel pattern for an event name
-        """
+        """Channel pattern for an event name"""
         return redis_to_py_pattern(event or "*")
 
     def get_subscribed(self, handler):
@@ -156,8 +150,7 @@ class Channels:
         self.status = StatusType.disconnected
 
     async def _subscribe(self, channel_name):
-        """Subscribe to the remote server
-        """
+        """Subscribe to the remote server"""
         await self.broker.subscribe(self.prefixed(channel_name), handler=self)
 
     async def _unsubscribe(self, channel_name):

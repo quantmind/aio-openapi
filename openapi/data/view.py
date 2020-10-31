@@ -22,8 +22,7 @@ class Operation:
 
 
 class DataView:
-    """Utility class for data with a valid :ref:`aio-openapi-schema`
-    """
+    """Utility class for data with a valid :ref:`aio-openapi-schema`"""
 
     operation: Operation = Operation()
 

@@ -35,8 +35,7 @@ def test_schema2json():
 
     @dataclass
     class MyClass:
-        """Test data
-        """
+        """Test data"""
 
         str_field: str = data_field(
             required=True, format="uuid", description="String field"

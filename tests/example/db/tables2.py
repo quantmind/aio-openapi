@@ -9,8 +9,7 @@ from openapi.tz import utcnow
 
 
 def additional_meta(meta=None):
-    """Add task related tables
-    """
+    """Add task related tables"""
     if meta is None:
         meta = sa.MetaData()
 
@@ -43,7 +42,10 @@ def additional_meta(meta=None):
     )
 
     sa.Table(
-        "multi_key", meta, sa.Column("x", sa.JSON), sa.Column("y", sa.JSON),
+        "multi_key",
+        meta,
+        sa.Column("x", sa.JSON),
+        sa.Column("y", sa.JSON),
     )
 
     return meta
