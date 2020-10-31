@@ -45,7 +45,6 @@ def clear_db() -> CrudDB:
         # drop_database(url)
         create_database(url)
     DB.drop_all_schemas()
-    DB.create_all()
     return DB
 
 
