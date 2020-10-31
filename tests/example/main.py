@@ -3,15 +3,13 @@ import uuid
 from aiohttp import web
 
 from openapi import sentry
-from openapi.db import get_db
-from openapi.db.commands import db
+from openapi.db.commands import db as db_command
 from openapi.middleware import json_error
 from openapi.rest import rest
 from openapi.spec import Redoc
 from openapi.ws import LocalBroker, Sockets
 
-from .db import meta
-from .db_additional import additional_meta
+from . import db
 from .endpoints import routes
 from .endpoints_additional import additional_routes
 from .endpoints_base import base_routes
@@ -34,14 +32,13 @@ def create_app():
             }
         ),
         setup_app=setup_app,
-        commands=[db],
+        commands=[db_command],
         redoc=Redoc(),
     )
 
 
 def setup_app(app: web.Application) -> None:
-    db = get_db(app)
-    meta(db.metadata)
+    db.setup(app)
     app.middlewares.append(json_error())
     app.middlewares.append(
         sentry.middleware(app, f"https://{uuid.uuid4().hex}@sentry.io/1234567", "test")
@@ -50,7 +47,6 @@ def setup_app(app: web.Application) -> None:
     app.router.add_routes(routes)
     #
     # Additional routes for testing
-    additional_meta(db.metadata)
     app.router.add_routes(additional_routes)
     app.router.add_routes(form_routes)
     app["broker"] = LocalBroker()

@@ -26,8 +26,7 @@ def title_field(**kwargs):
 
 
 def meta(meta=None):
-    """Add task related tables
-    """
+    """Add task related tables"""
     if meta is None:
         meta = sa.MetaData()
 

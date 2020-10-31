@@ -7,8 +7,7 @@ from ..data.validate import ValidationErrors, validate
 
 @dataclass
 class ws_rpc:
-    """Defines a Websocket RPC method in an OpenAPI Path
-    """
+    """Defines a Websocket RPC method in an OpenAPI Path"""
 
     body_schema: Any = None
     response_schema: Any = None

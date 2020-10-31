@@ -58,8 +58,7 @@ class Migration:
 
 
 def create_config(app):
-    """Programmatically create Alembic config
-    """
+    """Programmatically create Alembic config"""
     cfg = Config(stdout=StringIO())
     cfg.get_template_directory = get_template_directory
     migrations = app.get("migrations_dir") or os.path.join(app["cwd"], "migrations")

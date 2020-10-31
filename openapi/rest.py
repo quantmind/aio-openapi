@@ -23,8 +23,7 @@ def rest(
     OpenApiSpecClass: type = OpenApiSpec,
     **kwargs,
 ) -> OpenApiClient:
-    """Create the OpenApi Client
-    """
+    """Create the OpenApi Client"""
     if openapi is not None:
         openapi = OpenApiSpecClass(
             OpenApi(**(openapi or {})),

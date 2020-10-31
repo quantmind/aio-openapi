@@ -51,8 +51,7 @@ class OpenApi:
 
 @dataclass
 class OpenApiSpec:
-    """Open API Specification
-    """
+    """Open API Specification"""
 
     info: OpenApi = field(default_factory=OpenApi)
     default_content_type: str = "application/json"
@@ -75,8 +74,7 @@ class OpenApiSpec:
             app.router.add_get(self.redoc.path, self.redoc.handle_doc)
 
     def spec_route(self, request: web.Request) -> web.Response:
-        """Return the OpenApi spec
-        """
+        """Return the OpenApi spec"""
         return web.json_response(self.build(request))
 
     def build(self, request: web.Request) -> Dict:

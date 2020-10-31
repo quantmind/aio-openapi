@@ -17,8 +17,7 @@ class Redoc:
     font: str = "family=Montserrat:300,400,700|Roboto:300,400,700"
 
     def handle_doc(self, request: web.Request) -> web.Response:
-        """Render a webpage with redoc and the spec form the app
-        """
+        """Render a webpage with redoc and the spec form the app"""
         spec = request.app["spec"]
         spec_url = request.app.router["openapi_spec"].url_for()
         title = spec.info.title

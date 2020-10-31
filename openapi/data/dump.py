@@ -50,12 +50,10 @@ def dump_dataclass(schema: type, data: Optional[Dict] = None) -> Dict:
 
 
 def dump_list(schema: Any, data: List) -> List[Dict]:
-    """Validate a dictionary of data with a given dataclass
-    """
+    """Validate a dictionary of data with a given dataclass"""
     return [dump(schema, d) for d in data]
 
 
 def dump_dict(schema: Any, data: Dict[str, Any]) -> List[Dict]:
-    """Validate a dictionary of data with a given dataclass
-    """
+    """Validate a dictionary of data with a given dataclass"""
     return {name: dump(schema, d) for name, d in data.items()}
