@@ -51,8 +51,12 @@ Null = object()
 ElementType = Any
 
 
-KT, VT = getattr(Dict, "__args__", (TypeVar("KT"), TypeVar("VT")))
-(T,) = getattr(List, "__args__", (TypeVar("T"),))
+def get_args(value, defaults):
+    return getattr(value, "__args__", None) or defaults
+
+
+KT, VT = get_args(Dict, (TypeVar("KT"), TypeVar("VT")))
+(T,) = get_args(List, (TypeVar("T"),))
 
 
 class TypingInfo(NamedTuple):
@@ -94,14 +98,14 @@ class TypingInfo(NamedTuple):
                     f"a class or typing annotation is required, got {value}"
                 )
         elif origin is list:
-            (val,) = getattr(value, "__args__", (T,))
+            (val,) = get_args(value, (T,))
             if val is T:
                 val = Any
             elem_info = cast(TypingInfo, cls.get(val))
             elem = elem_info if elem_info.is_complex else elem_info.element
             return cls(elem, list)
         elif origin is dict:
-            key, val = getattr(value, "__args__", (KT, VT))
+            key, val = get_args(value, (KT, VT))
             if key is KT:
                 key = str
             if val is VT:
