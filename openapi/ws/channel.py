@@ -19,8 +19,7 @@ class StatusType(enum.Enum):
 
 
 class CallbackError(Exception):
-    """Exception which allow for a clean callback removal
-    """
+    """Exception which allow for a clean callback removal"""
 
 
 @dataclass
@@ -44,8 +43,7 @@ def safe_execution(method):
 
 
 class Channel:
-    """A websocket channel
-    """
+    """A websocket channel"""
 
     def __init__(self, channels, name):
         self.channels = channels
@@ -54,8 +52,7 @@ class Channel:
 
     @property
     def events(self):
-        """List of event names this channel is registered with
-        """
+        """List of event names this channel is registered with"""
         return tuple((e.name for e in self.callbacks.values()))
 
     def __repr__(self):
@@ -107,8 +104,7 @@ class Channel:
             await self.channels._unsubscribe(self.name)
 
     def register(self, event, callback):
-        """Register a ``callback`` for ``event``
-        """
+        """Register a ``callback`` for ``event``"""
         event = event or "*"
         pattern = self.channels.event_pattern(event)
         entry = self.callbacks.get(pattern)

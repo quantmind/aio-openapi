@@ -19,16 +19,13 @@ class StreamPath(ws.WsPathMixin, pubsub.Publish, pubsub.Subscribe, ApiPath):
     """
 
     async def ws_rpc_echo(self, payload):
-        """Echo parameters
-        """
+        """Echo parameters"""
         return payload
 
     async def ws_rpc_cancel(self, payload):
-        """Echo parameters
-        """
+        """Echo parameters"""
         raise asyncio.CancelledError
 
     async def ws_rpc_badjson(self, payload):
-        """Echo parameters
-        """
+        """Echo parameters"""
         return ApiPath

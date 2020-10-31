@@ -6,13 +6,13 @@ import pytest
 from aiohttp import test_utils
 from aiohttp.web import Application
 from asynctest import CoroutineMock
-from sqlalchemy_utils import create_database, database_exists, drop_database
+from sqlalchemy_utils import create_database, database_exists
 
+from openapi.db.dbmodel import CrudDB
 from openapi.json import dumps
 
+from .example.db import DB
 from .example.main import create_app
-
-DEFAULT_DB = "postgresql://postgres:postgres@localhost:5432/openapi"
 
 
 @pytest.fixture(autouse=True)
@@ -38,18 +38,18 @@ def loop():
         loop.close()
 
 
-@pytest.fixture(scope="session", autouse=True)
-def db_url():
-    url = os.environ.get("DATASTORE") or DEFAULT_DB
-    if database_exists(url):
-        drop_database(url)
-    create_database(url)
-    return url
+@pytest.fixture(scope="session")
+def clear_db() -> CrudDB:
+    url = str(DB)
+    if not database_exists(url):
+        # drop_database(url)
+        create_database(url)
+    DB.drop_all_schemas()
+    return DB
 
 
 @pytest.fixture()
-async def test_app(db_url):
-    os.environ["DATASTORE"] = db_url
+async def test_app(clear_db):
     cli = create_app()
     app = cli.web()
     app["db"].create_all()

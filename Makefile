@@ -47,7 +47,7 @@ postgresql-nd:		## run postgresql for testing - non daemon
 
 
 test:			## test with coverage
-	@pytest --cov --cov-report xml --cov-report html
+	@pytest -x --cov --cov-report xml --cov-report html
 
 
 test-lint:		## run linters
@@ -71,8 +71,10 @@ bundle3.7:		## build python 3.7 bundle
 	@python setup.py bdist_wheel --python-tag py37
 
 bundle3.8:		## build python 3.8 bundle
-	@python setup.py sdist bdist_wheel --python-tag py38
+	@python setup.py bdist_wheel --python-tag py38
 
+bundle3.9:		## build python 3.9 bundle
+	@python setup.py sdist bdist_wheel --python-tag py39
 
 release-github:		## new tag in github
 	@agilekit git release --yes

@@ -59,8 +59,7 @@ def migrate(ctx, message, branch_label):
 )
 @click.pass_context
 def revision(ctx, message, branch_label, autogenerate):
-    """Autogenerate a new revision file
-    """
+    """Autogenerate a new revision file"""
     return migration(ctx).revision(
         message, autogenerate=autogenerate, branch_label=branch_label
     )
@@ -76,8 +75,7 @@ def revision(ctx, message, branch_label, autogenerate):
 )
 @click.pass_context
 def upgrade(ctx, revision, drop_tables):
-    """Upgrade to a later version
-    """
+    """Upgrade to a later version"""
     if drop_tables:
         _drop_tables(ctx)
     migration(ctx).upgrade(revision)
@@ -88,8 +86,7 @@ def upgrade(ctx, revision, drop_tables):
 @click.option("--revision", help="Revision id", required=True)
 @click.pass_context
 def downgrade(ctx, revision):
-    """Downgrade to a previous version
-    """
+    """Downgrade to a previous version"""
     migration(ctx).downgrade(revision)
     click.echo(f"downgraded successfully to {revision}")
 
@@ -98,16 +95,14 @@ def downgrade(ctx, revision):
 @click.option("--revision", default="heads")
 @click.pass_context
 def show(ctx, revision):
-    """Show revision ID and creation date
-    """
+    """Show revision ID and creation date"""
     click.echo(migration(ctx).show(revision))
 
 
 @db.command()
 @click.pass_context
 def history(ctx):
-    """List changeset scripts in chronological order
-    """
+    """List changeset scripts in chronological order"""
     click.echo(migration(ctx).history())
 
 
@@ -115,8 +110,7 @@ def history(ctx):
 @click.option("--verbose/--quiet", default=False)
 @click.pass_context
 def current(ctx, verbose):
-    """Show revision ID and creation date
-    """
+    """Show revision ID and creation date"""
     click.echo(migration(ctx).current(verbose))
 
 
@@ -127,8 +121,7 @@ def current(ctx, verbose):
 )
 @click.pass_context
 def create(ctx, dbname, force):
-    """Creates a new database
-    """
+    """Creates a new database"""
     engine = get_db(ctx).engine
     url = copy(engine.url)
     url.database = dbname
@@ -164,8 +157,7 @@ def tables(ctx, db):
 @db.command()
 @click.pass_context
 def drop(ctx):
-    """Drop all tables in database
-    """
+    """Drop all tables in database"""
     _drop_tables(ctx)
 
 

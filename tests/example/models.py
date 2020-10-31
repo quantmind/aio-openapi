@@ -7,8 +7,8 @@ from openapi.data import fields
 from openapi.data.db import dataclass_from_table
 from openapi.rest import Query, orderable, searchable
 
-from .db import TaskType
-from .dba import db
+from .db import DB
+from .db.tables1 import TaskType
 
 
 @dataclass
@@ -25,8 +25,7 @@ class TaskAdd:
 
     @classmethod
     def validate(cls, data, errors):
-        """here just for coverage
-        """
+        """here just for coverage"""
 
 
 @dataclass
@@ -72,7 +71,7 @@ class TaskPathSchema2:
     task_id: str = fields.uuid_field(required=True, description="Task ID")
 
 
-MultiKeyUnique = dataclass_from_table("MultiKeyUnique", db.multi_key_unique)
+MultiKeyUnique = dataclass_from_table("MultiKeyUnique", DB.multi_key_unique)
 
 
 @dataclass
@@ -121,7 +120,10 @@ class SourcePrice:
     prices: Dict[str, Decimal] = fields.data_field(
         description="source-price mapping",
         items=fields.decimal_field(
-            min_value=0, max_value=100, precision=4, description="price",
+            min_value=0,
+            max_value=100,
+            precision=4,
+            description="price",
         ),
         default_factory=dict,
     )

@@ -6,24 +6,21 @@ from .fields import data_field, str_field
 
 @dataclass
 class ErrorMessage:
-    """Error message and list of errors for data fields
-    """
+    """Error message and list of errors for data fields"""
 
     message: str = str_field(description="Error message")
 
 
 @dataclass
 class FieldError(ErrorMessage):
-    """Error message for a data field
-    """
+    """Error message for a data field"""
 
     field: str = str_field(description="name of the data field with error")
 
 
 @dataclass
 class ValidationErrors(ErrorMessage):
-    """Error message and list of errors for data fields
-    """
+    """Error message and list of errors for data fields"""
 
     errors: List[FieldError] = data_field(description="List of field errors")
 

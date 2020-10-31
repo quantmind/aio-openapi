@@ -17,16 +17,14 @@ unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
 
 
 class SqlApiPath(ApiPath):
-    """An :class:`.ApiPath` backed by an SQL model
-    """
+    """An :class:`.ApiPath` backed by an SQL model"""
 
     table: str = ""
     """sql table name"""
 
     @property
     def db(self) -> CrudDB:
-        """Database connection pool
-        """
+        """Database connection pool"""
         return self.request.app["db"]
 
     @property
@@ -139,8 +137,7 @@ class SqlApiPath(ApiPath):
         dump_schema: SchemaTypeOrStr = "response_schema",
         conn: Optional[Connection] = None,
     ):
-        """Create multiple models
-        """
+        """Create multiple models"""
         table = table if table is not None else self.db_table
         if data is None:
             data = await self.json_data()
@@ -164,8 +161,7 @@ class SqlApiPath(ApiPath):
         dump_schema: SchemaTypeOrStr = "response_schema",
         conn: Optional[Connection] = None,
     ):
-        """Get a single model
-        """
+        """Get a single model"""
         table = table if table is not None else self.db_table
         if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
@@ -186,8 +182,7 @@ class SqlApiPath(ApiPath):
         dump_schema: SchemaTypeOrStr = "response_schema",
         conn: Optional[Connection] = None,
     ):
-        """Update a single model
-        """
+        """Update a single model"""
         table = table if table is not None else self.db_table
         if data is None:
             data = self.cleaned("body_schema", await self.json_data(), strict=False)
@@ -216,8 +211,7 @@ class SqlApiPath(ApiPath):
         query_schema: SchemaTypeOrStr = "query_schema",
         conn: Optional[Connection] = None,
     ) -> Records:
-        """Delete a single model
-        """
+        """Delete a single model"""
         table = table if table is not None else self.db_table
         if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
@@ -234,8 +228,7 @@ class SqlApiPath(ApiPath):
         table: Optional[sa.Table] = None,
         conn: Optional[Connection] = None,
     ) -> Records:
-        """delete multiple models
-        """
+        """delete multiple models"""
         table = table if table is not None else self.db_table
         if filters is None:
             filters = self.get_filters(query=query)

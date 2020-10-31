@@ -33,8 +33,7 @@ def equal_dict(d1, d2):
 
 
 class SingleConnDatabase(CrudDB):
-    """Useful for speedup testing
-    """
+    """Useful for speedup testing"""
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

@@ -26,22 +26,26 @@ class ProtocolError(RuntimeError):
     pass
 
 
-class WsPathMixin:
-    """Api Path mixin for Websocket RPC protocol
-    """
+class Websocket:
+    socket_id: str = ""
+
+    def __str__(self) -> str:
+        return self.socket_id
+
+
+class WsPathMixin(Websocket):
+    """Api Path mixin for Websocket RPC protocol"""
 
     SOCKETS_KEY = "web_sockets"
 
     @property
     def sockets(self):
-        """Connected websockets
-        """
+        """Connected websockets"""
         return self.request.app.get(self.SOCKETS_KEY)
 
     @property
     def channels(self):
-        """Channels for pub/sub
-        """
+        """Channels for pub/sub"""
         sockets = self.sockets
         return sockets.channels if sockets else None
 
@@ -75,16 +79,14 @@ class WsPathMixin:
         return response
 
     def decode_message(self, msg):
-        """Decode JSON string message, override for different protocol
-        """
+        """Decode JSON string message, override for different protocol"""
         try:
             return json.loads(msg)
         except json.JSONDecodeError:
             raise ProtocolError("JSON string expected") from None
 
     def encode_message(self, msg):
-        """Encode as JSON string message, override for different protocol
-        """
+        """Encode as JSON string message, override for different protocol"""
         try:
             return json.dumps(msg)
         except TypeError:

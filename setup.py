@@ -48,12 +48,12 @@ meta = dict(
     author_email="luca@quantmind.com",
     maintainer_email="luca@quantmind.com",
     url="https://github.com/quantmind/aio-openapi",
-    python_requires=">=3.6.0",
+    python_requires=">=3.6",
     install_requires=install_requires,
     tests_require=tests_require,
     include_package_data=True,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
@@ -63,7 +63,9 @@ meta = dict(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
-        "Topic :: Utilities",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Internet :: WWW/HTTP",
+        "Framework :: AsyncIO",
     ],
 )
 

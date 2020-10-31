@@ -116,8 +116,7 @@ def bool_field(**kw) -> Field:
 
 
 def uuid_field(format: str = "uuid", **kw) -> Field:
-    """A UUID field with validation
-    """
+    """A UUID field with validation"""
     kw.setdefault("validator", UUIDValidator())
     return data_field(format=format, **kw)
 
@@ -128,7 +127,7 @@ def number_field(
     precision: Optional[int] = None,
     **kw,
 ) -> Field:
-    """ A specialized :func:`.data_field` for numeric values
+    """A specialized :func:`.data_field` for numeric values
 
     :param min_value: minimum value
     :param max_value: maximum value
@@ -139,9 +138,11 @@ def number_field(
 
 
 def integer_field(
-    min_value: Optional[int] = None, max_value: Optional[int] = None, **kw,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
+    **kw,
 ) -> Field:
-    """ A specialized :func:`.data_field` for integer values
+    """A specialized :func:`.data_field` for integer values
 
     :param min_value: minimum value
     :param max_value: maximum value
@@ -178,8 +179,7 @@ def enum_field(EnumClass, **kw) -> Field:
 
 
 def date_field(**kw) -> Field:
-    """A specialized :func:`.data_field` for dates
-    """
+    """A specialized :func:`.data_field` for dates"""
     kw.setdefault("validator", DateValidator())
     return data_field(**kw)
 
@@ -204,8 +204,7 @@ def as_field(item: Any, *, field: Optional[Field] = None, **kw) -> Field:
 
 
 def json_field(**kw) -> Field:
-    """A specialized :func:`.data_field` for JSON data
-    """
+    """A specialized :func:`.data_field` for JSON data"""
     kw.setdefault("validator", JSONValidator())
     return data_field(**kw)
 
