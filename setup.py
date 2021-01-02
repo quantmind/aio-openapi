@@ -37,6 +37,10 @@ if sys.version_info < (3, 7):
     install_requires.append("dataclasses")
 
 
+if sys.version_info < (3, 8):
+    install_requires.append("cached_property")
+
+
 meta = dict(
     version=openapi.__version__,
     description=openapi.__doc__,

@@ -1,7 +1,7 @@
 import asyncio
-from functools import cached_property
 from typing import Any, Callable, Dict, Set
 
+from ..utils import cached_property
 from .channels import CannotSubscribe, Channels
 from .errors import CannotPublish
 
