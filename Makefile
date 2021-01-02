@@ -47,7 +47,7 @@ postgresql-nd:		## run postgresql for testing - non daemon
 
 
 test:			## test with coverage
-	@pytest -x --cov --cov-report xml --cov-report html
+	@pytest -v -x --cov --cov-report xml --cov-report html
 
 
 test-lint:		## run linters

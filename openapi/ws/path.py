@@ -3,14 +3,14 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 from aiohttp import web
 
 from .. import json
 from ..data.validate import ValidationErrors, validated_schema
 from ..utils import compact
-from .channels import Channels
+from .manager import SocketsManager, Websocket
 
 logger = logging.getLogger("openapi.ws")
 
@@ -26,20 +26,14 @@ class ProtocolError(RuntimeError):
     pass
 
 
-class Websocket:
-    socket_id: str = ""
-
-    def __str__(self) -> str:
-        return self.socket_id
-
-
 class WsPathMixin(Websocket):
     """Api Path mixin for Websocket RPC protocol"""
 
     SOCKETS_KEY = "web_sockets"
+    """Key in the app where the Web Sockets manager is located"""
 
     @property
-    def sockets(self):
+    def sockets(self) -> Optional[SocketsManager]:
         """Connected websockets"""
         return self.request.app.get(self.SOCKETS_KEY)
 
@@ -75,7 +69,9 @@ class WsPathMixin(Websocket):
                     await self.on_message(msg)
         except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError):
             pass
-
+        finally:
+            if sockets:
+                sockets.remove(self)
         return response
 
     def decode_message(self, msg):
@@ -133,23 +129,3 @@ class WsPathMixin(Websocket):
     async def write(self, msg: Dict) -> None:
         text = self.encode_message(msg)
         await self.response.send_str(text)
-
-
-class Sockets:
-    def __init__(self, app, **kwargs):
-        self.sockets = set()
-        self.channels = Channels(app.get("broker"), **kwargs)
-        app.on_startup.append(self.start)
-        app.on_shutdown.append(self.close)
-        app["channels"] = self.channels
-
-    def add(self, ws):
-        self.sockets.add(ws)
-
-    async def start(self, app):
-        await self.channels.start()
-
-    async def close(self, app):
-        await self.channels.close()
-        await asyncio.gather(*[view.response.close() for view in self.sockets])
-        self.sockets.clear()

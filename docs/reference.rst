@@ -210,5 +210,34 @@ SqlApiPath
 Websocket
 =========
 
+.. module:: openapi.ws.manager
+
+
+Websocket RPC
+-------------
+
+.. autoclass:: Websocket
+   :members:
+   :member-order: bysource
+
+
+SocketsManager
+--------------
+
+.. autoclass:: SocketsManager
+   :members:
+   :member-order: bysource
+
+
+WsPathMixin
+-----------
+
+.. module:: openapi.ws.path
+
+
+.. autoclass:: WsPathMixin
+   :members:
+   :member-order: bysource
+
 
 .. _redoc: https://github.com/Redocly/redoc

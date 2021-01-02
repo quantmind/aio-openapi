@@ -53,10 +53,12 @@ class ApiPath(web.View, DataView):
         query: Optional[QueryType] = None,
         query_schema: SchemaTypeOrStr = "query_schema",
     ) -> Dict[str, Any]:
-        """Collect a dictionary of filters. If :attr:`path_schema` is defined,
-        collect filter data from there as well.
+        """Collect a dictionary of filters from the request query string.
+        If :attr:`path_schema` is defined, it collects filter data
+        from path variables as well.
 
-        :param query: query dictionary (will be overwritten by the request.query)
+        :param query: optional query dictionary (will be overwritten
+            by the request.query)
         :param query_schema: a dataclass or an the name of an attribute in Operation
             for collecting query filters
         """

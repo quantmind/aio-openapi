@@ -50,6 +50,13 @@ To run tests
 pytest --cov
 ```
 
+By default tests are run against a database with the following connection string `postgresql://postgres:postgres@localhost:5432/openapi`. To use a different DB, create a `.env` file with
+a different connection string, for example:
+```
+DATASTORE=postgresql://postgres:postgres@localhost:6432/openapi
+```
+
+
 ## Features
 
 - Asynchronous web routes with [aiohttp](https://aiohttp.readthedocs.io/en/stable/)

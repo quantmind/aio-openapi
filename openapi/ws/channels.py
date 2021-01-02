@@ -1,9 +1,8 @@
 import asyncio
 from collections import OrderedDict
-from typing import Callable, Dict, Iterator
+from typing import TYPE_CHECKING, Callable, Dict, Iterator
 
 from ..utils import compact
-from .broker import Broker
 from .channel import Channel, StatusType, logger
 from .utils import redis_to_py_pattern
 
@@ -12,6 +11,10 @@ DEFAULT_CHANNEL = "server"
 CAN_CONNECT = frozenset((StatusType.initialised, StatusType.disconnected))
 MIN_RECONNECT_LAG = 2
 MAX_RECONNECT_LAG = 20
+
+
+if TYPE_CHECKING:
+    from .manager import SocketsManager
 
 
 def backoff(value):
@@ -24,7 +27,10 @@ class Channels:
     statusType = StatusType
 
     def __init__(
-        self, broker: Broker, namespace: str = None, status_channel: str = None
+        self,
+        broker: "SocketsManager",
+        namespace: str = "",
+        status_channel: str = DEFAULT_CHANNEL,
     ) -> None:
         self.connection_error = False
         self.broker = broker
@@ -114,15 +120,9 @@ class Channels:
             name = f"{self.namespace}{name}"
         return name
 
-    async def start(self):
-        if self.broker:
-            await self.broker.start()
-
     async def close(self):
         """Close channels and underlying broker handler"""
         self.status = self.statusType.closed
-        if self.broker:
-            await self.broker.close()
 
     def get_channel(self, name, create=True):
         name = name.lower()

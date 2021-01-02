@@ -17,6 +17,7 @@ pytest-cov
 pytest-aiohttp
 pytest-mock
 asynctest
+async-timeout
 
 # mypy & stubs
 mypy

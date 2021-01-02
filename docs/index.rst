@@ -243,6 +243,7 @@ Contents
    reference
    validation
    queries
+   websocket
    env
    glossary
 

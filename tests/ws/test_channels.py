@@ -3,16 +3,20 @@ import re
 from unittest import mock
 
 import pytest
+from async_timeout import timeout
 
-from openapi import ws
 from openapi.ws.utils import redis_to_py_pattern
+from tests.example.ws import LocalBroker
 
 
 @pytest.fixture
 async def channels():
-    channels = ws.Channels(ws.LocalBroker(), namespace="test_")
-    await channels.start()
-    return channels
+    broker = LocalBroker(namespace="test_")
+    await broker.start()
+    try:
+        yield broker.channels
+    finally:
+        await broker.close()
 
 
 async def test_channels_properties(channels):
@@ -35,8 +39,9 @@ async def test_channels_wildcard(channels):
     await channels.register("test1", "*", fire)
     assert channels.status == channels.statusType.connected
     await channels.publish("test1", "boom", "ciao!")
-    result = await future
-    assert result == "boom"
+    async with timeout(1):
+        result = await future
+        assert result == "boom"
     assert len(channels) == 2
     await channels.close()
     assert channels.status == channels.statusType.closed

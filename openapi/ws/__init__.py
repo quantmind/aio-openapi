@@ -2,10 +2,10 @@
 
 Pub/Sub requires a message broker object in the "broker" app key
 """
-from .broker import Broker, LocalBroker
 from .channel import Channel
 from .channels import Channels
-from .path import Sockets, WsPathMixin
+from .manager import SocketsManager, Websocket, WsHandlerType
+from .path import WsPathMixin
 from .rpc import ws_rpc
 
 __all__ = [
@@ -13,7 +13,9 @@ __all__ = [
     "Channels",
     "Broker",
     "WsPathMixin",
-    "Sockets",
+    "WsHandlerType",
+    "SocketsManager",
+    "Websocket",
     "LocalBroker",
     "ws_rpc",
 ]
