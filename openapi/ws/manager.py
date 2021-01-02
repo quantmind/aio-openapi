@@ -7,6 +7,7 @@ WsHandlerType = Callable[[str, Any], None]
 
 class Websocket:
     """A websocket connection"""
+
     socket_id: str = ""
     """websocket ID"""
 
@@ -16,6 +17,7 @@ class Websocket:
 
 class SocketsManager:
     """A base class for websocket managers"""
+
     @cached_property
     def sockets(self) -> Set[Websocket]:
         """Set of connected :class:`.Websocket`"""
