@@ -2,6 +2,9 @@ import asyncio
 from functools import cached_property
 from typing import Any, Callable, Dict, Set
 
+from .channels import CannotSubscribe, Channels
+from .errors import CannotPublish
+
 WsHandlerType = Callable[[str, Any], None]
 
 
@@ -23,6 +26,11 @@ class SocketsManager:
         """Set of connected :class:`.Websocket`"""
         return set()
 
+    @cached_property
+    def channels(self) -> Channels:
+        """Set of connected :class:`.Websocket`"""
+        return Channels(self)
+
     def add(self, ws: Websocket) -> None:
         """Add a new websocket to the connected set"""
         self.sockets.add(ws)
@@ -32,23 +40,26 @@ class SocketsManager:
         self.sockets.discard(ws)
 
     def server_info(self) -> Dict:
-        return dict(
-            connections=len(self.sockets),
-        )
+        return dict(connections=len(self.sockets), channels=self.channels.info())
 
-    async def close_sockets(self):
+    async def close_sockets(self) -> None:
         """Close and remove all websockets from the connected set"""
         await asyncio.gather(*[view.response.close() for view in self.sockets])
         self.sockets.clear()
+        self.channels.clear()
 
-    async def publish(self, channel: str, body: Dict) -> None:
-        """Publish a new payload to a channel/exchange"""
+    async def publish(
+        self, channel: str, event: str, body: Dict
+    ) -> None:  # pragma: no cover
+        """Publish an event to a channel
 
-    async def subscribe(self, channel: str, handler: WsHandlerType) -> None:
-        """Bind the broker to a channel/exchange"""
+        This method should raise :class:`.CannotPublish` if not possible to publish
+        """
+        raise CannotPublish
+
+    async def subscribe(self, channel: str) -> None:  # pragma: no cover
+        """Subscribe to a channel"""
+        raise CannotSubscribe
 
     async def unsubscribe(self, channel: str) -> None:
-        """Bind the broker to a channel/exchange"""
-
-    def on_connection_lost(self, lost):
-        pass
+        """Unsubscribe from a channel"""

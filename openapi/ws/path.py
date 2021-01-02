@@ -3,9 +3,11 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict
 
 from aiohttp import web
+
+from openapi.ws.channels import Channels
 
 from .. import json
 from ..data.validate import ValidationErrors, validated_schema
@@ -33,15 +35,14 @@ class WsPathMixin(Websocket):
     """Key in the app where the Web Sockets manager is located"""
 
     @property
-    def sockets(self) -> Optional[SocketsManager]:
+    def sockets(self) -> SocketsManager:
         """Connected websockets"""
-        return self.request.app.get(self.SOCKETS_KEY)
+        return self.request.app[self.SOCKETS_KEY]
 
     @property
-    def channels(self):
+    def channels(self) -> Channels:
         """Channels for pub/sub"""
-        sockets = self.sockets
-        return sockets.channels if sockets else None
+        return self.sockets.channels
 
     async def get(self):
         response = web.WebSocketResponse()
@@ -59,9 +60,7 @@ class WsPathMixin(Websocket):
         self.socket_id = hashlib.sha224(key.encode("utf-8")).hexdigest()
         #
         # Add to set of sockets if available
-        sockets = self.sockets
-        if sockets:
-            sockets.add(self)
+        self.sockets.add(self)
         #
         try:
             async for msg in response:
@@ -70,18 +69,17 @@ class WsPathMixin(Websocket):
         except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError):
             pass
         finally:
-            if sockets:
-                sockets.remove(self)
+            self.sockets.remove(self)
         return response
 
-    def decode_message(self, msg):
+    def decode_message(self, msg: str) -> Any:
         """Decode JSON string message, override for different protocol"""
         try:
             return json.loads(msg)
         except json.JSONDecodeError:
             raise ProtocolError("JSON string expected") from None
 
-    def encode_message(self, msg):
+    def encode_message(self, msg: Any) -> str:
         """Encode as JSON string message, override for different protocol"""
         try:
             return json.dumps(msg)
@@ -129,3 +127,7 @@ class WsPathMixin(Websocket):
     async def write(self, msg: Dict) -> None:
         text = self.encode_message(msg)
         await self.response.send_str(text)
+
+    async def close(self) -> None:
+        await self.response.close()
+        self.sockets.remove(self)

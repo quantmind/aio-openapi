@@ -1,10 +1,11 @@
 import asyncio
+from typing import Any
 
 from aiohttp import web
 
 from openapi import ws
 from openapi.spec.path import ApiPath
-from openapi.ws import Channels, WsHandlerType, pubsub
+from openapi.ws import CannotPublish, CannotSubscribe, pubsub
 from openapi.ws.manager import SocketsManager
 
 ws_routes = web.RouteTableDef()
@@ -23,6 +24,10 @@ class StreamPath(ws.WsPathMixin, pubsub.Publish, pubsub.Subscribe, ApiPath):
         """Echo parameters"""
         return payload
 
+    async def ws_rpc_server_info(self, payload):
+        """Websocket server information"""
+        return self.sockets.server_info()
+
     async def ws_rpc_cancel(self, payload):
         """Echo parameters"""
         raise asyncio.CancelledError
@@ -33,19 +38,17 @@ class StreamPath(ws.WsPathMixin, pubsub.Publish, pubsub.Subscribe, ApiPath):
 
 
 class LocalBroker(SocketsManager):
-    """A local broker, mainly for testing"""
+    """A local broker for testing"""
 
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.binds = set()
-        self.channels = Channels(self, **kwargs)
         self.messages: asyncio.Queue = asyncio.Queue()
         self.worker = None
         self._stop = False
-        self._handlers = set()
 
     @classmethod
-    def for_app(cls, app: web.Application, **kwargs) -> "LocalBroker":
-        broker = cls(**kwargs)
+    def for_app(cls, app: web.Application) -> "LocalBroker":
+        broker = cls()
         app.on_startup.append(broker.start)
         app.on_shutdown.append(broker.close)
         return broker
@@ -54,17 +57,18 @@ class LocalBroker(SocketsManager):
         if not self.worker:
             self.worker = asyncio.ensure_future(self._work())
 
-    async def publish(self, channel, body):
+    async def publish(self, channel: str, event: str, body: Any):
+        """simulate network latency"""
+        if channel.lower() != channel:
+            raise CannotPublish
+        payload = dict(event=event, data=self.get_data(body))
         asyncio.get_event_loop().call_later(
-            0.01, self.messages.put_nowait, (channel, body)
+            0.01, self.messages.put_nowait, (channel, payload)
         )
 
-    async def subscribe(self, key: str, handler: WsHandlerType) -> None:
-        self.binds.add(key)
-        self._handlers.add(handler)
-
-    async def unsubscribe(self, key):
-        self.binds.discard(key)
+    async def subscribe(self, channel: str) -> None:
+        if channel.lower() != channel:
+            raise CannotSubscribe
 
     async def close(self, *arg):
         self._stop = True
@@ -76,9 +80,20 @@ class LocalBroker(SocketsManager):
 
     async def _work(self):
         while True:
-            key, body = await self.messages.get()
+            channel, body = await self.messages.get()
             if self._stop:
                 break
-            if key in self.binds:
-                for handler in self._handlers:
-                    await handler(key, body)
+            await self.channels(channel, body)
+
+    def get_data(self, data: Any) -> Any:
+        if data == "error":
+            return self.raise_error
+        elif data == "runtime_error":
+            return self.raise_runtime
+        return data
+
+    def raise_error(self):
+        raise ValueError
+
+    def raise_runtime(self):
+        raise RuntimeError

@@ -1,140 +1,116 @@
 import asyncio
-import enum
 import logging
 import re
-from collections import OrderedDict
-from dataclasses import dataclass
-from functools import wraps
-from typing import Set
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Sequence, Set
 
-logger = logging.getLogger("openapi.channels")
+from .errors import ChannelCallbackError
+from .utils import redis_to_py_pattern
 
+CallbackType = Callable[[], None]
 
-class StatusType(enum.Enum):
-    initialised = 1
-    connecting = 2
-    connected = 3
-    disconnected = 4
-    closed = 5
-
-
-class CallbackError(Exception):
-    """Exception which allow for a clean callback removal"""
+logger = logging.getLogger("trading.websocket")
 
 
 @dataclass
 class Event:
     name: str
     pattern: str
-    regex: object
-    callbacks: Set
-
-
-def safe_execution(method):
-    @wraps(method)
-    async def _(self, *args, **kwargs):
-        try:
-            await method(self, *args, **kwargs)
-        except ConnectionError:
-            self.channels.status = StatusType.disconnected
-            await self.channels.connect()
-
-    return _
+    regex: Any
+    callbacks: Set[CallbackType] = field(default_factory=set)
 
 
 class Channel:
     """A websocket channel"""
 
-    def __init__(self, channels, name):
-        self.channels = channels
-        self.name = name
-        self.callbacks = OrderedDict()
+    def __init__(self, name: str) -> None:
+        self.name: str = name
+        self._events: Dict[str, Event] = {}
 
     @property
     def events(self):
         """List of event names this channel is registered with"""
-        return tuple((e.name for e in self.callbacks.values()))
+        return tuple((e.name for e in self.events.values()))
 
     def __repr__(self):
-        return repr(self.callbacks)
+        return self.name
 
     def __len__(self):
-        return len(self.callbacks)
+        return len(self._events)
 
     def __contains__(self, pattern):
-        return pattern in self.callbacks
+        return pattern in self._events
 
     def __iter__(self):
-        return iter(self.channels.values())
+        return iter(self._events)
 
-    async def __call__(self, message):
-        event = message.get("event") or ""
+    def info(self) -> Dict:
+        return {e.name: len(e.callbacks) for e in self._events.values()}
+
+    async def __call__(self, message: Dict[str, Any]) -> Sequence[CallbackType]:
+        """Execute callbacks from a new message
+
+        Return callbacks which have raise WebsocketClosed or have raise an exception
+        """
+        event_name = message.get("event") or ""
         data = message.get("data")
-        for entry in tuple(self.callbacks.values()):
-            match = entry.regex.match(event)
+        for event in tuple(self._events.values()):
+            match = event.regex.match(event_name)
             if match:
                 match = match.group()
-                coros = [
-                    self.execute_callback(cb, entry, event, match, data)
-                    for cb in entry.callbacks
-                ]
-                await asyncio.gather(*coros)
+                results = await asyncio.gather(
+                    *[
+                        self._execute_callback(callback, event, match, data)
+                        for callback in event.callbacks
+                    ]
+                )
+                return tuple(c for c in results if c)
+        return ()
 
-    async def execute_callback(self, callback, entry, event, match, data):
-        try:
-            await callback(self, match, data)
-        except CallbackError:
-            self._remove_callback(entry, callback)
-        except Exception:
-            self._remove_callback(entry, callback)
-            logger.exception(
-                'callback exception: channel "%s" event "%s"', self.name, event
-            )
+    def register(self, event_name: str, callback: CallbackType):
+        """Register a ``callback`` for ``event_name``"""
+        event_name = event_name or "*"
+        pattern = self.event_pattern(event_name)
+        event = self._events.get(pattern)
+        if not event:
+            event = Event(name=event_name, pattern=pattern, regex=re.compile(pattern))
+            self._events[event.pattern] = event
+        event.callbacks.add(callback)
+        return event
 
-    @safe_execution
-    async def connect(self):
-        channels = self.channels
-        if channels.status == StatusType.connected:
-            await self.channels._subscribe(self.name)
-
-    @safe_execution
-    async def disconnect(self):
-        channels = self.channels
-        if channels.status == StatusType.connected:
-            await self.channels._unsubscribe(self.name)
-
-    def register(self, event, callback):
-        """Register a ``callback`` for ``event``"""
-        event = event or "*"
-        pattern = self.channels.event_pattern(event)
-        entry = self.callbacks.get(pattern)
-        if not entry:
-            entry = Event(
-                name=event, pattern=pattern, regex=re.compile(pattern), callbacks=[]
-            )
-            self.callbacks[entry.pattern] = entry
-
-        if callback not in entry.callbacks:
-            entry.callbacks.append(callback)
-
-        return entry
-
-    def get_subscribed(self, handler):
+    def get_subscribed(self, callback: CallbackType):
         events = []
-        for event in self.callbacks.values():
-            if handler in event.callbacks:
+        for event in self._events.values():
+            if callback in event.callbacks:
                 events.append(event.name)
         return events
 
-    def unregister(self, event, callback):
-        pattern = self.channels.event_pattern(event)
-        entry = self.callbacks.get(pattern)
-        if entry:
-            return self._remove_callback(entry, callback)
+    def unregister(self, event_name: str, callback: CallbackType):
+        pattern = self.event_pattern(event_name)
+        event = self._events.get(pattern)
+        if event:
+            return self.remove_event_callback(event, callback)
 
-    def _remove_callback(self, entry, callback):
-        if callback in entry.callbacks:
-            entry.callbacks.remove(callback)
-            if not entry.callbacks:
-                self.callbacks.pop(entry.pattern)
-            return entry
+    def event_pattern(self, event):
+        """Channel pattern for an event name"""
+        return redis_to_py_pattern(event or "*")
+
+    def remove_callback(self, callback: CallbackType) -> None:
+        for key, event in tuple(self._events.items()):
+            self.remove_event_callback(event, callback)
+
+    def remove_event_callback(self, event: Event, callback: CallbackType) -> None:
+        event.callbacks.discard(callback)
+        if not event.callbacks:
+            self._events.pop(event.pattern)
+
+    async def _execute_callback(
+        self, callback: CallbackType, event: Event, match: str, data: Any
+    ):
+        try:
+            await callback(self.name, match, data)
+        except ChannelCallbackError:
+            return callback
+        except Exception:
+            logger.exception('callback exception: channel "%s" event "%s"', self, event)
+            return callback
