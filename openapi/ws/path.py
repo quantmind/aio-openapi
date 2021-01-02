@@ -3,14 +3,16 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Any, Dict
 
 from aiohttp import web
+
+from openapi.ws.channels import Channels
 
 from .. import json
 from ..data.validate import ValidationErrors, validated_schema
 from ..utils import compact
-from .channels import Channels
+from .manager import SocketsManager, Websocket
 
 logger = logging.getLogger("openapi.ws")
 
@@ -26,28 +28,21 @@ class ProtocolError(RuntimeError):
     pass
 
 
-class Websocket:
-    socket_id: str = ""
-
-    def __str__(self) -> str:
-        return self.socket_id
-
-
 class WsPathMixin(Websocket):
     """Api Path mixin for Websocket RPC protocol"""
 
     SOCKETS_KEY = "web_sockets"
+    """Key in the app where the Web Sockets manager is located"""
 
     @property
-    def sockets(self):
+    def sockets(self) -> SocketsManager:
         """Connected websockets"""
-        return self.request.app.get(self.SOCKETS_KEY)
+        return self.request.app[self.SOCKETS_KEY]
 
     @property
-    def channels(self):
+    def channels(self) -> Channels:
         """Channels for pub/sub"""
-        sockets = self.sockets
-        return sockets.channels if sockets else None
+        return self.sockets.channels
 
     async def get(self):
         response = web.WebSocketResponse()
@@ -65,9 +60,7 @@ class WsPathMixin(Websocket):
         self.socket_id = hashlib.sha224(key.encode("utf-8")).hexdigest()
         #
         # Add to set of sockets if available
-        sockets = self.sockets
-        if sockets:
-            sockets.add(self)
+        self.sockets.add(self)
         #
         try:
             async for msg in response:
@@ -75,17 +68,18 @@ class WsPathMixin(Websocket):
                     await self.on_message(msg)
         except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError):
             pass
-
+        finally:
+            self.sockets.remove(self)
         return response
 
-    def decode_message(self, msg):
+    def decode_message(self, msg: str) -> Any:
         """Decode JSON string message, override for different protocol"""
         try:
             return json.loads(msg)
         except json.JSONDecodeError:
             raise ProtocolError("JSON string expected") from None
 
-    def encode_message(self, msg):
+    def encode_message(self, msg: Any) -> str:
         """Encode as JSON string message, override for different protocol"""
         try:
             return json.dumps(msg)
@@ -134,22 +128,6 @@ class WsPathMixin(Websocket):
         text = self.encode_message(msg)
         await self.response.send_str(text)
 
-
-class Sockets:
-    def __init__(self, app, **kwargs):
-        self.sockets = set()
-        self.channels = Channels(app.get("broker"), **kwargs)
-        app.on_startup.append(self.start)
-        app.on_shutdown.append(self.close)
-        app["channels"] = self.channels
-
-    def add(self, ws):
-        self.sockets.add(ws)
-
-    async def start(self, app):
-        await self.channels.start()
-
-    async def close(self, app):
-        await self.channels.close()
-        await asyncio.gather(*[view.response.close() for view in self.sockets])
-        self.sockets.clear()
+    async def close(self) -> None:
+        await self.response.close()
+        self.sockets.remove(self)

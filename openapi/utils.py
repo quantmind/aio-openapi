@@ -41,6 +41,12 @@ else:  # pragma: no cover
         return py36_origins.get(origin, origin)
 
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property  # noqa
+else:  # pragma: no cover
+    from cached_property import cached_property  # noqa
+
+
 LOCAL = "local"
 DEV = "dev"
 PRODUCTION = "production"
