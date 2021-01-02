@@ -2,6 +2,7 @@
 
 Pub/Sub requires a message broker object in the "broker" app key
 """
+from .channel import Channel, Event
 from .channels import Channels
 from .errors import CannotPublish, CannotSubscribe, ChannelCallbackError
 from .manager import SocketsManager, Websocket, WsHandlerType
@@ -14,6 +15,8 @@ __all__ = [
     "SocketsManager",
     "Websocket",
     "Channels",
+    "Channel",
+    "Event",
     "CannotPublish",
     "CannotSubscribe",
     "ChannelCallbackError",

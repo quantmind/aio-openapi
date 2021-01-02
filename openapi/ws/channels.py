@@ -47,12 +47,12 @@ class Channels:
                     await self._maybe_remove_channel(channel)
 
     async def register(
-        self, channel_name: str, event: str, callback: CallbackType
+        self, channel_name: str, event_name: str, callback: CallbackType
     ) -> Channel:
         """Register a callback
 
         :param channel_name: name of the channel
-        :param event: name of the event in the channel
+        :param event_name: name of the event in the channel or a pattern
         :param callback: the callback to invoke when the `event` on `channel` occurs
         """
         channel_name = channel_name.lower()
@@ -65,7 +65,8 @@ class Channels:
             else:
                 channel = Channel(channel_name)
                 self.channels[channel_name] = channel
-        channel.register(event, callback)
+        event = channel.register(event_name, callback)
+        await self.sockets.subscribe_to_event(channel.name, event)
         return channel
 
     async def unregister(

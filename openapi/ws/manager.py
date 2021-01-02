@@ -2,6 +2,7 @@ import asyncio
 from typing import Any, Callable, Dict, Set
 
 from ..utils import cached_property
+from .channel import Event
 from .channels import CannotSubscribe, Channels
 from .errors import CannotPublish
 
@@ -64,6 +65,9 @@ class SocketsManager:
         This method should raise :class:`.CannotSubscribe` if not possible to publish
         """
         raise CannotSubscribe
+
+    async def subscribe_to_event(self, channel: str, event: Event) -> None:
+        """Callback when a subscribe to event is done"""
 
     async def unsubscribe(self, channel: str) -> None:
         """Unsubscribe from a channel"""
