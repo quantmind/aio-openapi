@@ -31,6 +31,3 @@ jobs:
         run: "make bundle${{ matrix.python-version }}"
       - name: release to pypi
         run: make release-pypi
-      - name: release to github
-        if: matrix.python-version == '3.8'
-        run: make release-github
