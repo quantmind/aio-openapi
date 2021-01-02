@@ -38,7 +38,7 @@ if sys.version_info < (3, 7):
 
 
 if sys.version_info < (3, 8):
-    install_requires.append("cached_property")
+    install_requires.append("cached-property")
 
 
 meta = dict(
