@@ -40,6 +40,7 @@ class SocketsManager:
         self.sockets.discard(ws)
 
     def server_info(self) -> Dict:
+        """Server information"""
         return dict(connections=len(self.sockets), channels=self.channels.info())
 
     async def close_sockets(self) -> None:
@@ -58,7 +59,10 @@ class SocketsManager:
         raise CannotPublish
 
     async def subscribe(self, channel: str) -> None:  # pragma: no cover
-        """Subscribe to a channel"""
+        """Subscribe to a channel
+
+        This method should raise :class:`.CannotSubscribe` if not possible to publish
+        """
         raise CannotSubscribe
 
     async def unsubscribe(self, channel: str) -> None:
