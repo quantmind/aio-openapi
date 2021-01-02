@@ -1,29 +1,28 @@
 import asyncio
 import re
-from unittest import mock
 
 import pytest
+from async_timeout import timeout
 
-from openapi import ws
 from openapi.ws.utils import redis_to_py_pattern
+from tests.example.ws import LocalBroker
 
 
 @pytest.fixture
 async def channels():
-    channels = ws.Channels(ws.LocalBroker(), namespace="test_")
-    await channels.start()
-    return channels
+    broker = LocalBroker()
+    await broker.start()
+    try:
+        yield broker.channels
+    finally:
+        await broker.close()
 
 
 async def test_channels_properties(channels):
-    assert channels.broker
-    assert len(channels.status_channel) == 0
-    assert channels.status == channels.statusType.initialised
-    assert len(channels) == 1
+    assert channels.sockets
     await channels.register("foo", "*", lambda c, e, d: d)
-    assert len(channels) == 2
+    assert len(channels) == 1
     assert "foo" in channels
-    assert channels.status == channels.statusType.connected
 
 
 async def test_channels_wildcard(channels):
@@ -33,23 +32,13 @@ async def test_channels_wildcard(channels):
         future.set_result(event)
 
     await channels.register("test1", "*", fire)
-    assert channels.status == channels.statusType.connected
-    await channels.publish("test1", "boom", "ciao!")
-    result = await future
-    assert result == "boom"
-    assert len(channels) == 2
-    await channels.close()
-    assert channels.status == channels.statusType.closed
-
-
-async def test_channels_fail_publish(channels):
-    publish = channels.broker.publish
-    channels.broker.publish = mock.MagicMock(side_effect=ConnectionRefusedError)
-    await channels.publish("channel3", "event2", "failure")
-    assert channels.connection_error
-    channels.broker.publish = publish
-    await channels.publish("channel3", "event2", "failure")
-    assert not channels.connection_error
+    await channels.sockets.publish("test1", "boom", "ciao!")
+    async with timeout(1):
+        result = await future
+        assert result == "boom"
+    assert len(channels) == 1
+    await channels.sockets.close()
+    assert len(channels) == 0
 
 
 def test_redis_to_py_pattern():

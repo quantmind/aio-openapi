@@ -1,6 +1,17 @@
+from typing import Dict
+
 import aiohttp
+from async_timeout import timeout
 
 from openapi.testing import jsonBody
+
+
+async def server_info(ws) -> Dict:
+    await ws.send_json(dict(id="abc", method="server_info"))
+    msg = await ws.receive()
+    assert msg.type == aiohttp.WSMsgType.TEXT
+    data = msg.json()
+    return data["response"]
 
 
 async def test_invalid_ws_protocol(cli):
@@ -49,6 +60,12 @@ async def test_rpc_echo(cli):
         assert data["id"] == "abc"
         assert data["method"] == "echo"
         assert data["response"] == dict(message="hello")
+        #
+        # test internals
+        sockets = cli.app["web_sockets"]
+        assert len(sockets.sockets) == 1
+        ws = tuple(sockets.sockets)[0]
+        assert str(ws) == ws.socket_id
 
 
 async def test_invalid_rpc_method(cli):
@@ -75,6 +92,16 @@ async def test_rpc_publish_error(cli):
         assert data["error"]
         assert data["error"]["message"] == "Invalid RPC parameters"
         assert data["error"]["errors"]["channel"] == "required"
+        await ws.send_json(
+            dict(id="abc", method="publish", payload=dict(channel="Test", data="hello"))
+        )
+        msg = await ws.receive()
+        assert msg.type == aiohttp.WSMsgType.TEXT
+        data = msg.json()
+        assert data["id"] == "abc"
+        assert data["error"]
+        assert data["error"]["message"] == "Invalid RPC parameters"
+        assert data["error"]["errors"]["channel"] == "Cannot publish to channel"
 
 
 async def test_rpc_publish(cli):
@@ -86,7 +113,7 @@ async def test_rpc_publish(cli):
         assert msg.type == aiohttp.WSMsgType.TEXT
         data = msg.json()
         assert data["id"] == "abc"
-        assert data["response"] == dict(channel="test", data="hello")
+        assert data["response"] == dict(channel="test", data="hello", event=None)
 
 
 async def test_rpc_subscribe(cli):
@@ -107,6 +134,15 @@ async def test_rpc_subscribe(cli):
         data = msg.json()
         assert data["id"] == "abcd"
         assert data["response"] == dict(subscribed={"test": ["*"], "foo": ["*"]})
+        #
+        # server info
+        await ws.send_json(dict(id="abc", method="server_info"))
+        msg = await ws.receive()
+        assert msg.type == aiohttp.WSMsgType.TEXT
+        data = msg.json()
+        response = data["response"]
+        assert response["connections"] == 1
+        assert len(response["channels"]) == 2
 
 
 async def test_rpc_unsubscribe(cli):
@@ -127,6 +163,15 @@ async def test_rpc_unsubscribe(cli):
         msg = await ws.receive()
         data = msg.json()
         assert data["response"] == dict(subscribed={"foo": ["*"]})
+        #
+        # server info
+        await ws.send_json(dict(id="abc", method="server_info"))
+        msg = await ws.receive()
+        assert msg.type == aiohttp.WSMsgType.TEXT
+        data = msg.json()
+        response = data["response"]
+        assert response["connections"] == 1
+        assert len(response["channels"]) == 1
 
 
 async def test_rpc_pubsub(cli):
@@ -144,13 +189,55 @@ async def test_rpc_pubsub(cli):
         )
         msg = await ws.receive()
         data = msg.json()
-        assert data["response"] == dict(channel="test", data="hello again")
+        assert data["response"] == dict(channel="test", data="hello again", event=None)
         #
         # now receive the message
         msg = await ws.receive()
         data = msg.json()
         assert data["channel"] == "test"
         assert data["data"] == "hello again"
+        #
+        await ws.send_json(
+            dict(
+                id="abc",
+                method="publish",
+                payload=dict(channel="test", data="error"),
+            )
+        )
+        msg = await ws.receive()
+        data = msg.json()
+        assert data["response"] == dict(channel="test", data="error", event=None)
+        # now receive the message
+        async with timeout(2):
+            msg = await ws.receive()
+            assert msg.type == aiohttp.WSMsgType.CLOSE
+
+    async with cli.ws_connect("/stream") as ws:
+        info = await server_info(ws)
+        assert info["connections"] == 1
+        assert info["channels"] == {}
+        #
+        await ws.send_json(
+            dict(id="abc", method="subscribe", payload=dict(channel="test"))
+        )
+        await ws.receive()
+        #
+        await ws.send_json(
+            dict(
+                id="abc",
+                method="publish",
+                payload=dict(channel="test", data="runtime_error"),
+            )
+        )
+        msg = await ws.receive()
+        data = msg.json()
+        assert data["response"] == dict(
+            channel="test", data="runtime_error", event=None
+        )
+        # now receive the message
+        async with timeout(2):
+            msg = await ws.receive()
+            assert msg.type == aiohttp.WSMsgType.CLOSE
 
 
 async def test_cancelled(cli):

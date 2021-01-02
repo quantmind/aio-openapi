@@ -5,8 +5,6 @@
             "name": "PyTest",
             "type": "python",
             "request": "launch",
-            "stopOnEntry": false,
-            "pythonPath": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "module": "pytest",
@@ -15,8 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "-x",
-                "tests/core/test_db.py"
+                "tests/ws"
             ]
         }
     ]

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 pip install -U pip
+python setup.py egg_info
+pip install -r *.egg-info/requires.txt
 pip install -U wheel setuptools
 pip install -U -r dev/requirements-dev.txt
 pip install -U -r dev/requirements-test.txt
 pip install -U -r dev/requirements-docs.txt
-pip install -U -r dev/requirements.txt
