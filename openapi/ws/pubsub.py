@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from functools import cached_property
 from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 from ..data import fields
 from ..data.validate import ValidationErrors
+from ..utils import cached_property
 from .channel import logger
 from .errors import CannotPublish, ChannelCallbackError
 from .rpc import ws_rpc
