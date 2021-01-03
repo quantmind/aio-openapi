@@ -1,3 +1,6 @@
+import asyncio
+
+
 class CannotSubscribe(RuntimeError):
     """Raised by a :class:`.ServiceManager`.
 
@@ -12,3 +15,11 @@ class ChannelCallbackError(RuntimeError):
 
 class CannotPublish(RuntimeError):
     """Raised when not possible to publish event into channels"""
+
+
+CONNECTION_ERRORS = (
+    asyncio.CancelledError,
+    asyncio.TimeoutError,
+    RuntimeError,
+    ConnectionResetError,
+)
