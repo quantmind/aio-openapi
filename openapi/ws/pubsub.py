@@ -5,7 +5,7 @@ from ..data import fields
 from ..data.validate import ValidationErrors
 from ..utils import cached_property
 from .channel import logger
-from .errors import CannotPublish, ChannelCallbackError
+from .errors import CONNECTION_ERRORS, CannotPublish, ChannelCallbackError
 from .rpc import ws_rpc
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -44,7 +44,7 @@ class ChannelCallback:
             if hasattr(data, "__call__"):
                 data = data()
             await self.ws.write(dict(channel=channel, event=match, data=data))
-        except RuntimeError:
+        except CONNECTION_ERRORS:
             logger.info("lost connection with %s", self)
             await self.ws.close()
             raise ChannelCallbackError

@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import logging
 import time
@@ -12,6 +11,7 @@ from openapi.ws.channels import Channels
 from .. import json
 from ..data.validate import ValidationErrors, validated_schema
 from ..utils import compact
+from .errors import CONNECTION_ERRORS
 from .manager import SocketsManager, Websocket
 
 logger = logging.getLogger("openapi.ws")
@@ -66,12 +66,7 @@ class WsPathMixin(Websocket):
             async for msg in response:
                 if msg.type == web.WSMsgType.TEXT:
                     await self.on_message(msg)
-        except (
-            asyncio.CancelledError,
-            asyncio.TimeoutError,
-            RuntimeError,
-            ConnectionResetError,
-        ):
+        except CONNECTION_ERRORS:
             logger.info("lost connection with websocket %s", self)
         finally:
             self.sockets.remove(self)
