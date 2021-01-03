@@ -66,8 +66,13 @@ class WsPathMixin(Websocket):
             async for msg in response:
                 if msg.type == web.WSMsgType.TEXT:
                     await self.on_message(msg)
-        except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError):
-            pass
+        except (
+            asyncio.CancelledError,
+            asyncio.TimeoutError,
+            RuntimeError,
+            ConnectionResetError,
+        ):
+            logger.info("lost connection with websocket %s", self)
         finally:
             self.sockets.remove(self)
         return response
