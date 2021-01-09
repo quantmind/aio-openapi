@@ -2,7 +2,6 @@ import asyncio
 from typing import Any, Callable, Dict, Set
 
 from ..utils import cached_property
-from .channel import Event
 from .channels import CannotSubscribe, Channels
 from .errors import CannotPublish
 
@@ -29,7 +28,7 @@ class SocketsManager:
 
     @cached_property
     def channels(self) -> Channels:
-        """Set of connected :class:`.Websocket`"""
+        """Pub/sub :class:`.Channels` currently active on the running pod"""
         return Channels(self)
 
     def add(self, ws: Websocket) -> None:
@@ -55,6 +54,10 @@ class SocketsManager:
     ) -> None:  # pragma: no cover
         """Publish an event to a channel
 
+        :property channel: the channel to publish to
+        :property event: the event in the channel
+        :property body: the body of the event to broadcast in the channel
+
         This method should raise :class:`.CannotPublish` if not possible to publish
         """
         raise CannotPublish
@@ -66,8 +69,17 @@ class SocketsManager:
         """
         raise CannotSubscribe
 
-    async def subscribe_to_event(self, channel: str, event: Event) -> None:
-        """Callback when a subscribe to event is done"""
+    async def subscribe_to_event(self, channel: str, event: str) -> None:
+        """Callback when a subscription to an event is done
+
+        :property channel: the channel to publish to
+        :property event: the event in the channel
+
+        You can use this callback to perform any backend subscriptions to
+        third-party streaming services if required.
+
+        By default it does nothing.
+        """
 
     async def unsubscribe(self, channel: str) -> None:
         """Unsubscribe from a channel"""

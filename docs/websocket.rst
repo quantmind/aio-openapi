@@ -99,3 +99,80 @@ Messages take the form:
             ...
         }
     }
+
+
+Backend
+========
+
+The websocket backend is implemented by subclassing the :class:`.SocketsManager` and implement the methods required by your application.
+This example implements a very simple backend for testing the websocket module in unittests.
+
+
+.. code-block:: python
+
+    import asyncio
+
+    from aiohttp import web
+    from openapi.ws.manager import SocketsManager
+
+    class LocalBroker(SocketsManager):
+        """A local broker for testing"""
+
+        def __init__(self):
+            self.binds = set()
+            self.messages: asyncio.Queue = asyncio.Queue()
+            self.worker = None
+            self._stop = False
+
+        @classmethod
+        def for_app(cls, app: web.Application) -> "LocalBroker":
+            broker = cls()
+            app.on_startup.append(broker.start)
+            app.on_shutdown.append(broker.close)
+            return broker
+
+        async def start(self, *arg):
+            if not self.worker:
+                self.worker = asyncio.ensure_future(self._work())
+
+        async def publish(self, channel: str, event: str, body: Any):
+            """simulate network latency"""
+            if channel.lower() != channel:
+                raise CannotPublish
+            payload = dict(event=event, data=self.get_data(body))
+            asyncio.get_event_loop().call_later(
+                0.01, self.messages.put_nowait, (channel, payload)
+            )
+
+        async def subscribe(self, channel: str) -> None:
+            """ force channel names to be lowercase"""
+            if channel.lower() != channel:
+                raise CannotSubscribe
+
+        async def close(self, *arg):
+            self._stop = True
+            await self.close_sockets()
+            if self.worker:
+                self.messages.put_nowait((None, None))
+                await self.worker
+                self.worker = None
+
+        async def _work(self):
+            while True:
+                channel, body = await self.messages.get()
+                if self._stop:
+                    break
+                await self.channels(channel, body)
+
+        def get_data(self, data: Any) -> Any:
+            if data == "error":
+                return self.raise_error
+            elif data == "runtime_error":
+                return self.raise_runtime
+            return data
+
+        def raise_error(self):
+            raise ValueError
+
+        def raise_runtime(self):
+            raise RuntimeError
