@@ -4,6 +4,7 @@ import re
 import pytest
 from async_timeout import timeout
 
+from openapi.ws import Channels
 from openapi.ws.utils import redis_to_py_pattern
 from tests.example.ws import LocalBroker
 
@@ -18,14 +19,14 @@ async def channels():
         await broker.close()
 
 
-async def test_channels_properties(channels):
+async def test_channels_properties(channels: Channels):
     assert channels.sockets
     await channels.register("foo", "*", lambda c, e, d: d)
     assert len(channels) == 1
     assert "foo" in channels
 
 
-async def test_channels_wildcard(channels):
+async def test_channels_wildcard(channels: Channels):
     future = asyncio.Future()
 
     def fire(channel, event, data):
@@ -62,6 +63,19 @@ def test_redis_to_py_pattern():
     assert match(c, "hello")
     assert match(c, "hallo")
     assert not_match(c, "hollo")
+
+
+async def test_channel(channels: Channels):
+    assert channels.sockets
+    await channels.register("test", "foo", lambda c, e, d: d)
+    assert channels.registered == ("test",)
+    channel = channels.get("test")
+    assert channel.name == "test"
+    assert channel.events == ("foo",)
+    assert "foo$" in channel
+    events = list(channel)
+    assert len(events) == 1
+    assert await channel({}) == ()
 
 
 def match(c, text):
