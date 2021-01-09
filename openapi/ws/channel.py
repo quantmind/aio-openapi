@@ -57,8 +57,6 @@ class Channel:
         for event in tuple(self._events.values()):
             match = event.regex.match(event_name)
             if match:
-                print(event)
-                print(match)
                 match = match.group()
                 results = await asyncio.gather(
                     *[
