@@ -66,7 +66,7 @@ class Channels:
                 channel = Channel(channel_name)
                 self.channels[channel_name] = channel
         event = channel.register(event_name, callback)
-        await self.sockets.subscribe_to_event(channel.name, event)
+        await self.sockets.subscribe_to_event(channel.name, event.name)
         return channel
 
     async def unregister(
