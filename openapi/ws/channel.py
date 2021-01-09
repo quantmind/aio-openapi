@@ -20,25 +20,22 @@ class Event:
     callbacks: Set[CallbackType] = field(default_factory=set)
 
 
+@dataclass
 class Channel:
     """A websocket channel"""
 
-    def __init__(self, name: str) -> None:
-        self.name: str = name
-        self._events: Dict[str, Event] = {}
+    name: str
+    _events: Dict[str, Event] = field(default_factory=dict)
 
     @property
     def events(self):
         """List of event names this channel is registered with"""
-        return tuple((e.name for e in self.events.values()))
+        return tuple((e.name for e in self._events.values()))
 
-    def __repr__(self):
-        return self.name
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._events)
 
-    def __contains__(self, pattern):
+    def __contains__(self, pattern: str) -> bool:
         return pattern in self._events
 
     def __iter__(self):

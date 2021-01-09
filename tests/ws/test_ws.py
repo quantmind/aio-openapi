@@ -143,6 +143,15 @@ async def test_rpc_subscribe(cli):
         response = data["response"]
         assert response["connections"] == 1
         assert len(response["channels"]) == 2
+        #
+        # invalid channel
+        await ws.send_json(
+            dict(id="abc", method="subscribe", payload=dict(channel="Test"))
+        )
+        msg = await ws.receive()
+        data = msg.json()
+        assert data["error"]["message"] == "Invalid RPC parameters"
+        assert data["error"]["errors"]["channel"] == "Invalid channel"
 
 
 async def test_rpc_unsubscribe(cli):
@@ -256,3 +265,14 @@ async def test_badjson(cli):
         assert data["id"] == "abc"
         assert data["error"]
         assert data["error"]["message"] == "JSON object expected"
+
+
+async def test_rpc_unsubscribe_error(cli):
+    async with cli.ws_connect("/stream") as ws:
+        await ws.send_json(
+            dict(id="xyz", method="unsubscribe", payload=dict(channel="whazaaa"))
+        )
+        msg = await ws.receive()
+        data = msg.json()
+        assert data["error"]["message"] == "Invalid RPC parameters"
+        assert data["error"]["errors"]["channel"] == "Invalid channel"
