@@ -1,5 +1,4 @@
-# Minimal makefile for Sphinx documentation
-#
+# Makefile for development & CI
 
 .PHONY: help clean docs
 
