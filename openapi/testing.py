@@ -1,6 +1,7 @@
 """Testing utilities
 """
 import asyncio
+from contextlib import asynccontextmanager
 from typing import Any
 
 from aiohttp.client import ClientResponse
@@ -9,7 +10,6 @@ from asyncpg.transaction import Transaction
 
 from .db.dbmodel import CrudDB
 from .json import dumps, loads
-from .utils import asynccontextmanager
 
 
 async def json_body(response: ClientResponse, status: int = 200) -> Any:

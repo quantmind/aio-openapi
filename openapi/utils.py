@@ -18,27 +18,9 @@ from typing import (
 
 from .exc import InvalidTypeException
 
-if sys.version_info >= (3, 7):
-    from contextlib import asynccontextmanager  # noqa
 
-    def get_origin(value: Any) -> Any:
-        return getattr(value, "__origin__", None)
-
-
-else:  # pragma: no cover
-    from ._py36 import asynccontextmanager  # noqa
-
-    py36_origins = {List: list, Dict: dict}
-
-    def get_origin(value: Any) -> Any:
-        try:
-            if value in py36_origins:
-                origin = value
-            else:
-                origin = getattr(value, "__origin__", None)
-        except TypeError:
-            origin = getattr(value, "__origin__", None)
-        return py36_origins.get(origin, origin)
+def get_origin(value: Any) -> Any:
+    return getattr(value, "__origin__", None)
 
 
 if sys.version_info >= (3, 8):

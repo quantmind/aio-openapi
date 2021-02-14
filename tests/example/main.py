@@ -2,9 +2,8 @@ import uuid
 
 from aiohttp import web
 
-from openapi import sentry
 from openapi.db.commands import db as db_command
-from openapi.middleware import json_error
+from openapi.middleware import json_error, sentry_middleware
 from openapi.rest import rest
 from openapi.spec import Redoc
 
@@ -39,9 +38,7 @@ def create_app():
 def setup_app(app: web.Application) -> None:
     db.setup(app)
     app.middlewares.append(json_error())
-    app.middlewares.append(
-        sentry.middleware(app, f"https://{uuid.uuid4().hex}@sentry.io/1234567", "test")
-    )
+    sentry_middleware(app, f"https://{uuid.uuid4().hex}@sentry.io/1234567", "test")
     app.router.add_routes(base_routes)
     app.router.add_routes(routes)
     #
