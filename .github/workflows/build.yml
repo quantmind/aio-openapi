@@ -34,5 +34,5 @@ jobs:
     - name: run tests
       run: make test
     - name: upload coverage
-      if: matrix.python-version == '3.8'
+      if: matrix.python-version == '3.9'
       run: coveralls
