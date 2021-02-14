@@ -2,7 +2,20 @@ import os
 
 from aiohttp import web
 
+from .exc import ImproperlyConfigured
+
+try:
+    from . import sentry
+except ImportError:  # pragma: no cover
+    sentry = None
+
 ERROR_500 = os.environ.get("ERROR_500_MESSSAGE", "Internal Server Error")
+
+
+def sentry_middleware(app, dsn, env="dev"):
+    if not sentry:  # pragma: no cover
+        raise ImproperlyConfigured("Sentry middleware requires sentry-sdk")
+    sentry.setup(app, dsn, env)
 
 
 def json_error(status_codes=None):

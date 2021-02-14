@@ -1,5 +1,4 @@
-# Minimal makefile for Sphinx documentation
-#
+# Makefile for development & CI
 
 .PHONY: help clean docs
 
@@ -63,9 +62,6 @@ test-docs: 		## run docs in CI
 test-version:		## validate version with pypi
 	@agilekit git validate
 
-
-bundle3.6:		## build python 3.6 bundle
-	@python setup.py bdist_wheel --python-tag py36
 
 bundle3.7:		## build python 3.7 bundle
 	@python setup.py bdist_wheel --python-tag py37

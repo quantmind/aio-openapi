@@ -1,5 +1,6 @@
 import asyncio
 import os
+from contextlib import asynccontextmanager
 from typing import Any, Optional
 
 import asyncpg
@@ -8,7 +9,6 @@ from asyncpg import Connection
 from asyncpg.pool import Pool
 
 from ..exc import ImproperlyConfigured
-from ..utils import asynccontextmanager
 
 DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
 DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
