@@ -33,9 +33,6 @@ def requirements(name):
 install_requires = requirements("dev/requirements.txt")[0]
 tests_require = requirements("dev/requirements-test.txt")[0]
 
-if sys.version_info < (3, 7):
-    install_requires.append("dataclasses")
-
 
 if sys.version_info < (3, 8):
     install_requires.append("cached-property")
@@ -52,7 +49,7 @@ meta = dict(
     author_email="luca@quantmind.com",
     maintainer_email="luca@quantmind.com",
     url="https://github.com/quantmind/aio-openapi",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=install_requires,
     tests_require=tests_require,
     include_package_data=True,
@@ -64,7 +61,6 @@ meta = dict(
         "Programming Language :: JavaScript",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",

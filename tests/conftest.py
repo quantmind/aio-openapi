@@ -1,11 +1,11 @@
 import asyncio
 import os
 import shutil
+from unittest import mock
 
 import pytest
 from aiohttp import test_utils
 from aiohttp.web import Application
-from asynctest import CoroutineMock
 from sqlalchemy_utils import create_database, database_exists
 
 from openapi.db.dbmodel import CrudDB
@@ -23,9 +23,9 @@ def clean_migrations():
 
 @pytest.fixture(autouse=True)
 def sentry_mock(mocker):
-    mock = CoroutineMock()
-    mocker.patch("raven_aiohttp.AioHttpTransport._do_send", mock)
-    return mock
+    mm = mock.MagicMock()
+    mocker.patch("sentry_sdk.init", mm)
+    return mm
 
 
 @pytest.fixture(scope="session", autouse=True)

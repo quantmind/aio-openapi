@@ -28,6 +28,6 @@ twine
 agile-toolkit
 
 # additional features
-raven-aiohttp
+sentry-sdk
 python-dotenv
 openapi-spec-validator
