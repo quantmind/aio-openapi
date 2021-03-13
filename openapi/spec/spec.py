@@ -17,7 +17,7 @@ from .redoc import Redoc
 from .server import default_server
 from .utils import load_yaml_from_docstring, trim_docstring
 
-OPENAPI = "3.1.0"
+OPENAPI = "3.0.3"
 METHODS = [method.lower() for method in hdrs.METH_ALL]
 SCHEMAS_TO_SCHEMA = ("response_schema", "body_schema")
 SCHEMA_BASE_REF = "#/components/schemas/"
