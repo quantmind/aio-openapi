@@ -117,9 +117,8 @@ class CrudDB(Database):
             .values(**data)
             .returning(*table.columns)
         )
-        sql, args = compile_query(update)
         async with self.ensure_connection(conn) as conn:
-            return await conn.fetch(sql, *args)
+            return await conn.execute(update)
 
     async def db_upsert(
         self,

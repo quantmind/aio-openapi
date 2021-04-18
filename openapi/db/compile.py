@@ -48,10 +48,10 @@ def _execute_default_attr(
 
 
 def compile_query(query: ClauseType) -> QueryTuple:
-    if isinstance(query, Insert):
-        _execute_defaults(cast(Insert, query), "default")
-    elif isinstance(query, Update):
-        _execute_defaults(cast(Update, query), "onupdate")
+    #if isinstance(query, Insert):
+    #    _execute_defaults(cast(Insert, query), "default")
+    #elif isinstance(query, Update):
+    #    _execute_defaults(cast(Update, query), "onupdate")
 
     compiled = query.compile(dialect=dialect)
     compiled_params = sorted(compiled.params.items())

@@ -15,6 +15,12 @@ from .example.db import DB
 from .example.main import create_app
 
 
+@pytest.fixture(scope="session")
+def sync_url() -> str:
+    url = str(DB)
+    return url.replace("+asyncpg", "")
+
+
 @pytest.fixture(autouse=True)
 def clean_migrations():
     if os.path.isdir("migrations"):
@@ -39,11 +45,10 @@ def loop():
 
 
 @pytest.fixture(scope="session")
-def clear_db() -> CrudDB:
-    url = str(DB)
-    if not database_exists(url):
+def clear_db(sync_url) -> CrudDB:
+    if not database_exists(sync_url):
         # drop_database(url)
-        create_database(url)
+        create_database(sync_url)
     DB.drop_all_schemas()
     return DB
 

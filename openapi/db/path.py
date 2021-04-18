@@ -29,7 +29,10 @@ class SqlApiPath(ApiPath):
 
     @property
     def db_table(self) -> sa.Table:
-        """Default database table for this route"""
+        """Default database table for this route.
+
+        Obtained from the :attr:`table` attribute.
+        """
         return self.db.metadata.tables[self.table]
 
     def get_search_clause(
