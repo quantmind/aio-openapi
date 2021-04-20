@@ -3,7 +3,6 @@ from typing import Optional
 
 from aiohttp.web import Application
 
-from .compile import compile_query
 from .container import Database
 from .dbmodel import CrudDB
 

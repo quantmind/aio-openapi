@@ -3,15 +3,13 @@ from typing import Dict, List, Optional, Sequence, cast
 
 import sqlalchemy as sa
 from aiohttp import web
-from asyncpg import Connection
-from asyncpg.exceptions import UniqueViolationError
-from sqlalchemy.sql import or_
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql import Select, or_
 
 from ..data.pagination import PaginatedData, Pagination
 from ..db.dbmodel import CrudDB
 from ..spec.path import ApiPath
-from ..types import DataType, Records, SchemaTypeOrStr, StrDict
-from .compile import Select, compile_query, count
+from ..types import Connection, DataType, Record, Records, SchemaTypeOrStr, StrDict
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
 
@@ -62,6 +60,7 @@ class SqlApiPath(ApiPath):
             is not provided
         :param table: sqlalchemy table, if not provided the default :attr:`.db_table` is
             used instead
+        :param conn: optional db connection
         """
         table = table if table is not None else self.db_table
         if filters is None:
@@ -71,8 +70,6 @@ class SqlApiPath(ApiPath):
             Select,
             self.db.get_query(table, table.select(), params=filters, consumer=self),
         )
-        #
-        sql_count, args_count = count(sql_query)
         #
         # order by
         if specials["order_by"]:
@@ -95,13 +92,12 @@ class SqlApiPath(ApiPath):
         if limit:
             sql_query = sql_query.limit(limit)
 
-        sql, args = compile_query(sql_query)
         async with self.db.ensure_connection(conn) as conn:
-            total = await conn.fetchrow(sql_count, *args_count)
-            values = await conn.fetch(sql, *args)
+            total = await self.db.db_count_query(sql_query, conn=conn)
+            values = await conn.execute(sql_query)
         pagination = Pagination(self.full_url())
-        data = cast(List[StrDict], self.dump(dump_schema, values))
-        return pagination.paginated(data, total[0], offset, limit)
+        data = cast(List[StrDict], self.dump(dump_schema, values.all()))
+        return pagination.paginated(data, total, offset, limit)
 
     async def create_one(
         self,
@@ -117,19 +113,21 @@ class SqlApiPath(ApiPath):
         :param data: input data, if not given it loads it via :meth:`.json_data`
         :param table: sqlalchemy table, if not given it uses the
             default :attr:`db_table`
+        :param conn: optional db connection
         """
         if data is None:
             data = self.insert_data(await self.json_data(), body_schema=body_schema)
         table = table if table is not None else self.db_table
-        statement, args = self.db.get_insert(table, data)
+        sql = self.db.get_insert(table, data)
 
         async with self.db.ensure_connection(conn) as conn:
             try:
-                values = await conn.fetch(statement, *args)
-            except UniqueViolationError as exc:
+                result = await conn.execute(sql)
+            except IntegrityError as exc:
                 self.handle_unique_violation(exc)
+                raise
 
-        return cast(StrDict, self.dump(dump_schema, values[0]))
+        return cast(StrDict, self.dump(dump_schema, result.one()))
 
     async def create_list(
         self,
@@ -152,7 +150,7 @@ class SqlApiPath(ApiPath):
         assert schema.container is list
         data = [self.insert_data(d, body_schema=schema.element) for d in data]
         values = await self.db.db_insert(table, data, conn=conn)
-        return self.dump(dump_schema, values)
+        return self.dump(dump_schema, values.all())
 
     async def get_one(
         self,
@@ -164,14 +162,24 @@ class SqlApiPath(ApiPath):
         dump_schema: SchemaTypeOrStr = "response_schema",
         conn: Optional[Connection] = None,
     ):
-        """Get a single model"""
+        """Get a single model
+
+        :param filters: dictionary of filters, if not provided it will be created from
+            the query_schema
+        :param query: additional query parameters, only used when filters
+            is not provided
+        :param table: sqlalchemy table, if not provided the default :attr:`.db_table` is
+            used instead
+        :param conn: optional db connection
+        """
         table = table if table is not None else self.db_table
         if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
         values = await self.db.db_select(table, filters, conn=conn, consumer=self)
-        if not values:
+        row = values.first()
+        if row is None:
             raise web.HTTPNotFound()
-        return self.dump(dump_schema, values[0])
+        return self.dump(dump_schema, row)
 
     async def update_one(
         self,
@@ -197,13 +205,15 @@ class SqlApiPath(ApiPath):
                 values = await self.db.db_update(
                     table, filters, data, conn=conn, consumer=self
                 )
-            except UniqueViolationError as exc:
+            except IntegrityError as exc:
                 self.handle_unique_violation(exc)
+                raise
         else:
             values = await self.db.db_select(table, filters, conn=conn, consumer=self)
-        if not values:
+        row = values.first()
+        if row is None:
             raise web.HTTPNotFound()
-        return self.dump(dump_schema, values[0])
+        return self.dump(dump_schema, row)
 
     async def delete_one(
         self,
@@ -213,15 +223,16 @@ class SqlApiPath(ApiPath):
         table: Optional[sa.Table] = None,
         query_schema: SchemaTypeOrStr = "query_schema",
         conn: Optional[Connection] = None,
-    ) -> Records:
+    ) -> Record:
         """Delete a single model"""
         table = table if table is not None else self.db_table
         if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
         values = await self.db.db_delete(table, filters, conn=conn, consumer=self)
-        if not values:
-            raise web.HTTPNotFound
-        return values
+        row = values.first()
+        if row is None:
+            raise web.HTTPNotFound()
+        return row
 
     async def delete_list(
         self,
@@ -237,11 +248,9 @@ class SqlApiPath(ApiPath):
             filters = self.get_filters(query=query)
         return await self.db.db_delete(table, filters, conn=conn, consumer=self)
 
-    def handle_unique_violation(self, exception):
-        match = re.match(unique_regex, exception.detail)
-        if not match:  # pragma: no cover
-            raise exception
-
-        column = match.group("column")
-        message = f"{column} already exists"
-        self.raise_validation_error(message=message)
+    def handle_unique_violation(self, exception: IntegrityError):
+        match = re.search(unique_regex, str(exception))
+        if match:
+            column = match.group("column")
+            message = f"{column} already exists"
+            self.raise_validation_error(message=message)

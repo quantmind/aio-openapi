@@ -71,3 +71,12 @@ class SingleConnDatabase(CrudDB):
                 await self.release_connection(self._conn)
                 self._conn = None
         await super().close()
+
+
+@asynccontextmanager
+async def with_test_db(db: CrudDB) -> CrudDB:
+    await db.create_all()
+    try:
+        yield db
+    finally:
+        await db.drop_all_schemas()

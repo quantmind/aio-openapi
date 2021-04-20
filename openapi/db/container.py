@@ -1,15 +1,17 @@
 import os
 from contextlib import asynccontextmanager
-from functools import cached_property
 from typing import Any, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 
+from openapi.utils import str2bool
+
 from ..exc import ImproperlyConfigured
 
 DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
 DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
+DBECHO = str2bool(os.environ.get("DBECHO") or "no")
 
 
 class Database:
@@ -40,13 +42,13 @@ class Database:
         """The :class:`sqlalchemy.schema.MetaData` containing tables"""
         return self._metadata
 
-    @cached_property
+    @property
     def engine(self) -> AsyncEngine:
         """The :class:`sqlalchemy.engine.Engine`"""
         if self._engine is None:
             if not self._dsn:
                 raise ImproperlyConfigured("DSN not available")
-            self._engine = create_async_engine(self._dsn)
+            self._engine = create_async_engine(self._dsn, echo=DBECHO)
         return self._engine
 
     def __getattr__(self, name: str) -> Any:
@@ -74,9 +76,13 @@ class Database:
         self, conn: Optional[AsyncConnection] = None
     ) -> AsyncConnection:
         if conn:
-            yield conn
+            if not conn.in_transaction():
+                with conn.begin():
+                    yield conn
+            else:
+                yield conn
         else:
-            async with self.transaction() as conn:
+            async with self.engine.begin() as conn:
                 yield conn
 
     async def close(self) -> None:
@@ -88,18 +94,20 @@ class Database:
     # SQL Alchemy Sync Operations
     async def create_all(self) -> None:
         """Create all tables defined in :attr:`metadata`"""
-        async with self.connection() as conn:
+        async with self.transaction() as conn:
             await conn.run_sync(self.metadata.create_all)
 
     async def drop_all(self) -> None:
         """Drop all tables from :attr:`metadata` in database"""
-        await self.engine.execute(f'truncate {", ".join(self.metadata.tables)}')
-        try:
-            await self.engine.execute("drop table alembic_version")
-        except Exception:  # noqa
-            pass
+        async with self.transaction() as conn:
+            await conn.execute(sa.text(f'truncate {", ".join(self.metadata.tables)}'))
+            try:
+                await conn.execute(sa.text("drop table alembic_version"))
+            except Exception:  # noqa
+                pass
 
     async def drop_all_schemas(self) -> None:
         """Drop all schema in database"""
-        await self.engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        await self.engine.execute("CREATE SCHEMA IF NOT EXISTS public")
+        async with self.engine.begin() as conn:
+            await conn.execute(sa.text("DROP SCHEMA IF EXISTS public CASCADE"))
+            await conn.execute(sa.text("CREATE SCHEMA IF NOT EXISTS public"))
