@@ -1,6 +1,6 @@
-from openapi.testing import jsonBody
+from openapi.testing import json_body
 
 
 async def test_servers(cli):
     response = await cli.get("/")
-    await jsonBody(response)
+    await json_body(response)

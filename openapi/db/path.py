@@ -80,11 +80,12 @@ class SqlApiPath(ApiPath):
                 sql_query = sql_query.order_by(order_by_column)
 
         # search
-        sql_query = self.get_search_clause(
+        sql = self.get_search_clause(
             table, sql_query, specials["search"], specials["search_fields"]
         )
 
         # pagination
+        sql_query = sql
         offset = specials["offset"]
         limit = specials["limit"]
         if offset:
@@ -93,7 +94,7 @@ class SqlApiPath(ApiPath):
             sql_query = sql_query.limit(limit)
 
         async with self.db.ensure_connection(conn) as conn:
-            total = await self.db.db_count_query(sql_query, conn=conn)
+            total = await self.db.db_count_query(sql, conn=conn)
             values = await conn.execute(sql_query)
         pagination = Pagination(self.full_url())
         data = cast(List[StrDict], self.dump(dump_schema, values.all()))

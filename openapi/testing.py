@@ -1,15 +1,14 @@
 """Testing utilities
 """
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
 from aiohttp.client import ClientResponse
-from asyncpg import Connection
-from asyncpg.transaction import Transaction
 
-from .db.dbmodel import CrudDB
+from .db import CrudDB, Database
 from .json import dumps, loads
+from .types import Connection
 
 
 async def json_body(response: ClientResponse, status: int = 200) -> Any:
@@ -22,14 +21,13 @@ async def json_body(response: ClientResponse, status: int = 200) -> Any:
     return data
 
 
-# backward compatibility
-jsonBody = json_body
-
-
-def equal_dict(d1, d2):
-    """Check if two dictionaries are the same"""
-    d1, d2 = map(dumps, (d1, d2))
-    return d1 == d2
+@contextmanager
+def with_test_db(db: CrudDB) -> CrudDB:
+    db.create_all()
+    try:
+        yield db
+    finally:
+        db.drop_all_schemas()
 
 
 class SingleConnDatabase(CrudDB):
@@ -37,46 +35,28 @@ class SingleConnDatabase(CrudDB):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._conn = None
         self._lock = asyncio.Lock()
+        self._connection = None
 
-    async def get_connection(self) -> Connection:
-        """Acquire a :class:`asyncpg.connection.Connection`"""
-        if not self._conn:
-            pool = await self.connect()
-            self._conn = await pool.acquire()
-        return self._conn
+    @classmethod
+    def from_db(cls, db: Database) -> "SingleConnDatabase":
+        return cls(dsn=db.dsn, metadata=db.metadata)
+
+    async def __aenter__(self) -> "SingleConnDatabase":
+        self._connection = await self.engine.begin()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        transaction = self._connection.get_transaction()
+        await transaction.rollback()
+        self._connection = None
 
     @asynccontextmanager
     async def connection(self) -> Connection:
         async with self._lock:
-            conn = await self.get_connection()
-            yield conn
+            yield self._connection
 
     @asynccontextmanager
-    async def rollback(self) -> Transaction:
-        """Async context manager for rolling back a transaction.
-
-        Very useful for speeding up tests
-        """
-        conn = await self.get_connection()
-        transaction = conn.transaction()
-        await transaction.start()
-        yield transaction
-        await transaction.rollback()
-
-    async def close(self) -> None:
+    async def transaction(self) -> Connection:
         async with self._lock:
-            if self._conn:
-                await self.release_connection(self._conn)
-                self._conn = None
-        await super().close()
-
-
-@asynccontextmanager
-async def with_test_db(db: CrudDB) -> CrudDB:
-    await db.create_all()
-    try:
-        yield db
-    finally:
-        await db.drop_all_schemas()
+            yield self._connection

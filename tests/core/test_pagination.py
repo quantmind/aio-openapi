@@ -1,7 +1,7 @@
 from yarl import URL
 
 from openapi.data.pagination import Pagination
-from openapi.testing import jsonBody
+from openapi.testing import json_body
 
 
 def test_last_link():
@@ -35,23 +35,23 @@ def test_last_link():
 
 async def test_pagination_next_link(cli):
     response = await cli.post("/tasks", json=dict(title="bla"))
-    await jsonBody(response, 201)
+    await json_body(response, 201)
     response = await cli.post("/tasks", json=dict(title="foo"))
-    await jsonBody(response, 201)
+    await json_body(response, 201)
     response = await cli.get("/tasks")
-    data = await jsonBody(response)
+    data = await json_body(response)
     assert "Link" not in response.headers
     assert len(data) == 2
 
 
 async def test_pagination_first_link(cli):
     response = await cli.post("/tasks", json=dict(title="bla"))
-    await jsonBody(response, 201)
+    await json_body(response, 201)
     response = await cli.post("/tasks", json=dict(title="foo"))
-    await jsonBody(response, 201)
+    await json_body(response, 201)
     response = await cli.get("/tasks", params={"limit": 10, "offset": 20})
     url = response.url
-    data = await jsonBody(response)
+    data = await json_body(response)
     link = response.headers["Link"]
     assert link == (
         f'<{url.parent}{url.path}?limit=10&offset=0>; rel="first", '
@@ -63,20 +63,20 @@ async def test_pagination_first_link(cli):
 
 async def test_invalid_limit_offset(cli):
     response = await cli.get("/tasks", params={"limit": "wtf"})
-    await jsonBody(response, 422)
+    await json_body(response, 422)
     response = await cli.get("/tasks", params={"limit": 0})
-    await jsonBody(response, 422)
+    await json_body(response, 422)
     response = await cli.get("/tasks", params={"offset": "wtf"})
-    await jsonBody(response, 422)
+    await json_body(response, 422)
     response = await cli.get("/tasks", params={"offset": -10})
-    await jsonBody(response, 422)
+    await json_body(response, 422)
 
 
 async def test_pagination_with_forwarded_host(cli):
     response = await cli.post("/tasks", json=dict(title="bla"))
-    await jsonBody(response, 201)
+    await json_body(response, 201)
     response = await cli.post("/tasks", json=dict(title="foo"))
-    await jsonBody(response, 201)
+    await json_body(response, 201)
     response = await cli.get(
         "/tasks",
         headers={
@@ -86,7 +86,7 @@ async def test_pagination_with_forwarded_host(cli):
         },
         params={"limit": 10, "offset": 20},
     )
-    data = await jsonBody(response)
+    data = await json_body(response)
     assert len(data) == 0
     link = response.headers["Link"]
     assert link == (
@@ -104,7 +104,7 @@ async def test_pagination_with_forwarded_host(cli):
         },
         params={"limit": 10, "offset": 20},
     )
-    data = await jsonBody(response)
+    data = await json_body(response)
     assert len(data) == 0
     link = response.headers["Link"]
     assert link == (

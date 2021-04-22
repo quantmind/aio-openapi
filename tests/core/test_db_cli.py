@@ -1,11 +1,13 @@
 import os
+from typing import Optional
 
+import sqlalchemy as sa
 from click.testing import CliRunner
 
 from tests.example.db.tables2 import extra
 
 
-def _migrate(cli, name="test", runner=None) -> CliRunner:
+def _migrate(cli, name="test", runner: Optional[CliRunner] = None) -> CliRunner:
     if not runner:
         runner = CliRunner()
         result = runner.invoke(cli.app["cli"], ["db", "init"])
@@ -17,7 +19,7 @@ def _migrate(cli, name="test", runner=None) -> CliRunner:
     return runner
 
 
-def _current(cli, runner=None):
+def _current(cli, runner: Optional[CliRunner] = None):
     if not runner:
         runner = CliRunner()
     result = runner.invoke(cli.app["cli"], ["db", "current"])
@@ -25,7 +27,7 @@ def _current(cli, runner=None):
     return result.output.split()[0]
 
 
-def _drop(cli, runner=None):
+def _drop(cli, runner: Optional[CliRunner] = None):
     if not runner:
         runner = CliRunner()
     result = runner.invoke(cli.app["cli"], ["db", "drop"])
@@ -66,7 +68,8 @@ async def test_migration_upgrade(cli):
 
     # delete column to check if tables will be dropped and recreated
     db = cli.app["db"]
-    db.engine.execute("ALTER TABLE tasks DROP COLUMN title")
+    async with db.transaction() as conn:
+        await conn.execute(sa.text("ALTER TABLE tasks DROP COLUMN title"))
 
     result = runner.invoke(cli.app["cli"], ["db", "upgrade", "--drop-tables"])
     assert result.exit_code == 0

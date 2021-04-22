@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Optional
 
 import sqlalchemy as sa
+from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 
 from openapi.utils import str2bool
@@ -51,6 +52,10 @@ class Database:
             self._engine = create_async_engine(self._dsn, echo=DBECHO)
         return self._engine
 
+    @property
+    def sync_engine(self) -> Engine:
+        return create_engine(self._dsn.replace("+asyncpg", ""))
+
     def __getattr__(self, name: str) -> Any:
         """Retrive a :class:`sqlalchemy.schema.Table` from metadata tables
 
@@ -82,7 +87,7 @@ class Database:
             else:
                 yield conn
         else:
-            async with self.engine.begin() as conn:
+            async with self.transaction() as conn:
                 yield conn
 
     async def close(self) -> None:
@@ -92,22 +97,21 @@ class Database:
             self._engine = None
 
     # SQL Alchemy Sync Operations
-    async def create_all(self) -> None:
+    def create_all(self) -> None:
         """Create all tables defined in :attr:`metadata`"""
-        async with self.transaction() as conn:
-            await conn.run_sync(self.metadata.create_all)
+        self.metadata.create_all(self.sync_engine)
 
-    async def drop_all(self) -> None:
+    def drop_all(self) -> None:
         """Drop all tables from :attr:`metadata` in database"""
-        async with self.transaction() as conn:
-            await conn.execute(sa.text(f'truncate {", ".join(self.metadata.tables)}'))
+        with self.sync_engine.begin() as conn:
+            conn.execute(sa.text(f'truncate {", ".join(self.metadata.tables)}'))
             try:
-                await conn.execute(sa.text("drop table alembic_version"))
+                conn.execute(sa.text("drop table alembic_version"))
             except Exception:  # noqa
                 pass
 
-    async def drop_all_schemas(self) -> None:
+    def drop_all_schemas(self) -> None:
         """Drop all schema in database"""
-        async with self.engine.begin() as conn:
-            await conn.execute(sa.text("DROP SCHEMA IF EXISTS public CASCADE"))
-            await conn.execute(sa.text("CREATE SCHEMA IF NOT EXISTS public"))
+        with self.sync_engine.begin() as conn:
+            conn.execute(sa.text("DROP SCHEMA IF EXISTS public CASCADE"))
+            conn.execute(sa.text("CREATE SCHEMA IF NOT EXISTS public"))

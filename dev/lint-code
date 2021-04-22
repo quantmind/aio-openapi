@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+
+isort . $1
+black . --exclude "build|dev|docs|venv" $1
+flake8

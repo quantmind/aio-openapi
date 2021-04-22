@@ -1,5 +1,3 @@
-from copy import copy
-
 import click
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
@@ -33,7 +31,7 @@ def init(ctx):
     "--branch-label", help="Specify a branch label to apply to the new revision"
 )
 @click.pass_context
-def migrate(ctx, message, branch_label):
+def migrate(ctx, message: str, branch_label: str):
     """Autogenerate a new revision file
 
     alias for 'revision --autogenerate'
@@ -58,7 +56,7 @@ def migrate(ctx, message, branch_label):
     ),
 )
 @click.pass_context
-def revision(ctx, message, branch_label, autogenerate):
+def revision(ctx, message: str, branch_label: str, autogenerate: bool):
     """Autogenerate a new revision file"""
     return migration(ctx).revision(
         message, autogenerate=autogenerate, branch_label=branch_label
@@ -74,7 +72,7 @@ def revision(ctx, message, branch_label, autogenerate):
     help="Drop tables before applying migrations",
 )
 @click.pass_context
-def upgrade(ctx, revision, drop_tables):
+def upgrade(ctx, revision: str, drop_tables: bool):
     """Upgrade to a later version"""
     if drop_tables:
         _drop_tables(ctx)
@@ -85,7 +83,7 @@ def upgrade(ctx, revision, drop_tables):
 @db.command()
 @click.option("--revision", help="Revision id", required=True)
 @click.pass_context
-def downgrade(ctx, revision):
+def downgrade(ctx, revision: str):
     """Downgrade to a previous version"""
     migration(ctx).downgrade(revision)
     click.echo(f"downgraded successfully to {revision}")
@@ -94,7 +92,7 @@ def downgrade(ctx, revision):
 @db.command()
 @click.option("--revision", default="heads")
 @click.pass_context
-def show(ctx, revision):
+def show(ctx, revision: str):
     """Show revision ID and creation date"""
     click.echo(migration(ctx).show(revision))
 
@@ -109,7 +107,7 @@ def history(ctx):
 @db.command()
 @click.option("--verbose/--quiet", default=False)
 @click.pass_context
-def current(ctx, verbose):
+def current(ctx, verbose: bool):
     """Show revision ID and creation date"""
     click.echo(migration(ctx).current(verbose))
 
@@ -120,11 +118,10 @@ def current(ctx, verbose):
     "--force", default=False, is_flag=True, help="Force removal of an existing database"
 )
 @click.pass_context
-def create(ctx, dbname, force):
+def create(ctx, dbname: str, force: str):
     """Creates a new database"""
-    engine = get_db(ctx).engine
-    url = copy(engine.url)
-    url.database = dbname
+    engine = get_db(ctx).sync_engine
+    url = engine.url.set(database=dbname)
     store = str(url)
     if database_exists(store):
         if force:
@@ -147,7 +144,7 @@ def tables(ctx, db):
     """List all tables managed by the app"""
     d = get_db(ctx)
     if db:
-        tables = d.engine.table_names()
+        tables = d.sync_engine.table_names()
     else:
         tables = d.metadata.tables
     for name in sorted(tables):

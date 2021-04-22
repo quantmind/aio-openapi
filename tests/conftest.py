@@ -18,8 +18,7 @@ from .example.main import create_app
 
 @pytest.fixture(scope="session")
 def sync_url() -> str:
-    url = str(DB)
-    return url.replace("+asyncpg", "")
+    return str(DB.sync_engine.url)
 
 
 @pytest.fixture(autouse=True)
@@ -46,11 +45,12 @@ def loop():
 
 
 @pytest.fixture(scope="session")
-async def clear_db(sync_url) -> CrudDB:
+def clear_db(sync_url) -> CrudDB:
     if not database_exists(sync_url):
         # drop_database(url)
         create_database(sync_url)
-    # await DB.drop_all_schemas()
+    else:
+        DB.drop_all_schemas()
     return DB
 
 
@@ -60,7 +60,7 @@ async def cli(loop, clear_db: CrudDB) -> TestClient:
     app = app_cli.web()
     client = TestClient(TestServer(app, loop=loop), loop=loop, json_serialize=dumps)
     try:
-        async with with_test_db(app["db"]):
+        with with_test_db(app["db"]):
             await client.start_server()
             yield client
     finally:

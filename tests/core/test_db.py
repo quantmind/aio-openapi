@@ -4,12 +4,12 @@ from decimal import Decimal
 
 from openapi.db import CrudDB
 from openapi.json import dumps
-from openapi.testing import equal_dict, json_body
+from openapi.testing import json_body
 from openapi.utils import error_dict
 
 
-async def test_drop_all(db: CrudDB):
-    await db.drop_all()
+def test_drop_all(db: CrudDB):
+    db.drop_all()
 
 
 async def test_get_list(cli):
@@ -91,7 +91,7 @@ async def test_delete_list(cli):
     d1 = await json_body(response, 201)
     response = await cli.post("/tasks", json=dict(title="foo"))
     d2 = await json_body(response, 201)
-    assert not equal_dict(d1, d2)
+    assert d1 != d2
     response = await cli.get("/tasks")
     data = await json_body(response)
     assert len(data) == 2

@@ -35,7 +35,6 @@ def test_json_http_exception_reason():
 
 def test_exist_database_not_configured():
     db = Database()
-    assert db.pool is None
     with pytest.raises(ImproperlyConfigured):
         db.engine
 
