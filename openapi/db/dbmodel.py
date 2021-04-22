@@ -1,12 +1,13 @@
 from typing import Any, Dict, List, Optional, Union, cast
 
-from asyncpg import Connection
-from sqlalchemy import Column, Table
-from sqlalchemy.sql import and_
+from sqlalchemy import Column, Table, func, select
+from sqlalchemy.sql import Select, and_
+from sqlalchemy.sql.dml import Delete, Insert, Update
 
 from ..db.container import Database
-from ..types import Records
-from .compile import QueryType, Select, compile_query, count
+from ..types import Connection, Record, Records
+
+QueryType = Union[Delete, Update, Select]
 
 
 class CrudDB(Database):
@@ -28,9 +29,8 @@ class CrudDB(Database):
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
         query = self.get_query(table, table.select(), consumer=consumer, params=filters)
-        sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
-            return await conn.fetch(sql, *args)
+            return await conn.execute(query)
 
     async def db_delete(
         self,
@@ -53,9 +53,8 @@ class CrudDB(Database):
             consumer=consumer,
             params=filters,
         )
-        sql, args = compile_query(query)
         async with self.ensure_connection(conn) as conn:
-            return await conn.fetch(sql, *args)
+            return await conn.execute(query)
 
     async def db_count(
         self,
@@ -73,10 +72,13 @@ class CrudDB(Database):
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
         query = self.get_query(table, table.select(), consumer=consumer, params=filters)
-        sql, args = count(cast(Select, query))
+        return await self.db_count_query(query, conn=conn)
+
+    async def db_count_query(self, query, *, conn: Optional[Connection] = None) -> int:
+        count_query = select([func.count()]).select_from(query.alias("inner"))
         async with self.ensure_connection(conn) as conn:
-            total = await conn.fetchrow(sql, *args)
-        return total[0]
+            result = await conn.execute(count_query)
+            return result.scalar()
 
     async def db_insert(
         self,
@@ -92,8 +94,8 @@ class CrudDB(Database):
         :param conn: optional db connection
         """
         async with self.ensure_connection(conn) as conn:
-            statement, args = self.get_insert(table, data)
-            return await conn.fetch(statement, *args)
+            query = self.get_insert(table, data)
+            return await conn.execute(query)
 
     async def db_update(
         self,
@@ -117,9 +119,8 @@ class CrudDB(Database):
             .values(**data)
             .returning(*table.columns)
         )
-        sql, args = compile_query(update)
         async with self.ensure_connection(conn) as conn:
-            return await conn.fetch(sql, *args)
+            return await conn.execute(update)
 
     async def db_upsert(
         self,
@@ -129,8 +130,8 @@ class CrudDB(Database):
         *,
         conn: Optional[Connection] = None,
         consumer: Any = None,
-    ) -> Records:
-        """Perform an upsert
+    ) -> Record:
+        """Perform an upsert for a single record
 
         :param table: sqlalchemy Table
         :param filters: key-value pairs for filtering rows to update
@@ -139,22 +140,23 @@ class CrudDB(Database):
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
         if data:
-            rows = await self.db_update(
+            result = await self.db_update(
                 table, filters, data, conn=conn, consumer=consumer
             )
         else:
-            rows = await self.db_select(table, filters, conn=conn, consumer=consumer)
-        if not rows:
+            result = await self.db_select(table, filters, conn=conn, consumer=consumer)
+        record = result.one_or_none()
+        if record is None:
             insert_data = data.copy() if data else {}
             insert_data.update(filters)
-            rows = await self.db_insert(table, insert_data, conn=conn)
-        return rows
+            result = await self.db_insert(table, insert_data, conn=conn)
+            record = result.one()
+        return record
 
-    def get_insert(self, table: Table, records: Union[List[Dict], Dict]):
+    def get_insert(self, table: Table, records: Union[List[Dict], Dict]) -> Insert:
         if isinstance(records, dict):
             records = [records]
-        exp = table.insert(records).returning(*table.columns)
-        return compile_query(exp)
+        return table.insert(records).returning(*table.columns)
 
     def get_query(
         self,

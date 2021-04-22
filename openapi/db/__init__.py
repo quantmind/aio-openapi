@@ -1,16 +1,15 @@
 import os
-import typing as t
+from typing import Optional
 
 from aiohttp.web import Application
 
-from .compile import compile_query
 from .container import Database
 from .dbmodel import CrudDB
 
 __all__ = ["compile_query", "Database", "CrudDB", "get_db"]
 
 
-def get_db(app: Application, store_url: str = None) -> t.Optional[CrudDB]:
+def get_db(app: Application, store_url: Optional[str] = None) -> Optional[CrudDB]:
     """Create an Open API db handler
 
     This function

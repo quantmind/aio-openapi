@@ -3,7 +3,7 @@ from typing import Dict
 import aiohttp
 from async_timeout import timeout
 
-from openapi.testing import jsonBody
+from openapi.testing import json_body
 
 
 async def server_info(ws) -> Dict:
@@ -16,7 +16,7 @@ async def server_info(ws) -> Dict:
 
 async def test_invalid_ws_protocol(cli):
     resp = await cli.get("/stream")
-    await jsonBody(resp, 400)
+    await json_body(resp, 400)
 
 
 async def test_invalid_protocol(cli):

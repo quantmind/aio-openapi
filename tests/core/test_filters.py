@@ -2,7 +2,7 @@ import pytest
 from multidict import MultiDict
 
 from openapi.spec import OpenApiSpec
-from openapi.testing import jsonBody
+from openapi.testing import json_body
 from tests.utils import FakeRequest
 
 tests = [
@@ -18,7 +18,7 @@ async def fixtures(cli):
     results = []
     for test in tests:
         rs = await cli.post("/tasks", json=test)
-        test = await jsonBody(rs, 201)
+        test = await json_body(rs, 201)
         test.pop("id")
         results.append(test)
     return results
@@ -26,7 +26,7 @@ async def fixtures(cli):
 
 async def assert_query(cli, params, expected):
     response = await cli.get("/tasks", params=params)
-    data = await jsonBody(response)
+    data = await json_body(response)
     for d in data:
         d.pop("id")
     assert len(data) == len(expected)

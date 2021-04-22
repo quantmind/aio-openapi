@@ -9,14 +9,17 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     NamedTuple,
     Optional,
+    Sequence,
     TypeVar,
     Union,
     cast,
 )
 
 from .exc import InvalidTypeException
+from .types import Record
 
 
 def get_origin(value: Any) -> Any:
@@ -142,9 +145,10 @@ def replace_key(kwargs: Dict, from_key: Hashable, to_key: Hashable) -> Dict:
 
 
 def iter_items(data: Iterable) -> Iterator:
-    items = getattr(data, "items", None)
-    if hasattr(items, "__call__"):
-        return items()
+    if isinstance(data, Record):
+        data = data._asdict()
+    if isinstance(data, Mapping):
+        return data.items()
     return iter(data)
 
 
@@ -174,7 +178,7 @@ class ExpectedOneOnly(RuntimeError):
     pass
 
 
-def one_only(data: Any, *, Error: type = ExpectedOneOnly) -> Any:
+def one_only(data: Sequence, *, Error: type = ExpectedOneOnly) -> Any:
     n = len(data)
     if not n == 1:
         raise Error
