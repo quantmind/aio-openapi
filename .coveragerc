@@ -1,9 +1,9 @@
 [run]
 source = openapi
+concurrency=greenlet
 data_file = build/.coverage
 omit =
     openapi/db/openapi
-    openapi/_py36.py
 
 [html]
 directory = build/coverage/html
