@@ -17,10 +17,9 @@ def get_db(app: Application, store_url: Optional[str] = None) -> Optional[CrudDB
         variable `DATASTORE` is used instead. If the env variable is not available
         either the method logs a warning and return `None`
 
-    This function
-    * add the database to the aiohttp application at key "db"
-    * add the db command to the command line client (if command is True)
-    * add the close handler on shutdown
+    This function 1) adds the database to the aiohttp application at key "db",
+    2) add the db command to the command line client (if command is True)
+    and 3) add the close handler on application shutdown
     """
     store_url = store_url or os.environ.get("DATASTORE")
     if not store_url:  # pragma: no cover
