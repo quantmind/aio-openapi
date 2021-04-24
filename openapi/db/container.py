@@ -16,8 +16,8 @@ DBECHO = str2bool(os.environ.get("DBECHO") or "no")
 
 
 class Database:
-    """A container for tables in a database and manager of asynchronous
-    connections to a psotgresql database
+    """A container for tables in a database and a manager of asynchronous
+    connections to a postgresql database
 
     :param dsn: Data source name used for database connections
     :param metadata: :class:`sqlalchemy.schema.MetaData` containing tables
