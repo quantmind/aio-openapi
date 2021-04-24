@@ -320,7 +320,19 @@ async def test_multicolumn_unique_constraint(cli):
     await json_body(resp, status=422)
 
 
-async def test_json_column_with_decimals(db, cli):
+async def test_json_column_with_decimals(cli):
     task = {"title": "task", "unique_title": "task1", "story_points": Decimal(0)}
     resp = await cli.post("/tasks", data=dumps(task))
     await json_body(resp, status=201)
+
+
+async def test_db_ensure_connection(db: CrudDB):
+    async with db.connection() as conn:
+        assert not conn.in_transaction()
+        async with db.ensure_connection(conn=conn) as conn2:
+            assert conn is conn2
+            assert conn.in_transaction()
+
+
+def test_db_props(db: CrudDB):
+    assert db.dsn == str(db)

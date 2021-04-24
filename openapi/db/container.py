@@ -4,8 +4,9 @@ from typing import Any, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.engine import Engine, create_engine
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from openapi.types import Connection
 from openapi.utils import str2bool
 
 from ..exc import ImproperlyConfigured
@@ -45,7 +46,8 @@ class Database:
 
     @property
     def engine(self) -> AsyncEngine:
-        """The :class:`sqlalchemy.engine.Engine`"""
+        """The :class:`sqlalchemy.ext.asyncio.AsyncEngine` creating connection
+        and transactions"""
         if self._engine is None:
             if not self._dsn:
                 raise ImproperlyConfigured("DSN not available")
@@ -54,6 +56,7 @@ class Database:
 
     @property
     def sync_engine(self) -> Engine:
+        """The :class:`sqlalchemy.engine.Engine` for synchrouns operations"""
         return create_engine(self._dsn.replace("+asyncpg", ""))
 
     def __getattr__(self, name: str) -> Any:
@@ -67,22 +70,24 @@ class Database:
         return super().__getattribute__(name)
 
     @asynccontextmanager
-    async def connection(self) -> AsyncConnection:
+    async def connection(self) -> Connection:
+        """Context manager for obtaining an asynchronous connection"""
         async with self.engine.connect() as conn:
             yield conn
 
     @asynccontextmanager
-    async def transaction(self) -> AsyncConnection:
+    async def transaction(self) -> Connection:
+        """Context manager for initializing an asynchronous database transaction"""
         async with self.engine.begin() as conn:
             yield conn
 
     @asynccontextmanager
-    async def ensure_connection(
-        self, conn: Optional[AsyncConnection] = None
-    ) -> AsyncConnection:
+    async def ensure_connection(self, conn: Optional[Connection] = None) -> Connection:
+        """Context manager for ensuring we a connection has initialized
+        a database transaction"""
         if conn:
             if not conn.in_transaction():
-                with conn.begin():
+                async with conn.begin():
                     yield conn
             else:
                 yield conn
@@ -91,10 +96,10 @@ class Database:
                 yield conn
 
     async def close(self) -> None:
-        """Close the connection :attr:`pool` if available"""
+        """Close the asynchronous db engine if opened"""
         if self._engine:
-            await self._engine.dispose()
-            self._engine = None
+            engine, self._engine = self._engine, None
+            await engine.dispose()
 
     # SQL Alchemy Sync Operations
     def create_all(self) -> None:
