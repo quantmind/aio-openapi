@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     NamedTuple,
     Optional,
     TypeVar,
@@ -17,6 +18,7 @@ from typing import (
 )
 
 from .exc import InvalidTypeException
+from .types import Record
 
 
 def get_origin(value: Any) -> Any:
@@ -142,9 +144,10 @@ def replace_key(kwargs: Dict, from_key: Hashable, to_key: Hashable) -> Dict:
 
 
 def iter_items(data: Iterable) -> Iterator:
-    items = getattr(data, "items", None)
-    if hasattr(items, "__call__"):
-        return items()
+    if isinstance(data, Record):
+        data = data._asdict()
+    if isinstance(data, Mapping):
+        return data.items()
     return iter(data)
 
 
@@ -168,14 +171,3 @@ TRUE_VALUES = frozenset(("yes", "true", "t", "1"))
 
 def str2bool(v: Union[str, bool, int]):
     return str(v).lower() in TRUE_VALUES
-
-
-class ExpectedOneOnly(RuntimeError):
-    pass
-
-
-def one_only(data: Any, *, Error: type = ExpectedOneOnly) -> Any:
-    n = len(data)
-    if not n == 1:
-        raise Error
-    return data[0]

@@ -8,7 +8,7 @@ from .tables1 import meta
 from .tables2 import additional_meta
 
 DATASTORE = os.getenv(
-    "DATASTORE", "postgresql://postgres:postgres@localhost:5432/openapi"
+    "DATASTORE", "postgresql+asyncpg://postgres:postgres@localhost:5432/openapi"
 )
 
 

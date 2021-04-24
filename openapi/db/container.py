@@ -1,22 +1,24 @@
-import asyncio
 import os
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
-import asyncpg
 import sqlalchemy as sa
-from asyncpg import Connection
-from asyncpg.pool import Pool
+from sqlalchemy.engine import Engine, create_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
+from openapi.types import Connection
+from openapi.utils import str2bool
 
 from ..exc import ImproperlyConfigured
 
-DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
 DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
+DBPOOL_MAX_OVERFLOW = int(os.environ.get("DBPOOL_MAX_OVERFLOW") or "10")
+DBECHO = str2bool(os.environ.get("DBECHO") or "no")
 
 
 class Database:
-    """A container for tables in a database and manager of asynchronous
-    connections to a psotgresql database
+    """A container for tables in a database and a manager of asynchronous
+    connections to a postgresql database
 
     :param dsn: Data source name used for database connections
     :param metadata: :class:`sqlalchemy.schema.MetaData` containing tables
@@ -25,9 +27,7 @@ class Database:
     def __init__(self, dsn: str = "", metadata: sa.MetaData = None) -> None:
         self._dsn = dsn
         self._metadata = metadata or sa.MetaData()
-        self._pool = None
         self._engine = None
-        self._lock = asyncio.Lock()
 
     def __repr__(self) -> str:
         return self._dsn
@@ -45,18 +45,24 @@ class Database:
         return self._metadata
 
     @property
-    def pool(self) -> Optional[Pool]:
-        """The :class:`asyncpg.pool.Pool` of postgresql database connections"""
-        return self._pool
-
-    @property
-    def engine(self):
-        """The :class:`sqlalchemy.engine.Engine`"""
+    def engine(self) -> AsyncEngine:
+        """The :class:`sqlalchemy.ext.asyncio.AsyncEngine` creating connection
+        and transactions"""
         if self._engine is None:
             if not self._dsn:
                 raise ImproperlyConfigured("DSN not available")
-            self._engine = sa.create_engine(self._dsn)
+            self._engine = create_async_engine(
+                self._dsn,
+                echo=DBECHO,
+                pool_size=DBPOOL_MAX_SIZE,
+                max_overflow=DBPOOL_MAX_OVERFLOW,
+            )
         return self._engine
+
+    @property
+    def sync_engine(self) -> Engine:
+        """The :class:`sqlalchemy.engine.Engine` for synchrouns operations"""
+        return create_engine(self._dsn.replace("+asyncpg", ""))
 
     def __getattr__(self, name: str) -> Any:
         """Retrive a :class:`sqlalchemy.schema.Table` from metadata tables
@@ -68,59 +74,54 @@ class Database:
             return self._metadata.tables[name]
         return super().__getattribute__(name)
 
-    async def connect(self) -> Pool:
-        """Connect to the Postgres database server and return :attr:`.pool`"""
-        async with self._lock:
-            if self._pool is None:
-                self._pool = await asyncpg.create_pool(
-                    self._dsn, min_size=DBPOOL_MIN_SIZE, max_size=DBPOOL_MAX_SIZE
-                )
-            return self._pool
-
-    async def release_connection(self, conn: Connection) -> None:
-        if self._pool is not None:
-            await self._pool.release(conn)
-
     @asynccontextmanager
     async def connection(self) -> Connection:
-        pool = await self.connect()
-        async with pool.acquire() as conn:
+        """Context manager for obtaining an asynchronous connection"""
+        async with self.engine.connect() as conn:
             yield conn
 
     @asynccontextmanager
     async def transaction(self) -> Connection:
-        async with self.connection() as conn, conn.transaction():
+        """Context manager for initializing an asynchronous database transaction"""
+        async with self.engine.begin() as conn:
             yield conn
 
     @asynccontextmanager
     async def ensure_connection(self, conn: Optional[Connection] = None) -> Connection:
+        """Context manager for ensuring we a connection has initialized
+        a database transaction"""
         if conn:
-            yield conn
-        else:
-            async with self.connection() as conn:
-                async with conn.transaction():
+            if not conn.in_transaction():
+                async with conn.begin():
                     yield conn
+            else:
+                yield conn
+        else:
+            async with self.transaction() as conn:
+                yield conn
 
     async def close(self) -> None:
-        """Close the connection :attr:`pool` if available"""
-        if self._pool:
-            await self._pool.close()
-            self._pool = None
+        """Close the asynchronous db engine if opened"""
+        if self._engine:
+            engine, self._engine = self._engine, None
+            await engine.dispose()
 
     # SQL Alchemy Sync Operations
     def create_all(self) -> None:
         """Create all tables defined in :attr:`metadata`"""
-        self.metadata.create_all(self.engine)
+        self.metadata.create_all(self.sync_engine)
 
     def drop_all(self) -> None:
         """Drop all tables from :attr:`metadata` in database"""
-        self.engine.execute(f'truncate {", ".join(self.metadata.tables)}')
-        try:
-            self.engine.execute("drop table alembic_version")
-        except Exception:  # noqa
-            pass
+        with self.sync_engine.begin() as conn:
+            conn.execute(sa.text(f'truncate {", ".join(self.metadata.tables)}'))
+            try:
+                conn.execute(sa.text("drop table alembic_version"))
+            except Exception:  # noqa
+                pass
 
     def drop_all_schemas(self) -> None:
         """Drop all schema in database"""
-        self.engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        self.engine.execute("CREATE SCHEMA IF NOT EXISTS public")
+        with self.sync_engine.begin() as conn:
+            conn.execute(sa.text("DROP SCHEMA IF EXISTS public CASCADE"))
+            conn.execute(sa.text("CREATE SCHEMA IF NOT EXISTS public"))

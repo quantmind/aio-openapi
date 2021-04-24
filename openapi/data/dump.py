@@ -1,5 +1,7 @@
 from dataclasses import asdict, fields
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union, cast
+
+from openapi.types import Record
 
 from ..utils import TypingInfo, iter_items
 from .fields import DUMP
@@ -29,7 +31,7 @@ def dump(schema: Any, data: Any) -> Any:
         return data
 
 
-def dump_dataclass(schema: type, data: Optional[Dict] = None) -> Dict:
+def dump_dataclass(schema: type, data: Optional[Union[Dict, Record]] = None) -> Dict:
     """Dump a dictionary of data with a given dataclass dump functions
     If the data is not given, the schema object is assumed to be
     an instance of a dataclass.

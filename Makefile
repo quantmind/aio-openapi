@@ -28,9 +28,7 @@ install: 		## install packages in virtualenv
 
 
 lint: 			## run linters
-	isort .
-	./dev/run-black.sh
-	flake8
+	@./dev/lint-code
 
 
 mypy:			## run mypy
@@ -49,10 +47,8 @@ test:			## test with coverage
 	@pytest -v -x --cov --cov-report xml --cov-report html
 
 
-test-lint:		## run linters
-	flake8
-	isort . --check
-	./dev/run-black.sh --check
+test-lint:		## run linters checks
+	@./dev/lint-code --check
 
 
 test-docs: 		## run docs in CI
@@ -66,11 +62,14 @@ test-version:		## validate version with pypi
 bundle3.7:		## build python 3.7 bundle
 	@python setup.py bdist_wheel --python-tag py37
 
+
 bundle3.8:		## build python 3.8 bundle
 	@python setup.py bdist_wheel --python-tag py38
 
+
 bundle3.9:		## build python 3.9 bundle
 	@python setup.py sdist bdist_wheel --python-tag py39
+
 
 release-github:		## new tag in github
 	@agilekit git release --yes

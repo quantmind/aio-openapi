@@ -4,15 +4,21 @@ import shutil
 from unittest import mock
 
 import pytest
-from aiohttp import test_utils
+from aiohttp.test_utils import TestClient, TestServer
 from aiohttp.web import Application
 from sqlalchemy_utils import create_database, database_exists
 
 from openapi.db.dbmodel import CrudDB
 from openapi.json import dumps
+from openapi.testing import with_test_db
 
 from .example.db import DB
 from .example.main import create_app
+
+
+@pytest.fixture(scope="session")
+def sync_url() -> str:
+    return str(DB.sync_engine.url)
 
 
 @pytest.fixture(autouse=True)
@@ -39,37 +45,33 @@ def loop():
 
 
 @pytest.fixture(scope="session")
-def clear_db() -> CrudDB:
-    url = str(DB)
-    if not database_exists(url):
+def clear_db(sync_url) -> CrudDB:
+    if not database_exists(sync_url):
         # drop_database(url)
-        create_database(url)
-    DB.drop_all_schemas()
+        create_database(sync_url)
+    else:
+        DB.drop_all_schemas()
     return DB
 
 
-@pytest.fixture()
-async def test_app(clear_db):
-    cli = create_app()
-    app = cli.web()
-    app["db"].create_all()
-    try:
-        yield app
-    finally:
-        app["db"].drop_all_schemas()
-
-
 @pytest.fixture
-async def cli(loop, test_app: Application):
-    server = test_utils.TestServer(test_app, loop=loop)
-    client = test_utils.TestClient(server, loop=loop, json_serialize=dumps)
-    await client.start_server()
+async def cli(loop, clear_db: CrudDB) -> TestClient:
+    app_cli = create_app()
+    app = app_cli.web()
+    client = TestClient(TestServer(app, loop=loop), loop=loop, json_serialize=dumps)
     try:
-        yield client
+        with with_test_db(app["db"]):
+            await client.start_server()
+            yield client
     finally:
         await client.close()
 
 
 @pytest.fixture
-async def db(test_app, cli):
+async def test_app(cli: TestClient) -> Application:
+    return cli.app
+
+
+@pytest.fixture
+async def db(test_app: Application) -> CrudDB:
     return test_app["db"]

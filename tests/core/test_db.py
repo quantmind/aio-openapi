@@ -1,14 +1,17 @@
 import uuid
+from asyncio import TimeoutError
 from datetime import datetime
 from decimal import Decimal
 
-from openapi.db.compile import compile_query
+import async_timeout
+
+from openapi.db import CrudDB
 from openapi.json import dumps
-from openapi.testing import equal_dict, json_body
+from openapi.testing import json_body
 from openapi.utils import error_dict
 
 
-async def test_drop_all(db):
+def test_drop_all(db: CrudDB):
     db.drop_all()
 
 
@@ -91,7 +94,7 @@ async def test_delete_list(cli):
     d1 = await json_body(response, 201)
     response = await cli.post("/tasks", json=dict(title="foo"))
     d2 = await json_body(response, 201)
-    assert not equal_dict(d1, d2)
+    assert d1 != d2
     response = await cli.get("/tasks")
     data = await json_body(response)
     assert len(data) == 2
@@ -320,21 +323,29 @@ async def test_multicolumn_unique_constraint(cli):
     await json_body(resp, status=422)
 
 
-async def test_json_column_with_decimals(db, cli):
+async def test_json_column_with_decimals(cli):
     task = {"title": "task", "unique_title": "task1", "story_points": Decimal(0)}
     resp = await cli.post("/tasks", data=dumps(task))
-    body = await json_body(resp, status=201)
+    await json_body(resp, status=201)
 
-    resp = await cli.post("/tasks", data=dumps(task))
-    info = {"the_price_again": Decimal("1.234")}
-    data = {
-        "price": Decimal("1.234"),
-        "tenor": "1d",
-        "info": info,
-        "jsonlist": [info, info],
-        "task_id": body["id"],
-    }
 
-    async with db.transaction() as conn:
-        q, args = compile_query(db.randoms.insert().values(data))
-        await conn.execute(q, *args)
+async def test_db_ensure_connection(db: CrudDB):
+    async with db.connection() as conn:
+        assert not conn.in_transaction()
+        async with db.ensure_connection(conn=conn) as conn2:
+            assert conn is conn2
+            assert conn.in_transaction()
+
+
+def test_db_props(db: CrudDB):
+    assert db.dsn == str(db)
+
+
+async def test_db_pool(db: CrudDB):
+    async with db.connection():
+        try:
+            async with async_timeout.timeout(0.5):
+                async with db.connection() as conn2:
+                    assert not conn2
+        except TimeoutError:
+            pass
