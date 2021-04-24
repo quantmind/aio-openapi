@@ -10,14 +10,17 @@ __all__ = ["compile_query", "Database", "CrudDB", "get_db"]
 
 
 def get_db(app: Application, store_url: Optional[str] = None) -> Optional[CrudDB]:
-    """Create an Open API db handler
+    """Create an Open API db handler and set it for use in an aiohttp application
+
+    :param app: aiohttp Application
+    :param store_url: datastore connection string, if not provided the env
+        variable `DATASTORE` is used instead. If the env variable is not available
+        either the method logs a warning and return `None`
 
     This function
-    * add the database to the aiohttp application
+    * add the database to the aiohttp application at key "db"
     * add the db command to the command line client (if command is True)
     * add the close handler on shutdown
-
-    It returns the database object
     """
     store_url = store_url or os.environ.get("DATASTORE")
     if not store_url:  # pragma: no cover

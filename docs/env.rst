@@ -7,9 +7,9 @@
 
 Several environment variables can be configured at application level
 
+* **DATASTORE** Connection string for postgresql database
 * **BAD_DATA_MESSAGE** (Invalid data format), message displayed when data is not in valid format (not JSON for example)
 * **ERROR_500_MESSSAGE** (Internal Server Error), message displayed when things go wrong
-* **DBPOOL_MIN_SIZE** (10), minimum number of connection in postgres connection pool
 * **DBPOOL_MAX_SIZE** (10), maximum number of connections in postgres connection pool
 * **DBECHO**, if set to `true` or `yes` it will use `echo=True` when setting up sqlalchemy engine
 * **MICRO_SERVICE_PORT** (8080), default port when running the `serve` command
