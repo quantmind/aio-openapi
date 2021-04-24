@@ -4,6 +4,7 @@ from typing import Any, Dict, NamedTuple, Optional, Tuple, Union
 from multidict import MultiDict
 
 from openapi import json
+from openapi.types import Record
 
 from ..utils import TypingInfo
 from .fields import (
@@ -198,7 +199,7 @@ def validate_dict(
 
 def validate_dataclass(
     schema: type,
-    data: Union[Dict[str, Any], MultiDict],
+    data: Union[Dict[str, Any], MultiDict, Record],
     *,
     strict: bool = True,
     multiple: bool = False,
@@ -208,7 +209,7 @@ def validate_dataclass(
     errors: Dict = {}
     cleaned: Dict = {}
     try:
-        data = MultiDict(data)
+        data = MultiDict(dict(data) if isinstance(data, Record) else data)
     except TypeError:
         raise ValidationErrors(OBJECT_EXPECTED)
     for field in fields(schema):
