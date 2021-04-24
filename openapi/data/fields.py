@@ -54,7 +54,7 @@ def data_field(
     items: Optional[Field] = None,
     post_process: Callable[[Any], Any] = None,
     ops: Tuple = (),
-    meta: Optional[Dict[str, any]] = None,
+    meta: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> Field:
     """Extend a dataclass field with the following metadata
@@ -97,7 +97,7 @@ def data_field(
     return f
 
 
-def str_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> Field:
+def str_field(min_length: int = 0, max_length: int = 0, **kw) -> Field:
     """A specialized :func:`.data_field` for strings
 
     :param min_length: minim length of string
@@ -122,8 +122,8 @@ def uuid_field(format: str = "uuid", **kw) -> Field:
 
 
 def number_field(
-    min_value: Optional[float] = None,
-    max_value: Optional[float] = None,
+    min_value: Optional[Number] = None,
+    max_value: Optional[Number] = None,
     precision: Optional[int] = None,
     **kw,
 ) -> Field:
@@ -138,8 +138,8 @@ def number_field(
 
 
 def integer_field(
-    min_value: Optional[int] = None,
-    max_value: Optional[int] = None,
+    min_value: Optional[Number] = None,
+    max_value: Optional[Number] = None,
     **kw,
 ) -> Field:
     """A specialized :func:`.data_field` for integer values

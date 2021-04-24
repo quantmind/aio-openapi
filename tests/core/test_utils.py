@@ -6,7 +6,7 @@ from openapi import utils
 from openapi.db.container import Database
 from openapi.exc import ImproperlyConfigured, JsonHttpException
 from openapi.json import dumps
-from openapi.utils import ExpectedOneOnly, TypingInfo, one_only
+from openapi.utils import TypingInfo
 
 TEST_ENVS = frozenset(("test", "ci"))
 
@@ -69,10 +69,3 @@ def test_bad_typing_info() -> None:
         TypingInfo.get(Dict[int, int])
     with pytest.raises(TypeError):
         TypingInfo.get(Tuple[int, int])
-
-
-def test_one_only() -> None:
-    with pytest.raises(ExpectedOneOnly):
-        one_only([])
-    with pytest.raises(ValueError):
-        one_only([1, 2], Error=ValueError)

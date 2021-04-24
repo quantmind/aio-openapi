@@ -115,7 +115,12 @@ class CrudDB(Database):
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
         update = (
-            self.get_query(table, table.update(), consumer=consumer, params=filters)
+            cast(
+                Update,
+                self.get_query(
+                    table, table.update(), consumer=consumer, params=filters
+                ),
+            )
             .values(**data)
             .returning(*table.columns)
         )
