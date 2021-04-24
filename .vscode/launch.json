@@ -13,7 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/core/test_db_cli.py"
+                "tests/core/test_db.py::test_db_pool"
             ]
         }
     ]

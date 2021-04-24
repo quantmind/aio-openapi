@@ -1,6 +1,9 @@
 import uuid
+from asyncio import TimeoutError
 from datetime import datetime
 from decimal import Decimal
+
+import async_timeout
 
 from openapi.db import CrudDB
 from openapi.json import dumps
@@ -336,3 +339,13 @@ async def test_db_ensure_connection(db: CrudDB):
 
 def test_db_props(db: CrudDB):
     assert db.dsn == str(db)
+
+
+async def test_db_pool(db: CrudDB):
+    async with db.connection():
+        try:
+            async with async_timeout.timeout(0.5):
+                async with db.connection() as conn2:
+                    assert not conn2
+        except TimeoutError:
+            pass

@@ -11,8 +11,8 @@ from openapi.utils import str2bool
 
 from ..exc import ImproperlyConfigured
 
-DBPOOL_MIN_SIZE = int(os.environ.get("DBPOOL_MIN_SIZE") or "10")
 DBPOOL_MAX_SIZE = int(os.environ.get("DBPOOL_MAX_SIZE") or "10")
+DBPOOL_MAX_OVERFLOW = int(os.environ.get("DBPOOL_MAX_OVERFLOW") or "10")
 DBECHO = str2bool(os.environ.get("DBECHO") or "no")
 
 
@@ -51,7 +51,12 @@ class Database:
         if self._engine is None:
             if not self._dsn:
                 raise ImproperlyConfigured("DSN not available")
-            self._engine = create_async_engine(self._dsn, echo=DBECHO)
+            self._engine = create_async_engine(
+                self._dsn,
+                echo=DBECHO,
+                pool_size=DBPOOL_MAX_SIZE,
+                max_overflow=DBPOOL_MAX_OVERFLOW,
+            )
         return self._engine
 
     @property
