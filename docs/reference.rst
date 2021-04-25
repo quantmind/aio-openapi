@@ -149,7 +149,14 @@ Allow to add redoc_ redering to your api.
 DB
 ==
 
+This module provides integration with SqlAlchemy_ asynchronous engine for postgresql.
+The connection string supported is of this type only::
+
+   postgresql+asyncpg://<db_user>:<db_password>@<db_host>:<db_port>/<db_name>
+
+
 .. module:: openapi.db.container
+
 
 Database
 --------
@@ -170,6 +177,14 @@ Database container with CRUD operations. Used extensively by the :class:`.SqlApi
 
 .. autoclass:: CrudDB
    :members:
+
+
+get_db
+-------
+
+.. module:: openapi.db
+
+.. autofunction:: get_db
 
 
 .. module:: openapi.testing
@@ -277,4 +292,5 @@ Publish
    :member-order: bysource
 
 
-.. _redoc: https://github.com/Redocly/redoc
+.. _redoc: https://gith
+.. _SqlAlchemy: https://www.sqlalchemy.org/

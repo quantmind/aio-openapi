@@ -1,5 +1,5 @@
 from dataclasses import MISSING, Field, fields
-from typing import Any, Dict, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, NamedTuple, Optional, Tuple, Union, cast
 
 from multidict import MultiDict
 
@@ -79,7 +79,7 @@ def validate(
     :param as_schema: return the schema object rather than simple data type
         (dataclass rather than dict for example)
     """
-    type_info = TypingInfo.get(schema)
+    type_info = cast(TypingInfo, TypingInfo.get(schema))
     try:
         if type_info.container is list:
             vdata = validate_list(

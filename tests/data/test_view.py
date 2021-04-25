@@ -16,4 +16,4 @@ def test_error() -> None:
         dv.raise_bad_data(exc=RuntimeError)
 
     with pytest.raises(ValidationErrors):
-        dv.raiseValidationError()
+        dv.raise_validation_error()
