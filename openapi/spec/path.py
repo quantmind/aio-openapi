@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, NoReturn, Optional
 
 from aiohttp import web
 from multidict import MultiDict
@@ -83,15 +83,19 @@ class ApiPath(web.View, DataView):
         except Exception:
             self.raise_bad_data()
 
-    def raise_validation_error(
+    def validation_error(
         self, message: str = "", errors: Optional[ErrorType] = None
-    ) -> None:
+    ) -> web.HTTPUnprocessableEntity:
+        """Create an :class:`aiohttp.web.HTTPUnprocessableEntity`"""
         raw = self.as_errors(message, errors)
         data = self.dump(ValidationErrors, raw)
-        raise web.HTTPUnprocessableEntity(**self.api_response_data(data))
+        return web.HTTPUnprocessableEntity(**self.api_response_data(data))
 
-    # backward compatibility
-    raiseValidationError = raise_validation_error
+    def raise_validation_error(
+        self, message: str = "", errors: Optional[ErrorType] = None
+    ) -> NoReturn:
+        """Raise an :class:`aiohttp.web.HTTPUnprocessableEntity`"""
+        raise self.validation_error(message, errors)
 
     def raise_bad_data(
         self, exc: Optional[Exception] = None, message: str = ""
