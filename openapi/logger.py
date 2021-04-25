@@ -16,10 +16,11 @@ LOG_FORMAT = "%(levelname)s: %(name)s: %(message)s"
 logger = logging.getLogger(LOGGER_NAME)
 
 
-def getLogger(name=None):
-    if not name:
-        return logger
-    return logging.getLogger(f"{LOGGER_NAME}.{name}" if LOGGER_NAME else name)
+def get_logger(name: str = "") -> logging.Logger:
+    return logger.getChild(name) if name else logger
+
+
+getLogger = get_logger
 
 
 @click.pass_context
