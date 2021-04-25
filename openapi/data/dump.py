@@ -20,7 +20,7 @@ def dump(schema: Any, data: Any) -> Any:
     :param data: data to dump, if dataclasses are part of the schema,
         the `dump` metadata function will be used if available (see :func:`.data_field`)
     """
-    type_info = TypingInfo.get(schema)
+    type_info = cast(TypingInfo, TypingInfo.get(schema))
     if type_info.container is list:
         return dump_list(type_info.element, cast(List, data))
     elif type_info.container is dict:

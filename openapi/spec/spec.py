@@ -4,7 +4,7 @@ from dataclasses import MISSING, Field, asdict, dataclass, field
 from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set, cast
+from typing import Any, Dict, Iterable, List, Optional, Set, Type, cast
 
 from aiohttp import hdrs, web
 
@@ -131,13 +131,13 @@ class SchemaParser:
             validator.openapi(json_property)
         return json_property
 
-    def dataclass2json(self, schema: Any) -> Dict[str, str]:
+    def dataclass2json(self, schema: Any) -> Dict[str, Any]:
         """Extract the object representation of a dataclass schema"""
         type_info = cast(TypingInfo, TypingInfo.get(schema))
         if not type_info or not type_info.is_dataclass:
             raise InvalidSpecException(
                 "Schema must be a dataclass, got "
-                f"{type_info.typing if type_info else None}"
+                f"{type_info.element if type_info else None}"
             )
         properties = {}
         required = []
@@ -165,8 +165,8 @@ class SchemaParser:
 
     def get_schema_info(
         self, schema: Any, items: Optional[Field] = None
-    ) -> Dict[str, str]:
-        type_info = TypingInfo.get(schema)
+    ) -> Dict[str, Any]:
+        type_info = cast(TypingInfo, TypingInfo.get(schema))
         if type_info.container is list:
             return {
                 "type": "array",
@@ -193,11 +193,12 @@ class SchemaParser:
         else:
             return self.get_primitive_info(type_info.element)
 
-    def get_primitive_info(self, schema: type) -> Dict[str, str]:
+    def get_primitive_info(self, schema: Type) -> Dict[str, Any]:
         mapping = fields.PRIMITIVE_TYPES.get(schema)
         if not mapping:
             if is_subclass(schema, Enum):
-                return {"type": "string", "enum": [e.name for e in schema]}
+                enum_type = cast(Type[Enum], schema)
+                return {"type": "string", "enum": [e.name for e in enum_type]}
             else:
                 raise InvalidTypeException(f"Cannot understand {schema} while parsing")
         return dict(mapping)
