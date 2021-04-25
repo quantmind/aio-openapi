@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, NoReturn, Optional, cast
 
 from aiohttp import web
 
@@ -51,7 +51,7 @@ class DataView:
                 raise Error
             elif schema == "path_schema":
                 raise web.HTTPNotFound
-            self.raiseValidationError(errors=validated.errors)
+            self.raise_validation_error(errors=validated.errors)
 
         # Hacky hacky hack hack
         # Later we'll want to implement proper multicolumn search and so
@@ -100,8 +100,17 @@ class DataView:
             search_fields=params.pop("search_fields", []),
         )
 
-    def raiseValidationError(self, message: str = "", errors: ErrorType = None) -> None:
-        raise ValidationErrors(self.as_errors(message, errors))
+    def validation_error(
+        self, message: str = "", errors: Optional[ErrorType] = None
+    ) -> Exception:
+        """Create the validation exception used by :meth:`.raise_validation_error`"""
+        return ValidationErrors(self.as_errors(message, errors))
+
+    def raise_validation_error(
+        self, message: str = "", errors: Optional[ErrorType] = None
+    ) -> NoReturn:
+        """Raise an :class:`aiohttp.web.HTTPUnprocessableEntity`"""
+        raise self.validation_error(message, errors)
 
     def raise_bad_data(
         self, exc: Optional[Exception] = None, message: str = ""
@@ -110,7 +119,7 @@ class DataView:
             raise exc from exc
         raise TypeError(message or BAD_DATA_MESSAGE)
 
-    def as_errors(self, message: str = "", errors: ErrorType = None) -> Dict:
+    def as_errors(self, message: str = "", errors: Optional[ErrorType] = None) -> Dict:
         if isinstance(errors, str):
             message = cast(str, message or errors)
             errors = None

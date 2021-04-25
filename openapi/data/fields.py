@@ -156,11 +156,11 @@ def decimal_field(min_value=None, max_value=None, precision=None, **kw) -> Field
     return data_field(**kw)
 
 
-def email_field(min_length: int = 0, max_length: Optional[int] = None, **kw) -> Field:
+def email_field(min_length: int = 0, max_length: int = 0, **kw) -> Field:
     """A specialized :func:`.data_field` for emails, validation via the
     `email_validator` third party library
 
-    :param min_length: minim length of email
+    :param min_length: minimum length of email
     :param max_length: maximum length of email
     """
     kw.setdefault(
@@ -222,13 +222,14 @@ def field_ops(field: Field) -> Iterator[str]:
 
 
 class Validator:
-    dump = None
-
     def __call__(self, field: Field, value: Any) -> Any:
         raise ValidationError(field.name, "invalid")
 
     def openapi(self, prop: Dict) -> None:
         pass
+
+    def dump(self, value: Any) -> Any:
+        return value
 
 
 @dataclass
