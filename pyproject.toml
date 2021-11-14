@@ -19,6 +19,11 @@ classifiers = [
     "Framework :: AsyncIO",
 ]
 
+[tool.poetry.urls]
+repository = "https://github.com/quantmind/aio-openapi"
+issues = "https://github.com/quantmind/aio-openapi/issues"
+
+
 [tool.poetry.dependencies]
 python = "^3.8"
 aiohttp = "^3.8.0"
