@@ -1,5 +1,4 @@
 import os
-import sys
 from dataclasses import is_dataclass
 from inspect import isclass
 from typing import (
@@ -23,12 +22,6 @@ from .types import Record
 
 def get_origin(value: Any) -> Any:
     return getattr(value, "__origin__", None)
-
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property  # noqa
-else:  # pragma: no cover
-    from cached_property import cached_property  # noqa
 
 
 LOCAL = "local"

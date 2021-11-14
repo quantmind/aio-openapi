@@ -36,15 +36,15 @@ mypy:			## run mypy
 
 
 postgresql:		## run postgresql for testing
-	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db -d postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db -d postgres:13
 
 
 postgresql-nd:		## run postgresql for testing - non daemon
-	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres --rm --network=host --name=openapi-db postgres:13
 
 
 test:			## test with coverage
-	@pytest -v -x --cov --cov-report xml --cov-report html
+	@poetry run pytest -v -x --cov --cov-report xml --cov-report html
 
 
 test-lint:		## run linters checks
@@ -77,3 +77,6 @@ release-github:		## new tag in github
 
 release-pypi:		## release to pypi and github tag
 	@twine upload dist/* --username lsbardel --password $(PYPI_PASSWORD)
+
+upload-coverage:	## upload coverage
+	@poetry run coveralls
