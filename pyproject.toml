@@ -4,6 +4,20 @@ version = "2.4.0"
 description = "Minimal OpenAPI asynchronous server application"
 authors = ["Luca <luca@quantmind.com>"]
 license = "BSD"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: JavaScript",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Internet :: WWW/HTTP",
+    "Framework :: AsyncIO",
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
