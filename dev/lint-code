@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-isort . $1
-black . --exclude "build|dev|docs|venv" $1
-flake8
+poetry run isort . $1
+poetry run black . --exclude "build|dev|docs|venv" $1
+poetry run flake8
