@@ -23,12 +23,12 @@ version:		## display software version
 	@python setup.py --version
 
 
-install: 		## install packages in virtualenv
+install: 		## install packages via poetry
 	@./dev/install
 
 
 lint: 			## run linters
-	@./dev/lint-code
+	./dev/lint-code
 
 
 mypy:			## run mypy
@@ -47,6 +47,9 @@ test:			## test with coverage
 	@poetry run pytest -v -x --cov --cov-report xml --cov-report html
 
 
+test-version:		## check version compatibility
+	@./dev/test-version
+
 test-lint:		## run linters checks
 	@./dev/lint-code --check
 
@@ -55,7 +58,7 @@ test-docs: 		## run docs in CI
 	make docs
 
 
-test-version:		## validate version with pypi
+test-version-old:		## validate version with pypi
 	@agilekit git validate
 
 
