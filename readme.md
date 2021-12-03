@@ -41,13 +41,13 @@ Clone the repository and create a virtual environment `venv`.
 Install dependencies by running the install script
 
 ```
-./dev/install
+make install
 ```
 
 To run tests
 
 ```
-pytest --cov
+make test
 ```
 
 By default tests are run against a database with the following connection string `postgresql+asyncpg://postgres:postgres@localhost:5432/openapi`. To use a different DB, create a `.env` file with
