@@ -23,12 +23,13 @@ version:		## display software version
 	@python setup.py --version
 
 
-install: 		## install packages in virtualenv
+install: 		## install packages via poetry
 	@./dev/install
 
 
 lint: 			## run linters
-	@./dev/lint-code
+	@./dev/test-version
+	./dev/lint-code
 
 
 mypy:			## run mypy

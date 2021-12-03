@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "aio-openapi"
-version = "2.4.0"
+version = "2.5.0"
 description = "Minimal OpenAPI asynchronous server application"
+documentation = "https://aio-openapi.readthedocs.io"
+repository = "https://github.com/quantmind/aio-openapi"
 authors = ["Luca <luca@quantmind.com>"]
-license = "BSD"
+license = "BSD-3-Clause"
+readme = "readme.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -15,8 +18,15 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Topic :: Internet",
     "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development",
+    "Typing :: Typed",
     "Framework :: AsyncIO",
+    "Environment :: Web Environment",
 ]
 
 [tool.poetry.urls]
