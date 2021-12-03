@@ -25,6 +25,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: make install
+      - name: check version
+        run: make test-version
       - name: test version
         run: make test-version
       - name: build python bundle
