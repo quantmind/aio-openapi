@@ -58,28 +58,9 @@ test-docs: 		## run docs in CI
 	make docs
 
 
-test-version-old:		## validate version with pypi
-	@agilekit git validate
-
-
-bundle3.7:		## build python 3.7 bundle
-	@python setup.py bdist_wheel --python-tag py37
-
-
-bundle3.8:		## build python 3.8 bundle
-	@python setup.py bdist_wheel --python-tag py38
-
-
-bundle3.9:		## build python 3.9 bundle
-	@python setup.py sdist bdist_wheel --python-tag py39
-
-
-release-github:		## new tag in github
-	@agilekit git release --yes
-
-
-release-pypi:		## release to pypi and github tag
-	@twine upload dist/* --username lsbardel --password $(PYPI_PASSWORD)
-
 upload-coverage:	## upload coverage
 	@poetry run coveralls
+
+
+publish:		## release to pypi and github tag
+	@poetry publish --build -u lsbardel -p $(PYPI_PASSWORD)
