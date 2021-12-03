@@ -32,6 +32,8 @@ jobs:
         run: make test-version
       - name: run lint
         run: make test-lint
+      - name: test docs
+        run: make test-docs
       - name: run tests
         run: make test
       - name: upload coverage

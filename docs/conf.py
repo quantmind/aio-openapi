@@ -45,7 +45,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_copybutton",
     "sphinx_autodoc_typehints",
-    "sphinxcontrib.blockdiag",
 ]
 
 try:

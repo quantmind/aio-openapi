@@ -16,7 +16,7 @@ clean:			## remove python cache files
 	rm -rf .coverage
 
 docs:			## build sphinx docs
-	@sphinx-build ./docs ./build/docs
+	@poetry run sphinx-build ./docs ./build/docs
 
 
 version:		## display software version
