@@ -50,6 +50,7 @@ test:			## test with coverage
 test-version:		## check version compatibility
 	@./dev/test-version
 
+
 test-lint:		## run linters checks
 	@./dev/lint-code --check
 
