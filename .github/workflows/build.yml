@@ -44,7 +44,7 @@ jobs:
         if: ${{ matrix.python-version == '3.10' && github.event.head_commit.message == 'release' }}
         run: make publish
       - name: create github release
-        if: ${{ matrix.python-version == '3.10' && github.event.head_commit.message == 'release' }}
+        if: ${{ matrix.python-version == '3.11' && github.event.head_commit.message == 'release' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "dist/*"
