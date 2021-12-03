@@ -7,6 +7,9 @@ repository = "https://github.com/quantmind/aio-openapi"
 authors = ["Luca <luca@quantmind.com>"]
 license = "BSD-3-Clause"
 readme = "readme.md"
+packages = [
+    { include = "openapi" }
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
