@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aio-openapi"
-version = "2.5.1"
+version = "2.5.2"
 description = "Minimal OpenAPI asynchronous server application"
 documentation = "https://aio-openapi.readthedocs.io"
 repository = "https://github.com/quantmind/aio-openapi"
@@ -38,7 +38,7 @@ issues = "https://github.com/quantmind/aio-openapi/issues"
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<4"
 aiohttp = "^3.8.0"
 uvloop = "^0.16.0"
 httptools = "^0.3.0"
