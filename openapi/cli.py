@@ -1,11 +1,9 @@
-import asyncio
 import os
 import sys
 from functools import lru_cache
 from typing import Callable, Iterable, List, Optional
 
 import click
-import uvloop
 from aiohttp import web
 from aiohttp.web import Application
 
@@ -13,7 +11,6 @@ from .logger import logger, setup_logging
 from .spec import OpenApiSpec
 from .utils import get_debug_flag
 
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 HOST = os.environ.get("MICRO_SERVICE_HOST", "0.0.0.0")
 PORT = os.environ.get("MICRO_SERVICE_PORT", 8080)
 

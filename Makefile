@@ -19,6 +19,10 @@ docs:			## build sphinx docs
 	@poetry run sphinx-build ./docs ./build/docs
 
 
+docs-requirements:	## requrement file for docs
+	@poetry export -f requirements.txt -E docs --output docs/requirements.txt
+
+
 version:		## display software version
 	@python setup.py --version
 
@@ -33,6 +37,10 @@ lint: 			## run linters
 
 mypy:			## run mypy
 	@mypy openapi
+
+
+outdated:		## Show outdated packages
+	poetry show -o
 
 
 postgresql:		## run postgresql for testing
