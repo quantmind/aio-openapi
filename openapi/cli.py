@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from functools import lru_cache
@@ -22,8 +23,8 @@ class OpenApiClient(click.Group):
         setup_app: Optional[Callable[[Application], None]] = None,
         base_path: str = "",
         commands: Optional[List] = None,
-        serve_spec: bool = True,
         index: int = -1,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
         **extra,
     ) -> None:
         params = list(extra.pop("params", None) or ())
@@ -32,6 +33,7 @@ class OpenApiClient(click.Group):
         self.setup_app = setup_app
         self.base_path: str = base_path or ""
         self.index = index
+        self.loop = loop
         params.extend(
             (
                 click.Option(
@@ -133,8 +135,15 @@ class OpenApiClient(click.Group):
 @click.pass_context
 def serve(ctx, host, port, index, reload):
     """Run the aiohttp server."""
-    cli = ctx.obj["cli"]
+    cli: OpenApiClient = ctx.obj["cli"]
     cli.index = index
     app = cli.get_serve_app()
     access_log = logger if ctx.obj["log_level"] else None
-    web.run_app(app, host=host, port=port, access_log=access_log)
+    web.run_app(
+        app,
+        host=host,
+        port=port,
+        access_log=access_log,
+        loop=cli.loop,
+        print=access_log.info if access_log else None,
+    )
