@@ -15,7 +15,10 @@ unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
 
 
 class SqlApiPath(ApiPath):
-    """An :class:`.ApiPath` backed by an SQL model"""
+    """An :class:`.ApiPath` backed by an SQL model.
+
+    This class provides utility methods for all CRUD operations.
+    """
 
     table: str = ""
     """sql table name"""
@@ -72,12 +75,7 @@ class SqlApiPath(ApiPath):
         )
         #
         # order by
-        if specials["order_by"]:
-            order_by_column = getattr(table.c, specials["order_by"], None)
-            if order_by_column is not None:
-                if specials["order_desc"]:
-                    order_by_column = order_by_column.desc()
-                sql_query = sql_query.order_by(order_by_column)
+        sql_query = self.db.order_by(table, sql_query, specials["order_by"])
 
         # search
         sql = self.get_search_clause(

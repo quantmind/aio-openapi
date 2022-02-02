@@ -161,6 +161,19 @@ class CrudDB(Database):
     def get_insert(self, table: Table, records: Union[List[Dict], Dict]) -> Insert:
         if isinstance(records, dict):
             records = [records]
+        else:
+            cols = set()
+            for record in records:
+                cols.update(record)
+            new_records = []
+            for record in records:
+                if len(record) < len(cols):
+                    record = record.copy()
+                    missing = cols.difference(record)
+                    for col in missing:
+                        record[col] = None
+                new_records.append(record)
+            records = new_records
         return table.insert(records).returning(*table.columns)
 
     def get_query(
@@ -256,3 +269,20 @@ class CrudDB(Database):
                 return field < value
             elif op == "le":
                 return field <= value
+
+    def order_by(
+        self, table: Table, query: QueryType, order_by: Optional[Union[str, List]]
+    ) -> QueryType:
+        """Apply ordering to a query"""
+        if isinstance(order_by, str):
+            order_by = (order_by,)
+        for name in order_by or ():
+            if name.startswith("-"):
+                order_by_column = getattr(table.c, name[1:], None)
+                if order_by_column is not None:
+                    order_by_column = order_by_column.desc()
+            else:
+                order_by_column = getattr(table.c, name, None)
+            if order_by_column is not None:
+                query = query.order_by(order_by_column)
+        return query

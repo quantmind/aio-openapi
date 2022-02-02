@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 from aiohttp.web import Application
 
 from .cli import OpenApiClient
-from .data.fields import Choice, bool_field, integer_field, str_field
+from .data.fields import Choice, integer_field, str_field
 from .data.pagination import MAX_PAGINATION_LIMIT
 from .spec import OpenApi, OpenApiSpec, Redoc
 from .spec.utils import docjoin
@@ -75,9 +75,6 @@ def orderable(*orderable_fields) -> type:
                 "Order results by given column (default ascending order). "
                 f"Possible values are {docjoin(orderable_fields)}"
             ),
-        )
-        order_desc: bool = bool_field(
-            description=("Change order direction to descending")
         )
 
     return Orderable
