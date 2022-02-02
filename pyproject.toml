@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aio-openapi"
-version = "2.6.1"
+version = "2.7.0"
 description = "Minimal OpenAPI asynchronous server application"
 documentation = "https://aio-openapi.readthedocs.io"
 repository = "https://github.com/quantmind/aio-openapi"
