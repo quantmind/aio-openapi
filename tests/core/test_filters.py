@@ -51,7 +51,6 @@ async def test_spec(test_app):
         "severity:ne",
         "story_points",
         "order_by",
-        "order_desc",
         "limit",
         "offset",
     }

@@ -13,7 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/core/test_db.py::test_db_pool"
+                "tests/core/test_db.py::test_get_ordered_list"
             ]
         }
     ]

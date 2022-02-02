@@ -95,7 +95,6 @@ class DataView:
             limit=params.pop("limit", DEF_PAGINATION_LIMIT),
             offset=params.pop("offset", 0),
             order_by=params.pop("order_by", None),
-            order_desc=params.pop("order_desc", False),
             search=params.pop("search", None),
             search_fields=params.pop("search_fields", []),
         )

@@ -124,14 +124,25 @@ async def test_create_list(cli):
 
 
 async def test_get_ordered_list(cli):
-    tasks = [dict(title="c"), dict(title="a"), dict(title="b")]
-    response = await cli.post("/bulk/tasks", json=tasks)
-    await json_body(response, status=201)
+    tasks = [
+        dict(title="c"),
+        dict(title="a", severity=3),
+        dict(title="c", severity=1),
+        dict(title="b"),
+        dict(title="a", severity=1),
+    ]
+    # for task in tasks:
+    #    response = await cli.post("/tasks", json=task)
+    #    await json_body(response, status=201)
 
-    response = await cli.get("/tasks?order_by=title")
+    response = await cli.post("/bulk/tasks", json=tasks)
+    entries = await json_body(response, status=201)
+    assert len(entries) == 5
+
+    response = await cli.get("/tasks?order_by=title&order_by=-severity")
     data = await json_body(response, 200)
-    titles = list(map(lambda t: t["title"], data))
-    assert titles == ["a", "b", "c"]
+    titles = list(map(lambda t: (t["title"], t.get("severity")), data))
+    assert titles == [("a", 3), ("a", 1), ("b", None), ("c", None), ("c", 1)]
 
 
 async def test_get_ordered_list_desc(cli):
@@ -139,7 +150,7 @@ async def test_get_ordered_list_desc(cli):
     response = await cli.post("/bulk/tasks", json=tasks)
     await json_body(response, status=201)
 
-    response = await cli.get("/tasks?order_by=title&order_desc=true")
+    response = await cli.get("/tasks?order_by=-title")
     data = await json_body(response, 200)
     titles = list(map(lambda t: t["title"], data))
     assert titles == ["c", "b", "a"]

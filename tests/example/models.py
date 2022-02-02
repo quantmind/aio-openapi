@@ -48,7 +48,9 @@ class TaskQuery(Query):
 
 @dataclass
 class TaskOrderableQuery(
-    TaskQuery, orderable("title"), searchable("title", "unique_title")
+    TaskQuery,
+    orderable("title", "-title", "severity", "-severity"),
+    searchable("title", "unique_title"),
 ):
     pass
 
