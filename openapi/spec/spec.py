@@ -4,7 +4,7 @@ from dataclasses import MISSING, Field, asdict, dataclass, field
 from dataclasses import fields as get_fields
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set, Type, cast
+from typing import Any, Dict, Iterable, List, Optional, Set, Type, Union, cast
 
 from aiohttp import hdrs, web
 
@@ -107,9 +107,11 @@ class SchemaParser:
             params.append(entry)
         return params
 
-    def field2json(self, field: Field, validate: bool = True) -> Dict[str, str]:
+    def field2json(
+        self, field_or_type: Union[Type, Field], validate: bool = True
+    ) -> Dict[str, dict]:
         """Convert a dataclass field to Json schema"""
-        field = fields.as_field(field)
+        field = fields.as_field(field_or_type)
         meta = field.metadata
         items = meta.get(fields.ITEMS)
         json_property = self.get_schema_info(field.type, items=items)
@@ -142,11 +144,12 @@ class SchemaParser:
         properties = {}
         required = []
         for item in get_fields(type_info.element):
-            if item.metadata.get(fields.REQUIRED, False):
-                required.append(item.name)
             json_property = self.field2json(item)
+            field_required = json_property.pop("required", True)
             if not json_property:
                 continue
+            if item.metadata.get(fields.REQUIRED, field_required):
+                required.append(item.name)
             for name in fields.field_ops(item):
                 properties[name] = json_property
 
@@ -186,7 +189,16 @@ class SchemaParser:
                 ),
             }
         elif type_info.is_union:
-            return {"oneOf": [self.get_schema_info(e) for e in type_info.element]}
+            required = True
+            one_of = []
+            for e in type_info.element:
+                if e.is_none:
+                    required = False
+                else:
+                    one_of.append(self.get_schema_info(e))
+            info = one_of[0] if len(one_of) == 1 else {"oneOf": one_of}
+            info["required"] = required
+            return info
         elif type_info.is_dataclass:
             name = self.add_schema_to_parse(type_info.element)
             return {"$ref": f"{SCHEMA_BASE_REF}{name}"}

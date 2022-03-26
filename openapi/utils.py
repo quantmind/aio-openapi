@@ -63,6 +63,11 @@ class TypingInfo(NamedTuple):
         """True if :attr:`.element` is either a dataclass or a union"""
         return self.container is not None or self.is_union
 
+    @property
+    def is_none(self) -> bool:
+        """True if :attr:`.element` is either a dataclass or a union"""
+        return self.element is type(None)  # noqa: E721
+
     @classmethod
     def get(cls, value: Any) -> Optional["TypingInfo"]:
         """Create a :class:`.TypingInfo` from a typing annotation or

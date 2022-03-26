@@ -13,7 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/core/test_db.py::test_get_ordered_list"
+                "tests/spec/test_schema_parser.py::test_schema2json"
             ]
         }
     ]
