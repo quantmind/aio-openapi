@@ -1,15 +1,18 @@
 import click
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
+from openapi.cli import open_api_cli
+
+from .dbmodel import CrudDB
 from .migrations import Migration
 
 
-def migration(ctx):
-    return Migration(ctx.obj["cli"].web())
+def migration(ctx: click.Context) -> Migration:
+    return Migration(open_api_cli(ctx).web())
 
 
-def get_db(ctx):
-    return ctx.obj["cli"].web()["db"]
+def get_db(ctx: click.Context) -> CrudDB:
+    return open_api_cli(ctx).web()["db"]
 
 
 @click.group()

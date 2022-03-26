@@ -31,12 +31,15 @@ def dump(schema: Any, data: Any) -> Any:
         return data
 
 
-def dump_dataclass(schema: type, data: Optional[Union[Dict, Record]] = None) -> Dict:
+def dump_dataclass(schema: Any, data: Optional[Union[Dict, Record]] = None) -> Dict:
     """Dump a dictionary of data with a given dataclass dump functions
     If the data is not given, the schema object is assumed to be
     an instance of a dataclass.
     """
-    data = asdict(schema) if data is None else data
+    if data is None:
+        data = asdict(schema)
+    elif isinstance(data, schema):
+        data = asdict(data)
     cleaned = {}
     fields_ = {f.name: f for f in fields(schema)}
     for name, value in iter_items(data):

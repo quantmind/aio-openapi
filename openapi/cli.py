@@ -113,6 +113,10 @@ class OpenApiClient(click.Group):
         ctx.exit()
 
 
+def open_api_cli(ctx: click.Context) -> OpenApiClient:
+    return ctx.obj["cli"]
+
+
 @click.command("serve", short_help="Start aiohttp server.")
 @click.option(
     "--host", "-h", default=HOST, help=f"The interface to bind to (default to {HOST})"
@@ -135,7 +139,7 @@ class OpenApiClient(click.Group):
 @click.pass_context
 def serve(ctx, host, port, index, reload):
     """Run the aiohttp server."""
-    cli: OpenApiClient = ctx.obj["cli"]
+    cli = open_api_cli(ctx)
     cli.index = index
     app = cli.get_serve_app()
     access_log = logger if ctx.obj["log_level"] else None
