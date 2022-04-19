@@ -46,6 +46,12 @@ def meta(meta=None):
         sa.Column("unique_title", sa.String, unique=True),
         sa.Column("story_points", sa.Numeric),
         sa.Column("random", sa.String(64)),
+        sa.Column(
+            "subtitle",
+            sa.String(64),
+            nullable=False,
+            default="",
+        ),
     )
 
     return meta

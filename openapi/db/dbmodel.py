@@ -244,9 +244,6 @@ class CrudDB(Database):
         """
         multiple = isinstance(value, (list, tuple))
 
-        if value == "":
-            value = None
-
         if multiple and op in ("eq", "ne"):
             if op == "eq":
                 return field.in_(value)

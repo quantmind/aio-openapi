@@ -2,6 +2,7 @@ import typing as t
 from dataclasses import make_dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from functools import partial
 
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
@@ -121,11 +122,21 @@ def uuid(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
 
 
 def info(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
-    data = dict(
-        description=col.doc,
-        required=not col.nullable if required is not False else False,
-        ops=ops,
-    )
+    data = dict(ops=ops)
+    default = col.default.arg if col.default is not None else None
+    if callable(default):
+        data.update(default_factory=partial(default, None))
+        required = False
+    elif isinstance(default, (list, dict, set)):
+        data.update(default_factory=lambda: default.copy())
+        required = False
+    else:
+        data.update(default=default)
+        if required and (col.nullable or default is not None):
+            required = False
+    data.update(required=required)
+    if col.doc:
+        data.update(description=col.doc)
     data.update(col.info)
     data.pop("data_field", None)
     return data

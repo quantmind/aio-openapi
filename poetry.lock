@@ -1163,6 +1163,30 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "types-python-dateutil"
+version = "2.8.11"
+description = "Typing stubs for python-dateutil"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
+name = "types-pytz"
+version = "2021.3.6"
+description = "Typing stubs for pytz"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
+name = "types-simplejson"
+version = "3.17.5"
+description = "Typing stubs for simplejson"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "typing-extensions"
 version = "4.1.1"
 description = "Backported and Experimental Type Hints for Python 3.6+"
@@ -1227,7 +1251,7 @@ docs = ["Sphinx", "recommonmark", "aiohttp-theme", "sphinx-copybutton", "sphinx-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4"
-content-hash = "a0793d9c5db46b7c41d561f36556604bbb0c667fa7acdd684cd1b0963edd1fe3"
+content-hash = "0b801da0f05807dbe1a614dd9947fa8f98c98cf416030a4a19e40b40c87f1af9"
 
 [metadata.files]
 aiodns = [
@@ -2263,6 +2287,18 @@ toml = [
 tomli = [
     {file = "tomli-1.2.3-py3-none-any.whl", hash = "sha256:e3069e4be3ead9668e21cb9b074cd948f7b3113fd9c8bba083f48247aab8b11c"},
     {file = "tomli-1.2.3.tar.gz", hash = "sha256:05b6166bff487dc068d322585c7ea4ef78deed501cc124060e0f238e89a9231f"},
+]
+types-python-dateutil = [
+    {file = "types-python-dateutil-2.8.11.tar.gz", hash = "sha256:edc05d0b93201928ab0b5ff2b314413dd3d2b24eb12c470297ef929de77c93ef"},
+    {file = "types_python_dateutil-2.8.11-py3-none-any.whl", hash = "sha256:61222fa5518b14601a4e95ad4f17feea4ada904947610560336cf8921a7544a8"},
+]
+types-pytz = [
+    {file = "types-pytz-2021.3.6.tar.gz", hash = "sha256:74547fd90d8d8ab4f1eedf3a344a7d186d97486973895f81221a712e1e2cd993"},
+    {file = "types_pytz-2021.3.6-py3-none-any.whl", hash = "sha256:6805c72d51118923c5bf98633c39593d5b464d2ab49a803440e2d7ab6b8920df"},
+]
+types-simplejson = [
+    {file = "types-simplejson-3.17.5.tar.gz", hash = "sha256:c3d4ad07357707c1fde6668506d00809d24f40bd1ca832f4802ba313ca38c8cd"},
+    {file = "types_simplejson-3.17.5-py3-none-any.whl", hash = "sha256:11765dd310b86ef5d6cd7ad4928939f1dd72241e0130bc63151f1030edb9e5c1"},
 ]
 typing-extensions = [
     {file = "typing_extensions-4.1.1-py3-none-any.whl", hash = "sha256:21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2"},

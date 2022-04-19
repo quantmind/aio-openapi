@@ -13,7 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/spec/test_schema_parser.py::test_schema2json"
+                "tests/core/test_dc_db.py"
             ]
         }
     ]
