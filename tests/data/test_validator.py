@@ -23,7 +23,16 @@ def test_validated_schema():
     data = dict(title="test", severity=1, unique_title="test")
     v = validated_schema(TaskAdd, data)
     assert len(data) == 3
-    assert len(asdict(v)) == 5
+    assert asdict(v) == dict(
+        title="test",
+        unique_title="test",
+        random=None,
+        type=None,
+        severity=1,
+        story_points=None,
+        subtitle="",
+        created_by="",
+    )
 
 
 def test_validated_schema_errors():

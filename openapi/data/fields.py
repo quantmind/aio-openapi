@@ -74,6 +74,7 @@ def data_field(
     """
     if isinstance(validator, Validator) and not dump:
         dump = validator.dump
+    # Add default None otherwisenon-default fields can follow default ones
     if "default_factory" not in kwargs:
         kwargs.setdefault("default", None)
     meta = meta or {}

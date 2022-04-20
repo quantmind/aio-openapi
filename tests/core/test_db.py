@@ -38,12 +38,15 @@ async def test_400(cli):
 
 
 async def test_create(cli):
-    response = await cli.post("/tasks", json=dict(title="test 1", type="todo"))
+    response = await cli.post(
+        "/tasks", json=dict(title="test 1", type="todo", subtitle="sub test 1")
+    )
     data = await json_body(response, 201)
 
     uuid.UUID(data["id"])  # Check that we get a valid uuid
     assert data["title"] == "test 1"
     assert data["type"] == "todo"
+    assert data["subtitle"] == "sub test 1"
 
 
 async def test_create_422(cli):
@@ -79,7 +82,7 @@ async def test_get_update(cli):
 
 
 async def test_update_empty(cli):
-    response = await cli.post("/tasks", json=dict(title="U2", story_points=5))
+    response = await cli.post("/tasks", json=dict(title="U23", story_points=5))
     data = await json_body(response, 201)
     id_ = data["id"]
     response = await cli.patch(f"/tasks/{id_}", json={})
@@ -125,11 +128,11 @@ async def test_create_list(cli):
 
 async def test_get_ordered_list(cli):
     tasks = [
-        dict(title="c"),
-        dict(title="a", severity=3),
-        dict(title="c", severity=1),
-        dict(title="b"),
-        dict(title="a", severity=1),
+        dict(title="ccc"),
+        dict(title="aaa", severity=3),
+        dict(title="ccc", severity=1),
+        dict(title="bbb"),
+        dict(title="aaa", severity=1),
     ]
     # for task in tasks:
     #    response = await cli.post("/tasks", json=task)
@@ -142,22 +145,22 @@ async def test_get_ordered_list(cli):
     response = await cli.get("/tasks?order_by=title&order_by=-severity")
     data = await json_body(response, 200)
     titles = list(map(lambda t: (t["title"], t.get("severity")), data))
-    assert titles == [("a", 3), ("a", 1), ("b", None), ("c", None), ("c", 1)]
+    assert titles == [("aaa", 3), ("aaa", 1), ("bbb", None), ("ccc", None), ("ccc", 1)]
 
 
 async def test_get_ordered_list_desc(cli):
-    tasks = [dict(title="c"), dict(title="a"), dict(title="b")]
+    tasks = [dict(title="ccc"), dict(title="aaa"), dict(title="bbb")]
     response = await cli.post("/bulk/tasks", json=tasks)
     await json_body(response, status=201)
 
     response = await cli.get("/tasks?order_by=-title")
     data = await json_body(response, 200)
     titles = list(map(lambda t: t["title"], data))
-    assert titles == ["c", "b", "a"]
+    assert titles == ["ccc", "bbb", "aaa"]
 
 
 async def test_limit_list(cli):
-    tasks = [dict(title="c"), dict(title="a"), dict(title="b")]
+    tasks = [dict(title="ccc"), dict(title="aaa"), dict(title="bbb")]
     response = await cli.post("/bulk/tasks", json=tasks)
     await json_body(response, status=201)
 
@@ -166,11 +169,11 @@ async def test_limit_list(cli):
     data = await json_body(response, 200)
     titles = list(map(lambda t: t["title"], data))
     assert len(titles) == 2
-    assert titles == ["a", "b"]
+    assert titles == ["aaa", "bbb"]
 
 
 async def test_limit_and_offset_list(cli):
-    tasks = [dict(title="c"), dict(title="a"), dict(title="b")]
+    tasks = [dict(title="ccc"), dict(title="aaa"), dict(title="bbb")]
     response = await cli.post("/bulk/tasks", json=tasks)
     await json_body(response, status=201)
 
@@ -179,11 +182,11 @@ async def test_limit_and_offset_list(cli):
     data = await json_body(response, 200)
     titles = list(map(lambda t: t["title"], data))
     assert len(titles) == 2
-    assert titles == ["b", "c"]
+    assert titles == ["bbb", "ccc"]
 
 
 async def test_validation_error_if_field_not_allowed(cli):
-    tasks = [dict(title="c"), dict(title="a"), dict(title="b")]
+    tasks = [dict(title="ccc"), dict(title="aaa"), dict(title="bbb")]
     response = await cli.post("/bulk/tasks", json=tasks)
     await json_body(response, status=201)
 

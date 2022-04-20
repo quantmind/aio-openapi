@@ -42,10 +42,17 @@ def meta(meta=None):
         ),
         sa.Column("done", sa.DateTime),
         sa.Column("severity", sa.Integer),
+        sa.Column("created_by", sa.String, default="", nullable=False),
         sa.Column("type", sa.Enum(TaskType)),
         sa.Column("unique_title", sa.String, unique=True),
         sa.Column("story_points", sa.Numeric),
         sa.Column("random", sa.String(64)),
+        sa.Column(
+            "subtitle",
+            sa.String(64),
+            nullable=False,
+            default="",
+        ),
     )
 
     return meta

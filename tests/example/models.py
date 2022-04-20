@@ -12,27 +12,17 @@ from .db.tables1 import TaskType
 
 
 @dataclass
-class TaskAdd:
-    title: str = fields.str_field(required=True, description="Task title")
-    severity: int = fields.integer_field(description="Task severity")
-    type: TaskType = fields.enum_field(
-        TaskType, default=TaskType.todo, description="Task type"
+class TaskAdd(
+    dataclass_from_table(
+        "_TaskAdd", DB.tasks, required=True, default=True, exclude=("id", "done")
     )
-    unique_title: str = fields.str_field(description="Unique title of the Task")
-    story_points: Decimal = fields.decimal_field(
-        default=0.0, description="Task story points"
-    )
-
+):
     @classmethod
     def validate(cls, data, errors):
         """here just for coverage"""
 
 
-@dataclass
-class Task(TaskAdd):
-    id: str = fields.uuid_field(required=True, description="Task ID")
-    done: datetime = fields.date_time_field(description="Done timestamp")
-    story_points: Decimal = fields.decimal_field(description="Story points")
+Task = dataclass_from_table("Task", DB.tasks)
 
 
 @dataclass
