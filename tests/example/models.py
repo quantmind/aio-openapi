@@ -13,7 +13,9 @@ from .db.tables1 import TaskType
 
 @dataclass
 class TaskAdd(
-    dataclass_from_table("_TaskAdd", DB.tasks, required=True, exclude=("id", "done"))
+    dataclass_from_table(
+        "_TaskAdd", DB.tasks, required=True, default=True, exclude=("id", "done")
+    )
 ):
     @classmethod
     def validate(cls, data, errors):

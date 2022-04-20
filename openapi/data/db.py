@@ -1,8 +1,8 @@
-import typing as t
 from dataclasses import make_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from functools import partial
+from typing import Dict, List, Optional, Sequence, Set, Tuple, Union, cast
 
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
@@ -16,10 +16,11 @@ def dataclass_from_table(
     name: str,
     table: sa.Table,
     *,
-    exclude: t.Optional[t.Sequence[str]] = None,
-    include: t.Optional[t.Sequence[str]] = None,
-    required: bool = False,
-    ops: t.Optional[t.Dict[str, t.Sequence[str]]] = None,
+    exclude: Optional[Sequence[str]] = None,
+    include: Optional[Sequence[str]] = None,
+    default: Union[bool, Sequence[str]] = False,
+    required: Union[bool, Sequence[str]] = False,
+    ops: Optional[Dict[str, Sequence[str]]] = None,
 ) -> type:
     """Create a dataclass from an :class:`sqlalchemy.schema.Table`
 
@@ -27,12 +28,16 @@ def dataclass_from_table(
     :param table: sqlalchemy table
     :param exclude: fields to exclude from the dataclass
     :param include: fields to include in the dataclass
-    :param required: set all non nullable columns as required fields in the dataclass
+    :param default: use columns defaults in the dataclass
+    :param required: set non nullable columns without a default as
+        required fields in the dataclass
     :param ops: additional operation for fields
     """
     columns = []
     include = set(include or table.columns.keys()) - set(exclude or ())
-    column_ops = t.cast(t.Dict[str, t.Sequence[str]], ops or {})
+    defaults = column_info(include, default)
+    requireds = column_info(include, required)
+    column_ops = cast(Dict[str, Sequence[str]], ops or {})
     for col in table.columns:
         if col.name not in include:
             continue
@@ -40,9 +45,23 @@ def dataclass_from_table(
         converter = CONVERTERS.get(ctype)
         if not converter:  # pragma:   no cover
             raise NotImplementedError(f"Cannot convert column {col.name}: {ctype}")
-        field = (col.name, *converter(col, required, column_ops.get(col.name, ())))
+        required = col.name in requireds
+        use_default = col.name in defaults
+        field = (
+            col.name,
+            *converter(col, required, use_default, column_ops.get(col.name, ())),
+        )
         columns.append(field)
     return make_dataclass(name, columns)
+
+
+def column_info(columns: Set[str], value: Union[bool, Sequence[str]]) -> Set[str]:
+    if value is False:
+        return set()
+    elif value is True:
+        return columns.copy()
+    else:
+        return set(value if value is not None else columns)
 
 
 def converter(*types):
@@ -55,85 +74,108 @@ def converter(*types):
 
 
 @converter(sa.Boolean)
-def bl(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def bl(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
     data_field = col.info.get("data_field", fields.bool_field)
-    return (bool, data_field(**info(col, required, ops)))
+    return (bool, data_field(**info(col, required, use_default, ops)))
 
 
 @converter(sa.Integer)
-def integer(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def integer(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple:
     data_field = col.info.get("data_field", fields.number_field)
-    return (int, data_field(precision=0, **info(col, required, ops)))
+    return (int, data_field(precision=0, **info(col, required, use_default, ops)))
 
 
 @converter(sa.Numeric)
-def number(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def number(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple:
     data_field = col.info.get("data_field", fields.decimal_field)
-    return (Decimal, data_field(precision=col.type.scale, **info(col, required, ops)))
+    return (
+        Decimal,
+        data_field(precision=col.type.scale, **info(col, required, use_default, ops)),
+    )
 
 
 @converter(sa.String, sa.Text, sa.CHAR, sa.VARCHAR)
-def string(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def string(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple:
     data_field = col.info.get("data_field", fields.str_field)
     return (
         str,
-        data_field(max_length=col.type.length or 0, **info(col, required, ops)),
+        data_field(
+            max_length=col.type.length or 0, **info(col, required, use_default, ops)
+        ),
     )
 
 
 @converter(sa.DateTime)
-def dt_ti(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def dt_ti(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple:
     data_field = col.info.get("data_field", fields.date_time_field)
     return (
         datetime,
-        data_field(timezone=col.type.timezone, **info(col, required, ops)),
+        data_field(timezone=col.type.timezone, **info(col, required, use_default, ops)),
     )
 
 
 @converter(sa.Date)
-def dt(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def dt(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
     data_field = col.info.get("data_field", fields.date_field)
-    return (date, data_field(**info(col, required, ops)))
+    return (date, data_field(**info(col, required, use_default, ops)))
 
 
 @converter(sa.Enum)
-def en(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def en(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
     data_field = col.info.get("data_field", fields.enum_field)
     return (
         col.type.enum_class,
-        data_field(col.type.enum_class, **info(col, required, ops)),
+        data_field(col.type.enum_class, **info(col, required, use_default, ops)),
     )
 
 
 @converter(sa.JSON)
-def js(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def js(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
     data_field = col.info.get("data_field", fields.json_field)
     val = None
     if col.default:
         arg = col.default.arg
         val = arg() if col.default.is_callable else arg
-    return (JsonTypes.get(type(val), t.Dict), data_field(**info(col, required, ops)))
+    return (
+        JsonTypes.get(type(val), Dict),
+        data_field(**info(col, required, use_default, ops)),
+    )
 
 
 @converter(UUIDType)
-def uuid(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def uuid(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple:
     data_field = col.info.get("data_field", fields.uuid_field)
-    return (str, data_field(**info(col, required, ops)))
+    return (str, data_field(**info(col, required, use_default, ops)))
 
 
-def info(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
+def info(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple:
     data = dict(ops=ops)
-    default = col.default.arg if col.default is not None else None
-    if callable(default):
-        data.update(default_factory=partial(default, None))
-        required = False
-    elif isinstance(default, (list, dict, set)):
-        data.update(default_factory=lambda: default.copy())
-        required = False
-    else:
-        data.update(default=default)
-        if required and (col.nullable or default is not None):
+    if use_default:
+        default = col.default.arg if col.default is not None else None
+        if callable(default):
+            data.update(default_factory=partial(default, None))
             required = False
+        elif isinstance(default, (list, dict, set)):
+            data.update(default_factory=lambda: default.copy())
+            required = False
+        else:
+            data.update(default=default)
+            if required and (col.nullable or default is not None):
+                required = False
+    elif required and col.nullable:
+        required = False
     data.update(required=required)
     if col.doc:
         data.update(description=col.doc)
@@ -142,4 +184,4 @@ def info(col: sa.Column, required: bool, ops: t.Sequence[str]) -> t.Tuple:
     return data
 
 
-JsonTypes = {list: t.List, dict: t.Dict}
+JsonTypes = {list: List, dict: Dict}
