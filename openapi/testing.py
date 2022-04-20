@@ -30,7 +30,7 @@ def with_test_db(db: CrudDB) -> CrudDB:
         db.drop_all_schemas()
 
 
-class SingleConnDatabase(CrudDB):
+class SingleConnDatabase(CrudDB):  # noqa
     """Useful for speedup testing"""
 
     def __init__(self, *args, **kwargs) -> None:

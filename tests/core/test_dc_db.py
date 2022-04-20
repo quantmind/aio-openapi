@@ -8,8 +8,7 @@ from openapi.data.validate import validate
 
 
 def test_convert_task(db):
-    Tasks = dataclass_from_table("Tasks", db.tasks, exclude=("random",))
-    assert Tasks
+    Tasks = dataclass_from_table("Tasks", db.tasks, required=True, exclude=("random",))
     fields = field_dict(Tasks)
     assert "random" not in fields
     props = {}
@@ -30,7 +29,15 @@ def test_convert_random(db):
 
 
 def test_validate(db):
-    Tasks = dataclass_from_table("Tasks", db.tasks, exclude=("id",))
+    Tasks = dataclass_from_table(
+        "Tasks", db.tasks, required=True, default=("created_by",), exclude=("id",)
+    )
+    d = validate(Tasks, dict(title="test"))
+    assert len(d.errors) == 1
+    assert d.errors["subtitle"] == "required"
+    Tasks = dataclass_from_table(
+        "Tasks", db.tasks, required=True, default=True, exclude=("id",)
+    )
     d = validate(Tasks, dict(title="test"))
     assert not d.errors
     d = validate(Tasks, dict(title="te"))

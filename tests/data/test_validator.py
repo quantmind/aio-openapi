@@ -31,6 +31,7 @@ def test_validated_schema():
         severity=1,
         story_points=None,
         subtitle="",
+        created_by="",
     )
 
 
