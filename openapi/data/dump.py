@@ -26,7 +26,7 @@ def dump(schema: Any, data: Any) -> Any:
     elif type_info.container is dict:
         return dump_dict(type_info.element, cast(Dict, data))
     elif type_info.is_dataclass:
-        return dump_dataclass(type_info.element, cast(Dict, data))
+        return dump_dataclass(type_info.element, data)
     else:
         return data
 

@@ -11,6 +11,7 @@ from . import db
 from .endpoints import routes
 from .endpoints_additional import additional_routes
 from .endpoints_base import base_routes
+from .endpoints_cursor import series_routes
 from .endpoints_form import form_routes
 from .ws import LocalBroker, ws_routes
 
@@ -41,6 +42,7 @@ def setup_app(app: web.Application) -> None:
     sentry_middleware(app, f"https://{uuid.uuid4().hex}@sentry.io/1234567", "test")
     app.router.add_routes(base_routes)
     app.router.add_routes(routes)
+    app.router.add_routes(series_routes)
     #
     # Additional routes for testing
     app.router.add_routes(additional_routes)

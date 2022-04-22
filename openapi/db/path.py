@@ -1,15 +1,15 @@
 import re
-from typing import Dict, List, Optional, Sequence, cast
+from typing import List, Optional, Tuple, cast
 
 import sqlalchemy as sa
 from aiohttp import web
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import Select, or_
+from sqlalchemy.sql import Select
 
-from ..data.pagination import PaginatedData, Pagination
-from ..db.dbmodel import CrudDB
+from ..pagination import PaginatedData, Pagination, Search
 from ..spec.path import ApiPath
 from ..types import Connection, DataType, Record, Records, SchemaTypeOrStr, StrDict
+from .dbmodel import CrudDB
 
 unique_regex = re.compile(r"Key \((?P<column>(\w+,? ?)+)\)=\((?P<value>.+)\)")
 
@@ -36,14 +36,27 @@ class SqlApiPath(ApiPath):
         """
         return self.db.metadata.tables[self.table]
 
-    def get_search_clause(
-        self, table: sa.Table, query: Select, search: str, search_fields: Sequence[str]
-    ) -> Select:
-        if not search:
-            return query
-
-        columns = [getattr(table.c, col) for col in search_fields]
-        return query.where(or_(*(col.ilike(f"%{search}%") for col in columns)))
+    def get_pag_search_filters(
+        self,
+        *,
+        filters: Optional[StrDict] = None,
+        query: Optional[StrDict] = None,
+        query_schema: SchemaTypeOrStr = "query_schema",
+    ) -> Tuple[Pagination, Search, dict]:
+        if filters is None:
+            filters = self.get_filters(query=query, query_schema=query_schema)
+        schema = self.get_schema(query_schema)
+        pagination: Pagination = (
+            schema.element.create_pagination(filters)
+            if schema and schema.is_dataclass and issubclass(schema.element, Pagination)
+            else Pagination()
+        )
+        search: Search = (
+            schema.element.create_search(filters)
+            if schema and schema.is_dataclass and issubclass(schema.element, Search)
+            else Search()
+        )
+        return pagination, search, filters
 
     async def get_list(
         self,
@@ -66,37 +79,32 @@ class SqlApiPath(ApiPath):
         :param conn: optional db connection
         """
         table = table if table is not None else self.db_table
-        if filters is None:
-            filters = self.get_filters(query=query, query_schema=query_schema)
-        specials = self.get_special_params(cast(Dict, filters))
+        pagination, search, filters = self.get_pag_search_filters(
+            filters=filters, query=query, query_schema=query_schema
+        )
         sql_query = cast(
             Select,
-            self.db.get_query(table, table.select(), params=filters, consumer=self),
-        )
-        #
-        # order by
-        sql_query = self.db.order_by(table, sql_query, specials["order_by"])
-
-        # search
-        sql = self.get_search_clause(
-            table, sql_query, specials["search"], specials["search_fields"]
+            self.db.get_query(
+                table,
+                table.select(),
+                params=filters,
+                consumer=self,
+            ),
         )
 
-        # pagination
-        sql_query = sql
-        offset = specials["offset"]
-        limit = specials["limit"]
-        if offset:
-            sql_query = sql_query.offset(offset)
-        if limit:
-            sql_query = sql_query.limit(limit)
+        # apply search if required
+        search_visitor = self.db.search_visitor(table, sql_query)
+        search.apply_search(search_visitor)
+        sql_query = search_visitor.sql_query
+
+        # apply pagination
+        pagination_visitor = self.db.pagination_visitor(table, sql_query)
+        pagination.apply_page(pagination_visitor)
 
         async with self.db.ensure_connection(conn) as conn:
-            total = await self.db.db_count_query(sql, conn=conn)
-            values = await conn.execute(sql_query)
-        pagination = Pagination(self.full_url())
+            values, total = await pagination_visitor.execute(conn)
         data = cast(List[StrDict], self.dump(dump_schema, values.all()))
-        return pagination.paginated(data, total, offset, limit)
+        return pagination.paginated(self.full_url(), data, total)
 
     async def create_one(
         self,
@@ -239,12 +247,15 @@ class SqlApiPath(ApiPath):
         filters: Optional[StrDict] = None,
         query: Optional[StrDict] = None,
         table: Optional[sa.Table] = None,
+        query_schema: SchemaTypeOrStr = "query_schema",
         conn: Optional[Connection] = None,
     ) -> Records:
         """delete multiple models"""
         table = table if table is not None else self.db_table
-        if filters is None:
-            filters = self.get_filters(query=query)
+        # TODO: allow pagination and search
+        _, _, filters = self.get_pag_search_filters(
+            filters=filters, query=query, query_schema=query_schema
+        )
         return await self.db.db_delete(table, filters, conn=conn, consumer=self)
 
     def handle_unique_violation(self, exception: IntegrityError):

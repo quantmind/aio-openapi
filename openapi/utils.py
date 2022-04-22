@@ -169,3 +169,7 @@ TRUE_VALUES = frozenset(("yes", "true", "t", "1"))
 
 def str2bool(v: Union[str, bool, int]):
     return str(v).lower() in TRUE_VALUES
+
+
+def docjoin(iterable: Iterable) -> str:
+    return ", ".join(f"``{v}``" for v in iterable)

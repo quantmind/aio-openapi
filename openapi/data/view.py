@@ -4,10 +4,9 @@ from typing import Any, Dict, NoReturn, Optional, cast
 
 from aiohttp import web
 
-from ..types import DataType, QueryType, StrDict
+from ..types import DataType, QueryType
 from ..utils import TypingInfo, as_list, compact
 from .dump import dump
-from .pagination import DEF_PAGINATION_LIMIT
 from .validate import ErrorType, ValidationErrors, validate
 
 BAD_DATA_MESSAGE = os.getenv("BAD_DATA_MESSAGE", "Invalid data format")
@@ -52,13 +51,6 @@ class DataView:
             elif schema == "path_schema":
                 raise web.HTTPNotFound
             self.raise_validation_error(errors=validated.errors)
-
-        # Hacky hacky hack hack
-        # Later we'll want to implement proper multicolumn search and so
-        # this will be removed and will be included directly in the schema
-        search_fields = getattr(type_info.element, "search_fields", None)
-        if search_fields:
-            validated.data["search_fields"] = search_fields
         return validated.data
 
     def dump(self, schema: Any, data: DataType) -> DataType:
@@ -84,20 +76,6 @@ class DataView:
             if Schema is None:
                 raise web.HTTPNotImplemented
         return cast(TypingInfo, TypingInfo.get(Schema))
-
-    def get_special_params(self, params: StrDict) -> StrDict:
-        """A dictionary of special parameters extracted from `params`.
-        This function has side effects on params.
-
-        :param params: dictionary from where special parameters are extracted
-        """
-        return dict(
-            limit=params.pop("limit", DEF_PAGINATION_LIMIT),
-            offset=params.pop("offset", 0),
-            order_by=params.pop("order_by", None),
-            search=params.pop("search", None),
-            search_fields=params.pop("search_fields", []),
-        )
 
     def validation_error(
         self, message: str = "", errors: Optional[ErrorType] = None

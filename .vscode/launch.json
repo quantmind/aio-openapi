@@ -13,7 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/core/test_dc_db.py"
+                "tests/pagination/test_cursor_pagination.py"
             ]
         }
     ]

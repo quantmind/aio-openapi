@@ -67,6 +67,19 @@ async def cli(loop, clear_db: CrudDB) -> TestClient:
         await client.close()
 
 
+@pytest.fixture(scope="module")
+async def cli2(loop, clear_db: CrudDB) -> TestClient:
+    app_cli = create_app()
+    app = app_cli.web()
+    client = TestClient(TestServer(app, loop=loop), loop=loop, json_serialize=dumps)
+    try:
+        with with_test_db(app["db"]):
+            await client.start_server()
+            yield client
+    finally:
+        await client.close()
+
+
 @pytest.fixture
 async def test_app(cli: TestClient) -> Application:
     return cli.app
