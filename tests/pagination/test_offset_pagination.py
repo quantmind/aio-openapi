@@ -130,4 +130,4 @@ async def test_direction_asc(cli2, series):
 
 
 async def test_direction_desc(cli2, series):
-    assert await direction_desc(cli2, series, "/series_offset")
+    assert await direction_desc(cli2, series, "/series_offset", order_by="date")

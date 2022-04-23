@@ -83,7 +83,7 @@ class SqlApiPath(ApiPath):
                 consumer=self,
             ),
         )
-        sql_query = self.db.search_query(table, sql_query, search)
+        sql_query = cast(Select, self.db.search_query(table, sql_query, search))
         values, total = await self.db.db_paginate(
             table, sql_query, pagination, conn=conn
         )

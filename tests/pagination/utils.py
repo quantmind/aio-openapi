@@ -19,7 +19,7 @@ class SerieFactory(Factory):
     group = fuzzy.FuzzyChoice(GROUPS)
 
 
-async def direction_asc(cli, series, path):
+async def direction_asc(cli, series: list, path: str, limit: int = 15):
     response = await cli.get(path)
     data = await json_body(response)
     assert len(data) == 0
@@ -27,7 +27,9 @@ async def direction_asc(cli, series, path):
     total = 0
     for group in GROUPS:
         values = all_groups[group]
-        async for data in traverse_pagination(cli, path, dict(limit=15, group=group)):
+        async for data in traverse_pagination(
+            cli, path, dict(limit=limit, group=group)
+        ):
             values.extend(data)
         total += len(values)
         for d1, d2 in zip(values[:-1], values[1:]):
@@ -37,13 +39,13 @@ async def direction_asc(cli, series, path):
     return total
 
 
-async def direction_desc(cli, series, path):
+async def direction_desc(cli, series, path: str, limit: int = 10, **kwargs):
     all_groups = defaultdict(list)
     total = 0
     for group in GROUPS:
         values = all_groups[group]
         async for data in traverse_pagination(
-            cli, path, dict(limit=10, group=group, direction="desc")
+            cli, path, dict(limit=limit, group=group, **kwargs)
         ):
             values.extend(data)
         total += len(values)

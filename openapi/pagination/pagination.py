@@ -31,7 +31,7 @@ class PaginationVisitor:
 
     def apply_cursor_pagination(
         self,
-        cursor: Dict[str, str],
+        cursor: Sequence[Tuple[str, str]],
         limit: int,
         order_by: Sequence[str],
         previous: bool,
@@ -50,11 +50,11 @@ def from_filters_and_dataclass(data_class: Type[T], data: dict) -> T:
     return data_class(**params)
 
 
-def fields_no_sign(fields: Tuple[str, ...]) -> Tuple[str, ...]:
+def fields_no_sign(fields: Sequence[str]) -> Tuple[str, ...]:
     return tuple(field[1:] if field.startswith("-") else field for field in fields)
 
 
-def fields_flip_sign(fields: Tuple[str, ...]) -> Tuple[str, ...]:
+def fields_flip_sign(fields: Sequence[str]) -> Tuple[str, ...]:
     return tuple(flip_field_sign(field) for field in fields)
 
 
@@ -73,7 +73,7 @@ class Pagination:
         pass
 
     def paginated(
-        self, url: str, data: list, total: Optional[int] = None
+        self, url: URL, data: list, total: Optional[int] = None
     ) -> "PaginatedData":
         """Return paginated data"""
         return PaginatedData(url=url, data=data, pagination=self, total=total)

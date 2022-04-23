@@ -38,7 +38,7 @@ class SeriesQueryCursor(
 @dataclass
 class SeriesQueryOffset(
     BaseQuery,
-    offsetPagination("-date"),
+    offsetPagination("-date", "date"),
 ):
     """Series query with offset pagination"""
 

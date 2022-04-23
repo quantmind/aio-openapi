@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, cast
 
 from sqlalchemy import Column, Table, func, select
 from sqlalchemy.sql import Select, and_, or_
@@ -16,7 +16,8 @@ from ..pagination import (
 from ..pagination.cursor import cursor_to_python
 from ..types import Connection, Record, Records
 
-QueryType = Union[Delete, Update, Select]
+QueryType = Union[Delete, Select, Update]
+SelectUpdate = Union[Select, Update]
 
 
 class CrudDB(Database):
@@ -179,7 +180,7 @@ class CrudDB(Database):
     async def db_paginate(
         self,
         table: Table,
-        sql_query: QueryType,
+        sql_query: Select,
         pagination: Pagination,
         *,
         conn: Optional[Connection] = None,
@@ -197,7 +198,7 @@ class CrudDB(Database):
         if isinstance(records, dict):
             records = [records]
         else:
-            cols = set()
+            cols: Set[str] = set()
             for record in records:
                 cols.update(record)
             new_records = []
@@ -253,24 +254,26 @@ class CrudDB(Database):
         return sql_query
 
     def search_query(
-        self, table: Table, sql_query: QueryType, search: Search
-    ) -> QueryType:
+        self, table: Table, sql_query: SelectUpdate, search: Search
+    ) -> SelectUpdate:
         """Build an SqlAlchemy query for a search
 
         :param table: sqlalchemy Table
         :param sql_query: sqlalchemy query type
         :param search: the search dataclass
         """
-        search_visitor = DbSearchVisitor(db=self, table=table, sql_query=sql_query)
+        search_visitor = DbSearchVisitor(
+            db=self, table=table, sql_query=cast(SelectUpdate, sql_query)
+        )
         search.apply(search_visitor)
         return search_visitor.sql_query
 
     def order_by_query(
         self,
         table: Table,
-        sql_query: QueryType,
+        sql_query: Select,
         order_by: Optional[Union[str, Sequence[str]]],
-    ) -> QueryType:
+    ) -> Select:
         """Apply ordering to a sql_query"""
         if isinstance(order_by, str):
             order_by = (order_by,)
@@ -346,7 +349,7 @@ class CrudDB(Database):
 class DbSearchVisitor(SearchVisitor):
     db: CrudDB
     table: Table
-    sql_query: Select
+    sql_query: SelectUpdate
 
     def apply_search(self, search: str, search_fields: Sequence[str]) -> None:
         if search:

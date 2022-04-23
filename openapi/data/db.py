@@ -1,15 +1,27 @@
-from dataclasses import make_dataclass
+from dataclasses import Field, make_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from functools import partial
-from typing import Dict, List, Optional, Sequence, Set, Tuple, Union, cast
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType
 
 from . import fields
 
-CONVERTERS = {}
+ConverterType = Callable[[sa.Column, bool, bool, Sequence[str]], Tuple[Type, Field]]
+CONVERTERS: Dict[str, ConverterType] = {}
 
 
 def dataclass_from_table(
@@ -34,12 +46,12 @@ def dataclass_from_table(
     :param ops: additional operation for fields
     """
     columns = []
-    include = set(include or table.columns.keys()) - set(exclude or ())
-    defaults = column_info(include, default)
-    requireds = column_info(include, required)
+    includes = set(include or table.columns.keys()) - set(exclude or ())
+    defaults = column_info(includes, default)
+    requireds = column_info(includes, required)
     column_ops = cast(Dict[str, Sequence[str]], ops or {})
     for col in table.columns:
-        if col.name not in include:
+        if col.name not in includes:
             continue
         ctype = type(col.type)
         converter = CONVERTERS.get(ctype)
@@ -74,7 +86,9 @@ def converter(*types):
 
 
 @converter(sa.Boolean)
-def bl(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
+def bl(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.bool_field)
     return (bool, data_field(**info(col, required, use_default, ops)))
 
@@ -82,7 +96,7 @@ def bl(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) ->
 @converter(sa.Integer)
 def integer(
     col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
-) -> Tuple:
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.number_field)
     return (int, data_field(precision=0, **info(col, required, use_default, ops)))
 
@@ -90,7 +104,7 @@ def integer(
 @converter(sa.Numeric)
 def number(
     col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
-) -> Tuple:
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.decimal_field)
     return (
         Decimal,
@@ -101,7 +115,7 @@ def number(
 @converter(sa.String, sa.Text, sa.CHAR, sa.VARCHAR)
 def string(
     col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
-) -> Tuple:
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.str_field)
     return (
         str,
@@ -114,7 +128,7 @@ def string(
 @converter(sa.DateTime)
 def dt_ti(
     col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
-) -> Tuple:
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.date_time_field)
     return (
         datetime,
@@ -123,13 +137,17 @@ def dt_ti(
 
 
 @converter(sa.Date)
-def dt(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
+def dt(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.date_field)
     return (date, data_field(**info(col, required, use_default, ops)))
 
 
 @converter(sa.Enum)
-def en(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
+def en(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.enum_field)
     return (
         col.type.enum_class,
@@ -138,7 +156,9 @@ def en(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) ->
 
 
 @converter(sa.JSON)
-def js(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) -> Tuple:
+def js(
+    col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.json_field)
     val = None
     if col.default:
@@ -153,14 +173,14 @@ def js(col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]) ->
 @converter(UUIDType)
 def uuid(
     col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
-) -> Tuple:
+) -> Tuple[Type, Field]:
     data_field = col.info.get("data_field", fields.uuid_field)
     return (str, data_field(**info(col, required, use_default, ops)))
 
 
 def info(
     col: sa.Column, required: bool, use_default: bool, ops: Sequence[str]
-) -> Tuple:
+) -> Tuple[Type, Field]:
     data = dict(ops=ops)
     if use_default:
         default = col.default.arg if col.default is not None else None
