@@ -6,7 +6,7 @@ from aiohttp import web
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import Select
 
-from ..pagination import PaginatedData, Pagination, Search
+from ..pagination import PaginatedData, Pagination, Search, create_dataclass
 from ..spec.path import ApiPath
 from ..types import Connection, DataType, Record, Records, SchemaTypeOrStr, StrDict
 from .dbmodel import CrudDB
@@ -46,16 +46,8 @@ class SqlApiPath(ApiPath):
         if filters is None:
             filters = self.get_filters(query=query, query_schema=query_schema)
         schema = self.get_schema(query_schema)
-        pagination: Pagination = (
-            schema.element.create_pagination(filters)
-            if schema and schema.is_dataclass and issubclass(schema.element, Pagination)
-            else Pagination()
-        )
-        search: Search = (
-            schema.element.create_search(filters)
-            if schema and schema.is_dataclass and issubclass(schema.element, Search)
-            else Search()
-        )
+        pagination = create_dataclass(schema, filters, Pagination)
+        search = create_dataclass(schema, filters, Search)
         return pagination, search, filters
 
     async def get_list(
@@ -91,18 +83,10 @@ class SqlApiPath(ApiPath):
                 consumer=self,
             ),
         )
-
-        # apply search if required
-        search_visitor = self.db.search_visitor(table, sql_query)
-        search.apply_search(search_visitor)
-        sql_query = search_visitor.sql_query
-
-        # apply pagination
-        pagination_visitor = self.db.pagination_visitor(table, sql_query)
-        pagination.apply_page(pagination_visitor)
-
-        async with self.db.ensure_connection(conn) as conn:
-            values, total = await pagination_visitor.execute(conn)
+        sql_query = self.db.search_query(table, sql_query, search)
+        values, total = await self.db.db_paginate(
+            table, sql_query, pagination, conn=conn
+        )
         data = cast(List[StrDict], self.dump(dump_schema, values.all()))
         return pagination.paginated(self.full_url(), data, total)
 
@@ -125,7 +109,7 @@ class SqlApiPath(ApiPath):
         if data is None:
             data = self.insert_data(await self.json_data(), body_schema=body_schema)
         table = table if table is not None else self.db_table
-        sql = self.db.get_insert(table, data)
+        sql = self.db.insert_query(table, data)
 
         async with self.db.ensure_connection(conn) as conn:
             try:

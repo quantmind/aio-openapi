@@ -12,12 +12,13 @@ class SearchVisitor:
         raise NotImplementedError
 
 
+@dataclass
 class Search:
     @classmethod
-    def search_filters(cls, filters: dict) -> "Search":
+    def create_search(cls, data: dict) -> "Search":
         return cls()
 
-    def apply_search(self, visitor: SearchVisitor) -> None:
+    def apply(self, visitor: SearchVisitor) -> None:
         pass
 
 
@@ -44,8 +45,7 @@ def searchable(*searchable_fields) -> type:
         def create_search(cls, data: dict) -> "Searchable":
             return from_filters_and_dataclass(Searchable, data)
 
-        def apply_search(self, visitor: SearchVisitor) -> None:
-            if self.search:
-                visitor.apply_search(self.search, self.search_fields)
+        def apply(self, visitor: SearchVisitor) -> None:
+            visitor.apply_search(self.search, self.search_fields)
 
     return Searchable

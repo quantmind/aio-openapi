@@ -1,6 +1,16 @@
 import os
 from dataclasses import dataclass, fields
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from aiohttp import web
 from yarl import URL
@@ -12,12 +22,20 @@ DEF_PAGINATION_LIMIT: int = int(os.environ.get("DEF_PAGINATION_LIMIT") or 50)
 
 
 class PaginationVisitor:
+    """Visitor for pagination"""
+
     def apply_offset_pagination(
         self, limit: int, offset: int, order_by: Union[str, List[str]]
     ):
         raise NotImplementedError
 
-    def apply_cursor_pagination(self, cursor: Any, limit: int, order_by: str):
+    def apply_cursor_pagination(
+        self,
+        cursor: Dict[str, str],
+        limit: int,
+        order_by: Sequence[str],
+        previous: bool,
+    ):
         raise NotImplementedError
 
 
@@ -36,13 +54,21 @@ def fields_no_sign(fields: Tuple[str, ...]) -> Tuple[str, ...]:
     return tuple(field[1:] if field.startswith("-") else field for field in fields)
 
 
+def fields_flip_sign(fields: Tuple[str, ...]) -> Tuple[str, ...]:
+    return tuple(flip_field_sign(field) for field in fields)
+
+
+def flip_field_sign(field: str) -> str:
+    return field[1:] if field.startswith("-") else f"-{field}"
+
+
 @dataclass
 class Pagination:
     @classmethod
     def create_pagination(cls, data: dict) -> "Pagination":
         return cls()
 
-    def apply_page(self, visitor: PaginationVisitor) -> None:
+    def apply(self, visitor: PaginationVisitor) -> None:
         """Apply pagination to the visitor"""
         pass
 

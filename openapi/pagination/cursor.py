@@ -1,44 +1,48 @@
 import base64
 from dataclasses import dataclass
 from datetime import date, datetime
+from functools import cached_property
 from typing import Any, Dict, Optional, Tuple, Type
 
 from dateutil.parser import parse as parse_date
-from typing_extensions import TypedDict
 from yarl import URL
 
 from openapi import json
-from openapi.data.fields import Choice, integer_field, str_field
+from openapi.data.fields import Choice, ValidationError, integer_field, str_field
 
 from .pagination import (
     DEF_PAGINATION_LIMIT,
     MAX_PAGINATION_LIMIT,
     Pagination,
     PaginationVisitor,
+    fields_flip_sign,
     fields_no_sign,
     from_filters_and_dataclass,
 )
 
-
-class CursorType(TypedDict):
-    order_by: str
-    start: str
-    limit: int
-    previous: Optional[str]
+CursorType = Tuple[Tuple[str, str], ...]
 
 
-def encode_cursor(data: Dict[str, str], previous: bool = False) -> str:
-    cursor_bytes = json.dumps(dict(data=data, previous=previous)).encode("ascii")
+def encode_cursor(data: Tuple[str, ...], previous: bool = False) -> str:
+    cursor_bytes = json.dumps((data, previous)).encode("ascii")
     base64_bytes = base64.b64encode(cursor_bytes)
     return base64_bytes.decode("ascii")
 
 
-def decode_cursor(cursor: Optional[str]) -> dict:
-    if cursor:
-        base64_bytes = cursor.encode("ascii")
-        cursor_bytes = base64.b64decode(base64_bytes)
-        return json.loads(cursor_bytes)
-    return {}
+def decode_cursor(
+    cursor: Optional[str], field_names: Tuple[str]
+) -> Tuple[CursorType, bool]:
+    try:
+        if cursor:
+            base64_bytes = cursor.encode("ascii")
+            cursor_bytes = base64.b64decode(base64_bytes)
+            values, previous = json.loads(cursor_bytes)
+            if len(values) == len(field_names):
+                return tuple(zip(field_names, values)), previous
+            raise ValueError
+        return (), False
+    except Exception:
+        raise ValidationError("invalid cursor")
 
 
 def cursor_url(url: URL, cursor: str) -> URL:
@@ -47,26 +51,21 @@ def cursor_url(url: URL, cursor: str) -> URL:
     return url.with_query(query)
 
 
-def flip_sign(field: str) -> str:
-    return field[1:] if field.startswith("-") else f"-{field}"
-
-
-def start_values(record: dict, fields: Tuple[str, ...]) -> Tuple[Tuple[str, str]]:
+def start_values(record: dict, field_names: Tuple[str, ...]) -> Tuple[str, ...]:
     """start values for pagination"""
-    return tuple(
-        (field, record[key]) for field, key in zip(fields, fields_no_sign(fields))
-    )
+    return tuple(record[field] for field in field_names)
 
 
 def cursorPagination(
-    *orderable_fields: str,
-    desc: bool = False,
+    *order_by_fields: str,
     default_limit: int = DEF_PAGINATION_LIMIT,
     max_limit: int = MAX_PAGINATION_LIMIT,
 ) -> Type[Pagination]:
 
-    if len(orderable_fields) == 0:
+    if len(order_by_fields) == 0:
         raise ValueError("orderable_fields must be specified")
+
+    field_names = fields_no_sign(order_by_fields)
 
     @dataclass
     class CursorPagination(Pagination):
@@ -80,16 +79,32 @@ def cursorPagination(
         direction: str = str_field(
             validator=Choice(("asc", "desc")),
             required=False,
-            default="desc" if desc else "asc",
+            default="asc",
             description=("Order results descending or ascending"),
         )
         _cursor: str = ""
-        _previous: str = ""
 
-        def apply_page(self, visitor: PaginationVisitor) -> None:
-            cursor = decode_cursor(self._cursor)
+        @cached_property
+        def cursor_info(self) -> Tuple[CursorType, Tuple[str, ...], bool]:
+            order_by = (
+                fields_flip_sign(order_by_fields)
+                if self.direction == "desc"
+                else order_by_fields
+            )
+            cursor, previous = decode_cursor(self._cursor, order_by)
+            return cursor, order_by, previous
+
+        @property
+        def previous(self) -> bool:
+            return self.cursor_info[2]
+
+        def apply(self, visitor: PaginationVisitor) -> None:
+            cursor, order_by, previous = self.cursor_info
             visitor.apply_cursor_pagination(
-                cursor.get("data", {}), self.limit, cursor.get("previous", False)
+                cursor,
+                self.limit,
+                order_by,
+                previous=previous,
             )
 
         @classmethod
@@ -100,24 +115,40 @@ def cursorPagination(
             self, url: URL, data: list, total: Optional[int] = None
         ) -> Dict[str, str]:
             links = {}
-            if len(data) > self.limit:
-                links["next"] = cursor_url(
-                    url,
-                    encode_cursor(start_values(data[self.limit], orderable_fields)),
-                )
-            if data:
-                links["prev"] = cursor_url(
-                    url,
-                    encode_cursor(
-                        start_values(
-                            data[0], tuple(flip_sign(f) for f in orderable_fields)
+            if self.previous:
+                if len(data) > self.limit:
+                    links["prev"] = cursor_url(
+                        url,
+                        encode_cursor(
+                            start_values(data[self.limit], field_names), previous=True
                         ),
-                        previous=True,
-                    ),
-                )
+                    )
+                if self._cursor:
+                    links["next"] = cursor_url(
+                        url,
+                        encode_cursor(
+                            start_values(data[0], field_names),
+                        ),
+                    )
+            else:
+                if len(data) > self.limit:
+                    links["next"] = cursor_url(
+                        url,
+                        encode_cursor(start_values(data[self.limit], field_names)),
+                    )
+                if self._cursor:
+                    links["prev"] = cursor_url(
+                        url,
+                        encode_cursor(
+                            start_values(data[0], field_names),
+                            previous=True,
+                        ),
+                    )
             return links
 
         def get_data(self, data: list) -> list:
+            if self.previous:
+                return list(reversed(data[1:]))
             return data if len(data) <= self.limit else data[: self.limit]
 
     return CursorPagination

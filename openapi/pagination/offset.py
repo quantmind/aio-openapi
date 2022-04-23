@@ -45,7 +45,7 @@ def offsetPagination(
             ),
         )
 
-        def apply_page(self, visitor: PaginationVisitor) -> None:
+        def apply(self, visitor: PaginationVisitor) -> None:
             visitor.apply_offset_pagination(
                 limit=self.limit, offset=self.offset, order_by=self.order_by
             )

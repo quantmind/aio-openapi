@@ -23,8 +23,8 @@ async def traverse_pagination(
     path: str,
     params,
     *,
-    timeout: float = 5,
-    test_prev: bool = False,
+    timeout: float = 10000,
+    test_prev: bool = True,
 ):
     url = yarl.URL("https://fake.com").with_path(path).with_query(params)
     async with async_timeout.timeout(timeout):
@@ -37,7 +37,7 @@ async def traverse_pagination(
             if not next:
                 break
             url: URL = next["url"]
-            batch.append(data)
+            batch.extend(data)
         if test_prev:
             prev = response.links.get("prev")
             while prev:
@@ -45,5 +45,8 @@ async def traverse_pagination(
                 response = await cli.get(url.path_qs)
                 data = await json_body(response)
                 prev = response.links.get("prev")
-                assert data == batch.pop()
+                n = len(batch) - len(data)
+                assert n >= 0, f"invalid batch size {n}"
+                batch, pdata = batch[:n], batch[n:]
+                assert data == pdata
             assert batch == []

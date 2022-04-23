@@ -6,8 +6,14 @@ from sqlalchemy.sql import Select, and_, or_
 from sqlalchemy.sql.dml import Delete, Insert, Update
 
 from ..db.container import Database
-from ..pagination import PaginationVisitor, SearchVisitor
-from ..pagination.cursor import cursor_to_python, flip_sign
+from ..pagination import (
+    Pagination,
+    PaginationVisitor,
+    Search,
+    SearchVisitor,
+    fields_flip_sign,
+)
+from ..pagination.cursor import cursor_to_python
 from ..types import Connection, Record, Records
 
 QueryType = Union[Delete, Update, Select]
@@ -106,7 +112,7 @@ class CrudDB(Database):
         :param conn: optional db connection
         """
         async with self.ensure_connection(conn) as conn:
-            sql_query = self.get_insert(table, data)
+            sql_query = self.insert_query(table, data)
             return await conn.execute(sql_query)
 
     async def db_update(
@@ -170,7 +176,24 @@ class CrudDB(Database):
             record = result.one()
         return record
 
-    def get_insert(self, table: Table, records: Union[List[Dict], Dict]) -> Insert:
+    async def db_paginate(
+        self,
+        table: Table,
+        sql_query: QueryType,
+        pagination: Pagination,
+        *,
+        conn: Optional[Connection] = None,
+    ) -> Tuple[Records, Optional[int]]:
+        pagination_visitor = DbPaginationVisitor(
+            db=self, table=table, sql_query=sql_query
+        )
+        pagination.apply(pagination_visitor)
+        async with self.ensure_connection(conn) as conn:
+            return await pagination_visitor.execute(conn)
+
+    # Query methods
+
+    def insert_query(self, table: Table, records: Union[List[Dict], Dict]) -> Insert:
         if isinstance(records, dict):
             records = [records]
         else:
@@ -187,6 +210,9 @@ class CrudDB(Database):
                 new_records.append(record)
             records = new_records
         return table.insert(records).returning(*table.columns)
+
+    # backward compatibility
+    get_insert = insert_query
 
     def get_query(
         self,
@@ -225,6 +251,42 @@ class CrudDB(Database):
             whereclause = and_(*filters) if len(filters) > 1 else filters[0]
             sql_query = cast(Select, sql_query).where(whereclause)
         return sql_query
+
+    def search_query(
+        self, table: Table, sql_query: QueryType, search: Search
+    ) -> QueryType:
+        """Build an SqlAlchemy query for a search
+
+        :param table: sqlalchemy Table
+        :param sql_query: sqlalchemy query type
+        :param search: the search dataclass
+        """
+        search_visitor = DbSearchVisitor(db=self, table=table, sql_query=sql_query)
+        search.apply(search_visitor)
+        return search_visitor.sql_query
+
+    def order_by_query(
+        self,
+        table: Table,
+        sql_query: QueryType,
+        order_by: Optional[Union[str, Sequence[str]]],
+    ) -> QueryType:
+        """Apply ordering to a sql_query"""
+        if isinstance(order_by, str):
+            order_by = (order_by,)
+        for name in order_by or ():
+            if name.startswith("-"):
+                order_by_column = getattr(table.c, name[1:], None)
+                if order_by_column is not None:
+                    order_by_column = order_by_column.desc()
+            else:
+                order_by_column = getattr(table.c, name, None)
+            if order_by_column is not None:
+                sql_query = sql_query.order_by(order_by_column)
+        return sql_query
+
+    # backward compatibility
+    order_by = order_by_query
 
     def default_filter_field(self, field: Column, op: str, value: Any):
         """
@@ -279,40 +341,6 @@ class CrudDB(Database):
             elif op == "le":
                 return field <= value
 
-    def order_by(
-        self, table: Table, sql_query: QueryType, order_by: Optional[Union[str, List]]
-    ) -> QueryType:
-        """Apply ordering to a sql_query"""
-        if isinstance(order_by, str):
-            order_by = (order_by,)
-        for name in order_by or ():
-            if name.startswith("-"):
-                order_by_column = getattr(table.c, name[1:], None)
-                if order_by_column is not None:
-                    order_by_column = order_by_column.desc()
-            else:
-                order_by_column = getattr(table.c, name, None)
-            if order_by_column is not None:
-                sql_query = sql_query.order_by(order_by_column)
-        return sql_query
-
-    def search_visitor(self, table: Table, sql_query: Select) -> "DbSearchVisitor":
-        return DbSearchVisitor(db=self, table=table, sql_query=sql_query)
-
-    def pagination_visitor(
-        self, table: Table, sql_query: Select
-    ) -> "DbPaginationVisitor":
-        return DbPaginationVisitor(db=self, table=table, sql_query=sql_query)
-
-    def get_search_clause(
-        self, table: Table, sql_query: Select, search: str, search_fields: Sequence[str]
-    ) -> Select:
-        if not search:
-            return sql_query
-
-        columns = [getattr(table.c, col) for col in search_fields]
-        return sql_query.where(or_(*(col.ilike(f"%{search}%") for col in columns)))
-
 
 @dataclass
 class DbSearchVisitor(SearchVisitor):
@@ -321,9 +349,11 @@ class DbSearchVisitor(SearchVisitor):
     sql_query: Select
 
     def apply_search(self, search: str, search_fields: Sequence[str]) -> None:
-        self.sql_query = self.db.get_search_clause(
-            self.table, self.sql_query, search, search_fields
-        )
+        if search:
+            columns = [getattr(self.table.c, col) for col in search_fields]
+            self.sql_query = self.sql_query.where(
+                or_(*(col.ilike(f"%{search}%") for col in columns))
+            )
 
 
 @dataclass
@@ -337,10 +367,10 @@ class DbPaginationVisitor(PaginationVisitor):
         self,
         limit: int,
         offset: int,
-        order_by: Optional[Union[str, List]],
+        order_by: Optional[Union[str, Sequence[str]]],
     ) -> None:
         self.initial_sql = self.sql_query
-        sql_query = self.db.order_by(self.table, self.sql_query, order_by)
+        sql_query = self.db.order_by_query(self.table, self.sql_query, order_by)
         if offset:
             sql_query = sql_query.offset(offset)
         if limit:
@@ -348,14 +378,18 @@ class DbPaginationVisitor(PaginationVisitor):
         self.sql_query = sql_query
 
     def apply_cursor_pagination(
-        self, cursor: Sequence[Tuple[str, str]], limit: int, previous: bool
+        self,
+        cursor: Sequence[Tuple[str, str]],
+        limit: int,
+        order_by: Sequence[str],
+        previous: bool = False,
     ) -> None:
         sql_query = self.sql_query
-        order_by = []
         for key, value in cursor:
-            order_by.append(flip_sign(key) if previous else key)
             sql_query = sql_query.where(self.filter(key, value, previous))
-        self.sql_query = self.db.order_by(self.table, sql_query, order_by).limit(
+        if previous:
+            order_by = fields_flip_sign(order_by)
+        self.sql_query = self.db.order_by_query(self.table, sql_query, order_by).limit(
             limit + 1
         )
 
@@ -369,9 +403,9 @@ class DbPaginationVisitor(PaginationVisitor):
     def filter(self, field: str, value: str, previous: bool) -> Column:
         if field.startswith("-"):
             field = field[1:]
-            op = "gt" if previous else "le"
+            op = "ge" if previous else "le"
         else:
-            op = "lt" if previous else "ge"
+            op = "le" if previous else "ge"
         column = getattr(self.table.c, field)
         py_value = cursor_to_python(column.type.python_type, value)
         return self.db.default_filter_field(column, op, py_value)
