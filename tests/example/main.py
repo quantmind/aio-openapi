@@ -11,8 +11,8 @@ from . import db
 from .endpoints import routes
 from .endpoints_additional import additional_routes
 from .endpoints_base import base_routes
-from .endpoints_cursor import series_routes
 from .endpoints_form import form_routes
+from .endpoints_pagination import series_routes
 from .ws import LocalBroker, ws_routes
 
 

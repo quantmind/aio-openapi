@@ -1,18 +1,8 @@
 import pytest
-from factory import Factory, Faker, fuzzy
 
 from openapi.db.dbmodel import CrudDB
 
-GROUPS = ("group1", "group2", "group3")
-
-
-class SerieFactory(Factory):
-    class Meta:
-        model = dict
-
-    value = Faker("pydecimal", positive=True, left_digits=6, right_digits=5)
-    date = Faker("date_time_between", start_date="-2y")
-    group = fuzzy.FuzzyChoice(GROUPS)
+from .utils import SerieFactory
 
 
 @pytest.fixture(scope="module")

@@ -116,7 +116,7 @@ def cursorPagination(
         ) -> Dict[str, str]:
             links = {}
             if self.previous:
-                if len(data) > self.limit:
+                if len(data) > self.limit + 1:
                     links["prev"] = cursor_url(
                         url,
                         encode_cursor(
@@ -148,7 +148,8 @@ def cursorPagination(
 
         def get_data(self, data: list) -> list:
             if self.previous:
-                return list(reversed(data[1:]))
+                data = list(reversed(data[1:]))
+                return data if len(data) <= self.limit else data[1:]
             return data if len(data) <= self.limit else data[: self.limit]
 
     return CursorPagination

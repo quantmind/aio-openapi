@@ -5,7 +5,9 @@ from yarl import URL
 from openapi.pagination import offsetPagination
 from openapi.testing import json_body
 
-OffsetPagination = offsetPagination()
+from .utils import direction_asc, direction_desc
+
+OffsetPagination = offsetPagination("id")
 
 
 def pag_links(total: int, limit: int, offset: int) -> Dict[str, URL]:
@@ -29,7 +31,7 @@ def test_last_link():
     assert links["last"].query["limit"] == "25"
     #
     links = pag_links(120, 25, 75)
-    assert len(links) == 3
+    assert len(links) == 4
     assert links["first"].query["offset"] == "0"
     assert links["prev"].query["offset"] == "50"
     assert links["last"].query["offset"] == "100"
@@ -121,3 +123,11 @@ async def test_pagination_with_forwarded_host(cli):
         '<https://whenbeer.pub/tasks?limit=10&offset=10>; rel="prev"'
     )
     assert response.headers["X-total-count"] == "2"
+
+
+async def test_direction_asc(cli2, series):
+    assert await direction_asc(cli2, series, "/series_offset")
+
+
+async def test_direction_desc(cli2, series):
+    assert await direction_desc(cli2, series, "/series_offset")

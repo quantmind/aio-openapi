@@ -17,10 +17,13 @@ from .pagination import (
 
 
 def offsetPagination(
-    *orderable_fields: str,
+    *order_by_fields: str,
     default_limit: int = DEF_PAGINATION_LIMIT,
     max_limit: int = MAX_PAGINATION_LIMIT,
 ) -> Type[Pagination]:
+    if len(order_by_fields) == 0:
+        raise ValueError("orderable_fields must be specified")
+
     @dataclass
     class OffsetPagination(Pagination):
         limit: int = integer_field(
@@ -38,10 +41,11 @@ def offsetPagination(
             ),
         )
         order_by: str = str_field(
-            validator=Choice(orderable_fields),
+            validator=Choice(order_by_fields),
+            default=order_by_fields[0],
             description=(
                 "Order results by given column (default ascending order). "
-                f"Possible values are {docjoin(orderable_fields)}"
+                f"Possible values are {docjoin(order_by_fields)}"
             ),
         )
 
@@ -109,13 +113,9 @@ class Links(NamedTuple):
         first = self.first_link(total, limit, offset)
         if first:
             links["first"] = first
-            prev = self.prev_link(total, limit, offset)
-            if prev != first:
-                links["prev"] = prev
+            links["prev"] = self.prev_link(total, limit, offset)
         next_ = self.next_link(total, limit, offset)
         if next_:
-            last = self.last_link(total, limit, offset)
-            if last != next_:
-                links["next"] = next_
-            links["last"] = last
+            links["next"] = next_
+            links["last"] = self.last_link(total, limit, offset)
         return links

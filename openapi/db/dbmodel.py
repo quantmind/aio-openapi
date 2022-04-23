@@ -387,10 +387,12 @@ class DbPaginationVisitor(PaginationVisitor):
         sql_query = self.sql_query
         for key, value in cursor:
             sql_query = sql_query.where(self.filter(key, value, previous))
+        extra = 1
         if previous:
+            extra += 1
             order_by = fields_flip_sign(order_by)
         self.sql_query = self.db.order_by_query(self.table, sql_query, order_by).limit(
-            limit + 1
+            limit + extra
         )
 
     async def execute(self, conn: Connection) -> Tuple[Records, Optional[int]]:
