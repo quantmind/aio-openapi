@@ -1,5 +1,6 @@
 from typing import Dict
 
+import pytest
 from yarl import URL
 
 from openapi.pagination import offsetPagination
@@ -131,3 +132,8 @@ async def test_direction_asc(cli2, series):
 
 async def test_direction_desc(cli2, series):
     assert await direction_desc(cli2, series, "/series_offset", order_by="date")
+
+
+def test_cursor_pagination_error():
+    with pytest.raises(ValueError):
+        offsetPagination()

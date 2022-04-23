@@ -6,6 +6,8 @@ from aiohttp import web
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import Select
 
+from openapi.data.validate import ValidationErrors
+
 from ..pagination import PaginatedData, Pagination, Search, create_dataclass
 from ..spec.path import ApiPath
 from ..types import Connection, DataType, Record, Records, SchemaTypeOrStr, StrDict
@@ -84,9 +86,12 @@ class SqlApiPath(ApiPath):
             ),
         )
         sql_query = cast(Select, self.db.search_query(table, sql_query, search))
-        values, total = await self.db.db_paginate(
-            table, sql_query, pagination, conn=conn
-        )
+        try:
+            values, total = await self.db.db_paginate(
+                table, sql_query, pagination, conn=conn
+            )
+        except ValidationErrors as e:
+            self.raise_validation_error(errors=e.errors)
         data = cast(List[StrDict], self.dump(dump_schema, values.all()))
         return pagination.paginated(self.full_url(), data, total)
 

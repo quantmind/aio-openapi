@@ -13,7 +13,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "tests/pagination/test_offset_pagination.py::test_direction_asc"
+                "tests/pagination/test_cursor_pagination.py::test_bad_cursor"
             ]
         }
     ]

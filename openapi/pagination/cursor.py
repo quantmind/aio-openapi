@@ -8,7 +8,8 @@ from dateutil.parser import parse as parse_date
 from yarl import URL
 
 from openapi import json
-from openapi.data.fields import Choice, ValidationError, integer_field, str_field
+from openapi.data.fields import Choice, integer_field, str_field
+from openapi.data.validate import ValidationErrors
 
 from .pagination import (
     DEF_PAGINATION_LIMIT,
@@ -41,8 +42,8 @@ def decode_cursor(
                 return tuple(zip(field_names, values)), previous
             raise ValueError
         return (), False
-    except Exception:
-        raise ValidationError("invalid cursor")
+    except Exception as e:
+        raise ValidationErrors("invalid cursor") from e
 
 
 def cursor_url(url: URL, cursor: str) -> URL:
@@ -155,12 +156,15 @@ def cursorPagination(
     return CursorPagination
 
 
-def cursor_to_python(py_type: Type, value) -> Any:
-    if py_type is datetime:
-        return parse_date(value)
-    elif py_type is date:
-        return parse_date(value).date()
-    elif py_type is int:
-        return int(value)
-    else:
-        return value
+def cursor_to_python(py_type: Type, value: Any) -> Any:
+    try:
+        if py_type is datetime:
+            return parse_date(value)
+        elif py_type is date:
+            return parse_date(value).date()
+        elif py_type is int:
+            return int(value)
+        else:
+            return value
+    except Exception as e:
+        raise ValidationErrors("invalid cursor") from e
