@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Iterable, Optional
+from typing import Dict, Optional
 
 import yaml
 
@@ -63,7 +63,3 @@ def load_yaml_from_docstring(docstring: str) -> Optional[Dict]:
         return yaml.load(yaml_string, Loader=yaml.FullLoader)
     except Exception as e:
         raise InvalidSpecException("Invalid yaml %s" % e) from None
-
-
-def docjoin(iterable: Iterable) -> str:
-    return ", ".join(f"``{v}``" for v in iterable)

@@ -43,7 +43,13 @@ class ValidationErrors(ValueError):
     __str__ = __repr__
 
 
-def validated_schema(schema: Any, data: Any, *, strict: bool = True) -> Any:
+def validated_schema(
+    schema: Any,
+    data: Any,
+    *,
+    multiple: bool = False,
+    strict: bool = True,
+) -> Any:
     """Validate data with a given schema and return a valid representation of the data
     as a schema instance
 
@@ -52,7 +58,14 @@ def validated_schema(schema: Any, data: Any, *, strict: bool = True) -> Any:
     :param strict: if `True` validation is strict, i.e. missing required parameters
         will cause validation to fails
     """
-    return validate(schema, data, strict=strict, raise_on_errors=True, as_schema=True)
+    return validate(
+        schema,
+        data,
+        strict=strict,
+        multiple=multiple,
+        raise_on_errors=True,
+        as_schema=True,
+    )
 
 
 def validate(

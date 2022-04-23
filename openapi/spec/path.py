@@ -6,7 +6,7 @@ from yarl import URL
 
 from openapi.json import dumps, loads
 
-from ..data.exc import ValidationErrors
+from ..data.validate import ValidationErrors
 from ..data.view import BAD_DATA_MESSAGE, DataView, ErrorType
 from ..types import DataType, QueryType, SchemaTypeOrStr
 from ..utils import compact

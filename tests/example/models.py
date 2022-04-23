@@ -5,7 +5,7 @@ from typing import Dict, List, Union
 
 from openapi.data import fields
 from openapi.data.db import dataclass_from_table
-from openapi.rest import Query, orderable, searchable
+from openapi.pagination import offsetPagination, searchable
 
 from .db import DB
 from .db.tables1 import TaskType
@@ -26,7 +26,7 @@ Task = dataclass_from_table("Task", DB.tasks)
 
 
 @dataclass
-class TaskQuery(Query):
+class TaskQuery(offsetPagination("title", "-title", "severity", "-severity")):
     title: str = fields.str_field(description="Task title")
     done: bool = fields.bool_field(description="done flag")
     type: TaskType = fields.enum_field(TaskType, description="Task type")
@@ -39,7 +39,6 @@ class TaskQuery(Query):
 @dataclass
 class TaskOrderableQuery(
     TaskQuery,
-    orderable("title", "-title", "severity", "-severity"),
     searchable("title", "unique_title"),
 ):
     pass

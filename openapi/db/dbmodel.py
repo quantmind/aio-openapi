@@ -1,13 +1,23 @@
-from typing import Any, Dict, List, Optional, Union, cast
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, cast
 
 from sqlalchemy import Column, Table, func, select
-from sqlalchemy.sql import Select, and_
+from sqlalchemy.sql import Select, and_, or_
 from sqlalchemy.sql.dml import Delete, Insert, Update
 
 from ..db.container import Database
+from ..pagination import (
+    Pagination,
+    PaginationVisitor,
+    Search,
+    SearchVisitor,
+    fields_flip_sign,
+)
+from ..pagination.cursor import cursor_to_python
 from ..types import Connection, Record, Records
 
-QueryType = Union[Delete, Update, Select]
+QueryType = Union[Delete, Select, Update]
+SelectUpdate = Union[Select, Update]
 
 
 class CrudDB(Database):
@@ -28,9 +38,11 @@ class CrudDB(Database):
         :param conn: optional db connection
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
-        query = self.get_query(table, table.select(), consumer=consumer, params=filters)
+        sql_query = self.get_query(
+            table, table.select(), consumer=consumer, params=filters
+        )
         async with self.ensure_connection(conn) as conn:
-            return await conn.execute(query)
+            return await conn.execute(sql_query)
 
     async def db_delete(
         self,
@@ -47,14 +59,14 @@ class CrudDB(Database):
         :param conn: optional db connection
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
-        query = self.get_query(
+        sql_query = self.get_query(
             table,
             table.delete().returning(*table.columns),
             consumer=consumer,
             params=filters,
         )
         async with self.ensure_connection(conn) as conn:
-            return await conn.execute(query)
+            return await conn.execute(sql_query)
 
     async def db_count(
         self,
@@ -71,11 +83,18 @@ class CrudDB(Database):
         :param conn: optional db connection
         :param consumer: optional consumer (see :meth:`.get_query`)
         """
-        query = self.get_query(table, table.select(), consumer=consumer, params=filters)
-        return await self.db_count_query(query, conn=conn)
+        sql_query = self.get_query(
+            table, table.select(), consumer=consumer, params=filters
+        )
+        return await self.db_count_query(sql_query, conn=conn)
 
-    async def db_count_query(self, query, *, conn: Optional[Connection] = None) -> int:
-        count_query = select([func.count()]).select_from(query.alias("inner"))
+    async def db_count_query(
+        self,
+        sql_query,
+        *,
+        conn: Optional[Connection] = None,
+    ) -> int:
+        count_query = select([func.count()]).select_from(sql_query.alias("inner"))
         async with self.ensure_connection(conn) as conn:
             result = await conn.execute(count_query)
             return result.scalar()
@@ -94,8 +113,8 @@ class CrudDB(Database):
         :param conn: optional db connection
         """
         async with self.ensure_connection(conn) as conn:
-            query = self.get_insert(table, data)
-            return await conn.execute(query)
+            sql_query = self.insert_query(table, data)
+            return await conn.execute(sql_query)
 
     async def db_update(
         self,
@@ -158,11 +177,28 @@ class CrudDB(Database):
             record = result.one()
         return record
 
-    def get_insert(self, table: Table, records: Union[List[Dict], Dict]) -> Insert:
+    async def db_paginate(
+        self,
+        table: Table,
+        sql_query: Select,
+        pagination: Pagination,
+        *,
+        conn: Optional[Connection] = None,
+    ) -> Tuple[Records, Optional[int]]:
+        pagination_visitor = DbPaginationVisitor(
+            db=self, table=table, sql_query=sql_query
+        )
+        pagination.apply(pagination_visitor)
+        async with self.ensure_connection(conn) as conn:
+            return await pagination_visitor.execute(conn)
+
+    # Query methods
+
+    def insert_query(self, table: Table, records: Union[List[Dict], Dict]) -> Insert:
         if isinstance(records, dict):
             records = [records]
         else:
-            cols = set()
+            cols: Set[str] = set()
             for record in records:
                 cols.update(record)
             new_records = []
@@ -176,10 +212,13 @@ class CrudDB(Database):
             records = new_records
         return table.insert(records).returning(*table.columns)
 
+    # backward compatibility
+    get_insert = insert_query
+
     def get_query(
         self,
         table: Table,
-        query: QueryType,
+        sql_query: QueryType,
         *,
         params: Optional[Dict] = None,
         consumer: Any = None,
@@ -187,7 +226,7 @@ class CrudDB(Database):
         """Build an SqlAlchemy query
 
         :param table: sqlalchemy Table
-        :param query: sqlalchemy query type
+        :param sql_query: sqlalchemy query type
         :param params: key-value pairs for the query
         :param consumer: optional consumer for manipulating parameters
         """
@@ -211,8 +250,46 @@ class CrudDB(Database):
                 filters.extend(result)
         if filters:
             whereclause = and_(*filters) if len(filters) > 1 else filters[0]
-            query = cast(Select, query).where(whereclause)
-        return query
+            sql_query = cast(Select, sql_query).where(whereclause)
+        return sql_query
+
+    def search_query(
+        self, table: Table, sql_query: SelectUpdate, search: Search
+    ) -> SelectUpdate:
+        """Build an SqlAlchemy query for a search
+
+        :param table: sqlalchemy Table
+        :param sql_query: sqlalchemy query type
+        :param search: the search dataclass
+        """
+        search_visitor = DbSearchVisitor(
+            db=self, table=table, sql_query=cast(SelectUpdate, sql_query)
+        )
+        search.apply(search_visitor)
+        return search_visitor.sql_query
+
+    def order_by_query(
+        self,
+        table: Table,
+        sql_query: Select,
+        order_by: Optional[Union[str, Sequence[str]]],
+    ) -> Select:
+        """Apply ordering to a sql_query"""
+        if isinstance(order_by, str):
+            order_by = (order_by,)
+        for name in order_by or ():
+            if name.startswith("-"):
+                order_by_column = getattr(table.c, name[1:], None)
+                if order_by_column is not None:
+                    order_by_column = order_by_column.desc()
+            else:
+                order_by_column = getattr(table.c, name, None)
+            if order_by_column is not None:
+                sql_query = sql_query.order_by(order_by_column)
+        return sql_query
+
+    # backward compatibility
+    order_by = order_by_query
 
     def default_filter_field(self, field: Column, op: str, value: Any):
         """
@@ -267,19 +344,73 @@ class CrudDB(Database):
             elif op == "le":
                 return field <= value
 
-    def order_by(
-        self, table: Table, query: QueryType, order_by: Optional[Union[str, List]]
-    ) -> QueryType:
-        """Apply ordering to a query"""
-        if isinstance(order_by, str):
-            order_by = (order_by,)
-        for name in order_by or ():
-            if name.startswith("-"):
-                order_by_column = getattr(table.c, name[1:], None)
-                if order_by_column is not None:
-                    order_by_column = order_by_column.desc()
-            else:
-                order_by_column = getattr(table.c, name, None)
-            if order_by_column is not None:
-                query = query.order_by(order_by_column)
-        return query
+
+@dataclass
+class DbSearchVisitor(SearchVisitor):
+    db: CrudDB
+    table: Table
+    sql_query: SelectUpdate
+
+    def apply_search(self, search: str, search_fields: Sequence[str]) -> None:
+        if search:
+            columns = [getattr(self.table.c, col) for col in search_fields]
+            self.sql_query = self.sql_query.where(
+                or_(*(col.ilike(f"%{search}%") for col in columns))
+            )
+
+
+@dataclass
+class DbPaginationVisitor(PaginationVisitor):
+    db: CrudDB
+    table: Table
+    sql_query: Select
+    initial_sql: Optional[QueryType] = None
+
+    def apply_offset_pagination(
+        self,
+        limit: int,
+        offset: int,
+        order_by: Optional[Union[str, Sequence[str]]],
+    ) -> None:
+        self.initial_sql = self.sql_query
+        sql_query = self.db.order_by_query(self.table, self.sql_query, order_by)
+        if offset:
+            sql_query = sql_query.offset(offset)
+        if limit:
+            sql_query = sql_query.limit(limit)
+        self.sql_query = sql_query
+
+    def apply_cursor_pagination(
+        self,
+        cursor: Sequence[Tuple[str, str]],
+        limit: int,
+        order_by: Sequence[str],
+        previous: bool = False,
+    ) -> None:
+        sql_query = self.sql_query
+        for key, value in cursor:
+            sql_query = sql_query.where(self.filter(key, value, previous))
+        extra = 1
+        if previous:
+            extra += 1
+            order_by = fields_flip_sign(order_by)
+        self.sql_query = self.db.order_by_query(self.table, sql_query, order_by).limit(
+            limit + extra
+        )
+
+    async def execute(self, conn: Connection) -> Tuple[Records, Optional[int]]:
+        total = None
+        if self.initial_sql is not None:
+            total = await self.db.db_count_query(self.initial_sql, conn=conn)
+        values = await conn.execute(self.sql_query)
+        return values, total
+
+    def filter(self, field: str, value: str, previous: bool) -> Column:
+        if field.startswith("-"):
+            field = field[1:]
+            op = "ge" if previous else "le"
+        else:
+            op = "le" if previous else "ge"
+        column = getattr(self.table.c, field)
+        py_value = cursor_to_python(column.type.python_type, value)
+        return self.db.default_filter_field(column, op, py_value)

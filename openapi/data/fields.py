@@ -1,3 +1,4 @@
+import enum
 from dataclasses import Field, dataclass, field, fields
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
@@ -20,8 +21,6 @@ FORMAT = "format"
 OPS = "ops"
 ITEMS = "items"
 
-DataClass = Any
-
 
 PRIMITIVE_TYPES: Dict[Any, Dict] = {
     str: {"type": "string"},
@@ -33,6 +32,15 @@ PRIMITIVE_TYPES: Dict[Any, Dict] = {
     datetime: {"type": "string", FORMAT: "date-time"},
     Decimal: {"type": "number"},
 }
+
+
+class Ops(enum.Enum):
+    eq = enum.auto()
+    ne = enum.auto()
+    gt = enum.auto()
+    ge = enum.auto()
+    lt = enum.auto()
+    le = enum.auto()
 
 
 class ValidationError(ValueError):

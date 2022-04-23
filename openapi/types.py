@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Type, Union
 
 from multidict import MultiDict
 from sqlalchemy.engine import CursorResult, Row
@@ -8,7 +8,7 @@ PrimitiveType = Union[int, float, bool, str]
 JSONType = Union[PrimitiveType, List, Dict[str, Any]]
 DataType = Any
 
-SchemaType = Union[List[type], type]
+SchemaType = Union[List[Type], Type]
 SchemaTypeOrStr = Union[str, SchemaType]
 StrDict = Dict[str, Any]
 QueryType = Union[StrDict, MultiDict]

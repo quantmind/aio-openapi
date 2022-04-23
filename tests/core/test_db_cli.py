@@ -124,7 +124,7 @@ async def test_tables(cli):
     result = runner.invoke(cli.app["cli"], ["db", "tables"])
     assert result.exit_code == 0
     assert result.output == "\n".join(
-        ("multi_key", "multi_key_unique", "randoms", "tasks", "")
+        ("multi_key", "multi_key_unique", "randoms", "series", "tasks", "")
     )
 
 

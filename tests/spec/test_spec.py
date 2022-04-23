@@ -93,9 +93,9 @@ async def test_spec_root(cli):
     spec = await json_body(response)
     assert "paths" in spec
     assert "tags" in spec
-    assert len(spec["tags"]) == 5
-    assert spec["tags"][3]["name"] == "Task"
-    assert spec["tags"][3]["description"] == "Simple description"
+    assert len(spec["tags"]) == 6
+    assert spec["tags"][4]["name"] == "Task"
+    assert spec["tags"][4]["description"] == "Simple description"
 
 
 async def test_spec_bytes(cli):
