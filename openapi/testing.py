@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
 from aiohttp.client import ClientResponse
+from aiohttp.test_utils import TestClient, TestServer
+from aiohttp.web import Application
 
 from .db import CrudDB, Database
 from .json import dumps, loads
@@ -60,3 +62,14 @@ class SingleConnDatabase(CrudDB):  # noqa
     async def transaction(self) -> Connection:
         async with self._lock:
             yield self._connection
+
+
+@asynccontextmanager
+async def app_cli(app: Application) -> TestClient:
+    server = TestServer(app)
+    client = TestClient(server, json_serialize=dumps)
+    await client.start_server()
+    try:
+        yield client
+    finally:
+        await client.close()

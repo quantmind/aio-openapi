@@ -4,13 +4,12 @@ import shutil
 from unittest import mock
 
 import pytest
-from aiohttp.test_utils import TestClient, TestServer
+from aiohttp.test_utils import TestClient
 from aiohttp.web import Application
 from sqlalchemy_utils import create_database, database_exists
 
 from openapi.db.dbmodel import CrudDB
-from openapi.json import dumps
-from openapi.testing import with_test_db
+from openapi.testing import app_cli, with_test_db
 
 from .example.db import DB
 from .example.main import create_app
@@ -34,8 +33,8 @@ def sentry_mock(mocker):
     return mm
 
 
-@pytest.fixture(scope="session", autouse=True)
-def loop():
+@pytest.fixture(scope="module", autouse=True)
+def event_loop():
     """Return an instance of the event loop."""
     loop = asyncio.new_event_loop()
     try:
@@ -55,29 +54,19 @@ def clear_db(sync_url) -> CrudDB:
 
 
 @pytest.fixture
-async def cli(loop, clear_db: CrudDB) -> TestClient:
-    app_cli = create_app()
-    app = app_cli.web()
-    client = TestClient(TestServer(app, loop=loop), loop=loop, json_serialize=dumps)
-    try:
-        with with_test_db(app["db"]):
-            await client.start_server()
-            yield client
-    finally:
-        await client.close()
+async def cli(clear_db: CrudDB) -> TestClient:
+    app = create_app().web()
+    with with_test_db(app["db"]):
+        async with app_cli(app) as cli:
+            yield cli
 
 
 @pytest.fixture(scope="module")
-async def cli2(loop, clear_db: CrudDB) -> TestClient:
-    app_cli = create_app()
-    app = app_cli.web()
-    client = TestClient(TestServer(app, loop=loop), loop=loop, json_serialize=dumps)
-    try:
-        with with_test_db(app["db"]):
-            await client.start_server()
-            yield client
-    finally:
-        await client.close()
+async def cli2(clear_db: CrudDB) -> TestClient:
+    app = create_app().web()
+    with with_test_db(app["db"]):
+        async with app_cli(app) as cli:
+            yield cli
 
 
 @pytest.fixture
