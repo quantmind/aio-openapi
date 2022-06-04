@@ -27,6 +27,7 @@ class PaginationVisitor:
     def apply_offset_pagination(
         self, limit: int, offset: int, order_by: Union[str, List[str]]
     ):
+        """Apply limit/offset pagination"""
         raise NotImplementedError
 
     def apply_cursor_pagination(
@@ -36,6 +37,7 @@ class PaginationVisitor:
         order_by: Sequence[str],
         previous: bool,
     ):
+        """Apply cursor pagination"""
         raise NotImplementedError
 
 
@@ -64,6 +66,8 @@ def flip_field_sign(field: str) -> str:
 
 @dataclass
 class Pagination:
+    """Base class for Pagination"""
+
     @classmethod
     def create_pagination(cls, data: dict) -> "Pagination":
         return cls()
@@ -89,12 +93,21 @@ class Pagination:
 
 
 class PaginatedData(NamedTuple):
+    """Named tuple containing paginated data and methods for retrieving
+    links to previous or next data in the pagination
+    """
+
     url: URL
+    """Base url"""
     data: list
+    """Paginated list of data"""
     pagination: Pagination
+    """Pagination dataclass which created the data"""
     total: Optional[int] = None
+    """Total number of records (supported by limit/offset pagination only)"""
 
     def json_response(self, headers: Optional[Dict[str, str]] = None, **kwargs):
+        """Create a JSON response with link header"""
         headers = headers or {}
         links = self.header_links()
         if links:
@@ -107,5 +120,6 @@ class PaginatedData(NamedTuple):
         )
 
     def header_links(self) -> str:
+        """Header links"""
         links = self.pagination.links(self.url, self.data, self.total)
         return ", ".join(f'<{value}>; rel="{name}"' for name, value in links.items())

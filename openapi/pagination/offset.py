@@ -21,6 +21,7 @@ def offsetPagination(
     default_limit: int = DEF_PAGINATION_LIMIT,
     max_limit: int = MAX_PAGINATION_LIMIT,
 ) -> Type[Pagination]:
+    """Crate a limit/offset :class:`.Pagination` dataclass"""
     if len(order_by_fields) == 0:
         raise ValueError("orderable_fields must be specified")
 

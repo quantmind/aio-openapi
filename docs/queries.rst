@@ -5,21 +5,44 @@
  Queries
 ========
 
-.. module:: openapi.rest
+.. module:: openapi.pagination
 
-The library provide some useful tooling for creating dataclasses for validating schema when querying, ordering or searching.
+The library provide some useful tooling for creating dataclasses for validating schema when querying paginated endpoints.
 
-Query
-=====
+Pagination
+===========
 
-.. autoclass:: Query
+Base class
+------------
+
+.. autoclass:: Pagination
    :members:
 
 
-orderable
-=========
+Paginated Data
+---------------
 
-.. autofunction:: orderable
+.. autoclass:: PaginatedData
+   :members:
+
+
+Visitor
+------------
+.. autoclass:: PaginationVisitor
+   :members:
+
+
+Limit/Offset Pagination
+=========================
+
+.. autofunction:: offsetPagination
+
+
+Cursor Pagination
+=========================
+
+.. autofunction:: cursorPagination
+
 
 
 searchable
