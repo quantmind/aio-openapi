@@ -40,7 +40,7 @@ def meta(meta=None):
             nullable=False,
             info=dict(min_length=3, data_field=title_field),
         ),
-        sa.Column("done", sa.DateTime),
+        sa.Column("done", sa.DateTime(timezone=True)),
         sa.Column("severity", sa.Integer),
         sa.Column("created_by", sa.String, default="", nullable=False),
         sa.Column("type", sa.Enum(TaskType)),
@@ -58,7 +58,7 @@ def meta(meta=None):
     sa.Table(
         "series",
         meta,
-        sa.Column("date", sa.DateTime, nullable=False, index=True),
+        sa.Column("date", sa.DateTime(timezone=True), nullable=False, index=True),
         sa.Column("group", sa.String(32), nullable=False, index=True, default=""),
         sa.Column("value", sa.Numeric(precision=20, scale=8)),
         sa.UniqueConstraint("date", "group"),
