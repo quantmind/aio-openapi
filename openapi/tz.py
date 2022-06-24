@@ -1,8 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
-
-UTC = pytz.utc
+UTC = timezone.utc
 
 
 def utcnow() -> datetime:
