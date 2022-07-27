@@ -11,3 +11,12 @@ Asynchronous web middleware for [aiohttp][] and serving Rest APIs with [OpenAPI]
 specification and with optional [PostgreSql][] database bindings.
 
 See the [tutorial](https://aio-openapi.readthedocs.io/en/latest/tutorial.html) for a quick introduction.
+
+
+[aiohttp]: https://aiohttp.readthedocs.io/en/stable/
+[openapi]: https://www.openapis.org/
+[postgresql]: https://www.postgresql.org/
+[sqlalchemy]: https://www.sqlalchemy.org/
+[click]: https://github.com/pallets/click
+[alembic]: http://alembic.zzzcomputing.com/en/latest/
+[asyncpg]: https://github.com/MagicStack/asyncpg
