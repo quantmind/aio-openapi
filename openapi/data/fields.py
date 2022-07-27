@@ -20,6 +20,7 @@ DUMP = "dump"
 FORMAT = "format"
 OPS = "ops"
 ITEMS = "items"
+HIDDEN = "hidden"
 
 
 PRIMITIVE_TYPES: Dict[Any, Dict] = {
@@ -57,11 +58,12 @@ def data_field(
     required: bool = False,
     validator: Optional[Callable[[Field, Any], Any]] = None,
     dump: Optional[Callable[[Any], Any]] = None,
-    format: str = None,
-    description: str = None,
+    format: Optional[str] = None,
+    description: Optional[str] = None,
     items: Optional[Field] = None,
     post_process: Callable[[Any], Any] = None,
     ops: Tuple = (),
+    hidden: bool = False,
     meta: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> Field:
@@ -78,6 +80,7 @@ def data_field(
         (only used for `List` and `Dict` fields)
     :param post_process: post processor function executed after validation
     :param ops: optional tuple of strings specifying available operations
+    :param hidden: when `True` the field is not added to the Openapi documentation
     :param meta: optional dictionary with additional metadata
     """
     if isinstance(validator, Validator) and not dump:
@@ -98,6 +101,7 @@ def data_field(
                 POST_PROCESS: post_process,
                 FORMAT: format,
                 OPS: ops,
+                HIDDEN: hidden,
                 **meta,
             }
         ),

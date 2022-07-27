@@ -40,7 +40,9 @@ class License:
 
 
 @dataclass
-class OpenApi:
+class OpenApiInfo:
+    """Open API Info object"""
+
     title: str = "Open API"
     description: str = ""
     version: str = "0.1.0"
@@ -49,11 +51,16 @@ class OpenApi:
     license: License = License()
 
 
+# for backward compatibility
+OpenApi = OpenApiInfo
+
+
 @dataclass
 class OpenApiSpec:
     """Open API Specification"""
 
-    info: OpenApi = field(default_factory=OpenApi)
+    info: OpenApiInfo = field(default_factory=OpenApiInfo)
+    """openapi info object, it provides metadata about the API"""
     default_content_type: str = "application/json"
     default_responses: Dict = field(default_factory=dict)
     security: Dict = field(default_factory=dict)
@@ -61,7 +68,9 @@ class OpenApiSpec:
     validate_docs: bool = False
     allowed_tags: Set = field(default_factory=set)
     spec_url: str = SPEC_ROUTE
+    """the path serving the JSON openpi specification"""
     redoc: Optional[Redoc] = None
+    """Optional object for rendering the specification as an HTML page via redoc"""
 
     def routes(self, request: web.Request) -> Iterable:
         """Routes to include in the spec"""
@@ -113,6 +122,8 @@ class SchemaParser:
         """Convert a dataclass field to Json schema"""
         field = fields.as_field(field_or_type)
         meta = field.metadata
+        if meta.get(fields.HIDDEN):
+            return {}
         items = meta.get(fields.ITEMS)
         json_property = self.get_schema_info(field.type, items=items)
         field_description = meta.get(fields.DESCRIPTION)
@@ -272,7 +283,7 @@ class SpecDoc(SchemaParser):
         self.plugins: Dict = {}
         self.doc: Dict = dict(
             openapi=OPENAPI,
-            info=asdict(self.spec.info or OpenApi()),
+            info=asdict(self.spec.info),
             paths=OrderedDict(),
         )
 

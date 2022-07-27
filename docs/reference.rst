@@ -120,15 +120,23 @@ Dump data
 .. autofunction:: dump
 
 
-Openapi Spec
-==================
+Openapi Specification
+======================
 
 .. module:: openapi.spec
+
+OpenApiInfo
+-------------
+
+.. autoclass:: OpenApiInfo
+   :members:
+
 
 OpenApiSpec
 -------------
 
 .. autoclass:: OpenApiSpec
+   :members:
 
 
 op decorator

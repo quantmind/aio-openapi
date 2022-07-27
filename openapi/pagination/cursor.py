@@ -81,9 +81,12 @@ def cursorPagination(
             validator=Choice(("asc", "desc")),
             required=False,
             default="asc",
-            description=("Order results descending or ascending"),
+            description=(
+                f"Sort results via `{', '.join(order_by_fields)}` "
+                "in descending or ascending order"
+            ),
         )
-        _cursor: str = ""
+        _cursor: str = str_field(default="", hidden=True)
 
         @cached_property
         def cursor_info(self) -> Tuple[CursorType, Tuple[str, ...], bool]:
