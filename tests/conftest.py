@@ -70,10 +70,10 @@ async def cli2(clear_db: CrudDB) -> TestClient:
 
 
 @pytest.fixture
-async def test_app(cli: TestClient) -> Application:
+def test_app(cli: TestClient) -> Application:
     return cli.app
 
 
 @pytest.fixture
-async def db(test_app: Application) -> CrudDB:
+def db(test_app: Application) -> CrudDB:
     return test_app["db"]

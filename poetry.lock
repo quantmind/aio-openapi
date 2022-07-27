@@ -1288,7 +1288,7 @@ docs = ["Sphinx", "recommonmark", "aiohttp-theme", "sphinx-copybutton", "sphinx-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4"
-content-hash = "66d60eddc23a1ca0576a4a652e21726fd4683c6a1c34090171966d518601dc2e"
+content-hash = "b2ea55164f8369e78300af86aea50392186e27032fc04e2495804594f676512f"
 
 [metadata.files]
 aiodns = [

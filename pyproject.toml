@@ -80,12 +80,12 @@ sentry-sdk = "^1.4.3"
 python-dotenv = "^0.20.0"
 openapi-spec-validator = "^0.3.1"
 pytest-cov = "^3.0.0"
-pytest-aiohttp = "^1.0.4"
 pytest-mock = "^3.6.1"
 isort = "^5.10.1"
 types-simplejson = "^3.17.5"
 types-python-dateutil = "^2.8.11"
 factory-boy = "^3.2.1"
+pytest-asyncio = "^0.19.0"
 
 [tool.poetry.extras]
 dev = ["aiodns", "PyJWT", "colorlog", "phonenumbers", "cchardet"]
