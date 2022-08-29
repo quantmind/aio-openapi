@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aio-openapi"
-version = "3.0.1"
+version = "3.0.2"
 description = "Minimal OpenAPI asynchronous server application"
 documentation = "https://aio-openapi.readthedocs.io"
 repository = "https://github.com/quantmind/aio-openapi"
@@ -41,8 +41,8 @@ issues = "https://github.com/quantmind/aio-openapi/issues"
 python = ">=3.8,<4"
 aiohttp = "^3.8.0"
 httptools = "^0.4.0"
-simplejson = "^3.17.5"
-asyncpg = "^0.25.0"
+simplejson = "^3.17.2"
+asyncpg = "^0.26.0"
 SQLAlchemy = "^1.4.27"
 SQLAlchemy-Utils = "^0.38.2"
 alembic = "psycopg2-binary"
@@ -50,7 +50,6 @@ psycopg2-binary = "^2.9.2"
 click = "^8.0.3"
 python-dateutil = "^2.8.2"
 PyYAML = "^6.0"
-uvloop = {version = "^0.16.0", optional = true}
 aiodns = {version = "^3.0.0", optional = true}
 PyJWT = {version = "^2.3.0", optional = true}
 colorlog = {version = "^6.6.0", optional = true}
@@ -66,7 +65,7 @@ email-validator = "^1.2.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
-flake8 = "^4.0.1"
+flake8 = "^5.0.4"
 pytest = "^7.1.1"
 flake8-blind-except = "^0.2.0"
 flake8-builtins = "^1.5.3"
