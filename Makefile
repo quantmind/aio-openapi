@@ -36,7 +36,7 @@ lint: 			## run linters
 
 
 mypy:			## run mypy
-	@mypy openapi
+	@poetry run mypy openapi
 
 
 outdated:		## Show outdated packages

@@ -87,7 +87,7 @@ class Database:
             yield conn
 
     @asynccontextmanager
-    async def ensure_connection(self, conn: Optional[Connection] = None) -> Connection:
+    async def ensure_transaction(self, conn: Optional[Connection] = None) -> Connection:
         """Context manager for ensuring we a connection has initialized
         a database transaction"""
         if conn:
@@ -99,6 +99,9 @@ class Database:
         else:
             async with self.transaction() as conn:
                 yield conn
+
+    # backward compatibility
+    ensure_connection = ensure_transaction
 
     async def close(self) -> None:
         """Close the asynchronous db engine if opened"""
