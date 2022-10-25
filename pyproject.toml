@@ -53,7 +53,6 @@ aiodns = {version = "^3.0.0", optional = true}
 PyJWT = {version = "^2.3.0", optional = true}
 colorlog = {version = "^6.6.0", optional = true}
 phonenumbers = {version = "^8.12.37", optional = true}
-cchardet = {version = "^2.1.7", optional = true}
 Sphinx = {version = "^5.0.2", optional = true}
 sphinx-copybutton = {version = "^0.5.0", optional = true}
 sphinx-autodoc-typehints = {version = "^1.12.0", optional = true}
@@ -84,10 +83,10 @@ isort = "^5.10.1"
 types-simplejson = "^3.17.5"
 types-python-dateutil = "^2.8.11"
 factory-boy = "^3.2.1"
-pytest-asyncio = "^0.19.0"
+pytest-asyncio = "^0.20.1"
 
 [tool.poetry.extras]
-dev = ["aiodns", "PyJWT", "colorlog", "phonenumbers", "cchardet"]
+dev = ["aiodns", "PyJWT", "colorlog", "phonenumbers"]
 docs = [
     "Sphinx",
     "recommonmark",
@@ -95,6 +94,9 @@ docs = [
     "sphinx-copybutton",
     "sphinx-autodoc-typehints",
 ]
+
+[tool.poetry.group.dev.dependencies]
+types-pyyaml = "^6.0.12"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
