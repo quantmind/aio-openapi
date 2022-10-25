@@ -47,8 +47,8 @@ class OpenApiInfo:
     description: str = ""
     version: str = "0.1.0"
     termsOfService: str = ""
-    contact: Contact = Contact()
-    license: License = License()
+    contact: Contact = field(default_factory=Contact)
+    license: License = field(default_factory=License)
 
 
 # for backward compatibility
