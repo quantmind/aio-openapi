@@ -56,11 +56,11 @@ test:			## test with coverage
 
 
 test-version:		## check version compatibility
-	@./dev/test-version
+	./dev/test-version
 
 
 test-lint:		## run linters checks
-	@./dev/lint-code --check
+	@poetry run ./dev/lint-code --check
 
 
 test-docs: 		## run docs in CI
