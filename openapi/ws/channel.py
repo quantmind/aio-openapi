@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Sequence, Set
+from typing import Any, Awaitable, Callable, Dict, Sequence, Set
 
 from .errors import ChannelCallbackError
 from .utils import redis_to_py_pattern
-
-CallbackType = Callable[[], None]
 
 logger = logging.getLogger("trading.websocket")
 
@@ -18,6 +18,9 @@ class Event:
     pattern: str
     regex: Any
     callbacks: Set[CallbackType] = field(default_factory=set)
+
+
+CallbackType = Callable[[str, str, Any], Awaitable[Any]]
 
 
 @dataclass
@@ -103,7 +106,7 @@ class Channel:
 
     async def _execute_callback(
         self, callback: CallbackType, event: Event, match: str, data: Any
-    ):
+    ) -> Any:
         try:
             await callback(self.name, match, data)
         except ChannelCallbackError:

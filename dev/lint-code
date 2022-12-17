@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-poetry run isort . $1
-poetry run black . --exclude "build|dev|docs|venv" $1
-poetry run flake8
+isort openapi tests $1
+black openapi tests $1
+flake8 openapi tests
+# mypy openapi tests

@@ -145,7 +145,7 @@ def iter_items(data: Iterable) -> Iterator:
     if isinstance(data, Record):
         data = data._asdict()
     if isinstance(data, Mapping):
-        return data.items()
+        return iter(data.items())
     return iter(data)
 
 

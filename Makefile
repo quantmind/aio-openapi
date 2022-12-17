@@ -32,7 +32,7 @@ install: 		## install packages via poetry
 
 
 lint: 			## run linters
-	./dev/lint-code
+	poetry run ./dev/lint-code
 
 
 mypy:			## run mypy

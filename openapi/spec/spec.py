@@ -82,7 +82,7 @@ class OpenApiSpec:
         if self.redoc:
             app.router.add_get(self.redoc.path, self.redoc.handle_doc)
 
-    def spec_route(self, request: web.Request) -> web.Response:
+    async def spec_route(self, request: web.Request) -> web.Response:
         """Return the OpenApi spec"""
         return web.json_response(self.build(request))
 
@@ -234,7 +234,7 @@ class SchemaParser:
         return name
 
     def parsed_schemas(self) -> Dict[str, Dict]:
-        parsed = {}
+        parsed: Dict[str, Dict] = {}
         while self.schemas_to_parse:
             to_parse = self.schemas_to_parse
             self.schemas_to_parse = {}
@@ -249,16 +249,16 @@ class SchemaParser:
     def add_default(self, field: Field, json_property: Dict):
         if field.default in EMPTY_DEFAULTS or field.metadata.get(fields.REQUIRED):
             return
-        default = field.default
-        type_info = TypingInfo.get(field.type)
-        if type_info.element not in fields.PRIMITIVE_TYPES:
-            if is_subclass(type_info.element, Enum) and isinstance(
-                default, type_info.element
-            ):
-                default = default.name
-            else:
-                return
-        json_property["default"] = default
+        if type_info := TypingInfo.get(field.type):
+            default = field.default
+            if type_info.element not in fields.PRIMITIVE_TYPES:
+                if is_subclass(type_info.element, Enum) and isinstance(
+                    default, type_info.element
+                ):
+                    default = default.name
+                else:
+                    return
+            json_property["default"] = default
 
 
 class SpecDoc(SchemaParser):

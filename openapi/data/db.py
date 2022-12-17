@@ -33,7 +33,7 @@ def dataclass_from_table(
     default: Union[bool, Sequence[str]] = False,
     required: Union[bool, Sequence[str]] = False,
     ops: Optional[Dict[str, Sequence[str]]] = None,
-) -> type:
+) -> Type:
     """Create a dataclass from an :class:`sqlalchemy.schema.Table`
 
     :param name: dataclass name
