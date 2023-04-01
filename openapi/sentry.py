@@ -6,7 +6,6 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 
 
 def setup(app, dsn, env="dev", level=logging.ERROR, event_level=logging.ERROR):
-
     sentry_sdk.init(
         dsn=dsn,
         environment=env,
