@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from aiohttp.test_utils import TestClient
 from aiohttp.web import Application
+from sqlalchemy.engine.url import URL
 from sqlalchemy_utils import create_database, database_exists
 
 from openapi.db.dbmodel import CrudDB
@@ -16,8 +17,8 @@ from .example.main import create_app
 
 
 @pytest.fixture(scope="session")
-def sync_url() -> str:
-    return str(DB.sync_engine.url)
+def sync_url() -> URL:
+    return DB.sync_engine.url
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +45,7 @@ def event_loop():
 
 
 @pytest.fixture(scope="session")
-def clear_db(sync_url) -> CrudDB:
+def clear_db(sync_url: URL) -> CrudDB:
     if not database_exists(sync_url):
         # drop_database(url)
         create_database(sync_url)

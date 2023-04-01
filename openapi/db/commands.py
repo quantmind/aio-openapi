@@ -1,4 +1,5 @@
 import click
+from sqlalchemy import inspect
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from openapi.cli import open_api_cli
@@ -125,13 +126,12 @@ def create(ctx, dbname: str, force: str):
     """Creates a new database"""
     engine = get_db(ctx).sync_engine
     url = engine.url.set(database=dbname)
-    store = str(url)
-    if database_exists(store):
+    if database_exists(url):
         if force:
-            drop_database(store)
+            drop_database(url)
         else:
             return click.echo(f"database {dbname} already available")
-    create_database(store)
+    create_database(url)
     click.echo(f"database {dbname} created")
 
 
@@ -147,7 +147,7 @@ def tables(ctx, db):
     """List all tables managed by the app"""
     d = get_db(ctx)
     if db:
-        tables = d.sync_engine.table_names()
+        tables = inspect(d.sync_engine).get_table_names()
     else:
         tables = d.metadata.tables
     for name in sorted(tables):

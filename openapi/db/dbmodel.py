@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, cast
 
-from sqlalchemy import Column, Table, func, select
+from sqlalchemy import Column, Table, func, insert, select
 from sqlalchemy.sql import Select, and_, or_
 from sqlalchemy.sql.dml import Delete, Insert, Update
 
@@ -71,7 +71,7 @@ class CrudDB(Database):
     async def db_count(
         self,
         table: Table,
-        filters: Dict,
+        filters: Dict | None = None,
         *,
         conn: Optional[Connection] = None,
         consumer: Any = None,
@@ -90,11 +90,11 @@ class CrudDB(Database):
 
     async def db_count_query(
         self,
-        sql_query,
+        sql_query: Select,
         *,
         conn: Optional[Connection] = None,
     ) -> int:
-        count_query = select([func.count()]).select_from(sql_query.alias("inner"))
+        count_query = select(func.count()).select_from(sql_query.alias("inner"))
         async with self.ensure_connection(conn) as conn:
             result = await conn.execute(count_query)
             return result.scalar()
@@ -210,7 +210,7 @@ class CrudDB(Database):
                         record[col] = None
                 new_records.append(record)
             records = new_records
-        return table.insert(records).returning(*table.columns)
+        return insert(table).values(records).returning(*table.columns)
 
     # backward compatibility
     get_insert = insert_query
