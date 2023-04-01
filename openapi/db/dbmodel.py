@@ -71,7 +71,7 @@ class CrudDB(Database):
     async def db_count(
         self,
         table: Table,
-        filters: Dict | None = None,
+        filters: Optional[Dict] = None,
         *,
         conn: Optional[Connection] = None,
         consumer: Any = None,
