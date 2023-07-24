@@ -12,8 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_ENV: ci
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
     strategy:
       matrix:
@@ -37,9 +35,12 @@ jobs:
         run: make test-docs
       - name: run tests
         run: make test
-      - name: upload coverage
+      - name: upload coverage reports to codecov
         if: matrix.python-version == '3.11'
-        run: make upload-coverage
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./build/coverage.xml
       - name: publish
         if: ${{ matrix.python-version == '3.11' && github.event.head_commit.message == 'release' }}
         run: make publish

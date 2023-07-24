@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-isort openapi tests $1
-black openapi tests $1
-flake8 openapi tests
-# mypy openapi tests
+BLACK_ARG="--check"
+RUFF_ARG=""
+
+if [ "$1" = "fix" ] ; then
+    BLACK_ARG=""
+    RUFF_ARG="--fix"
+fi
+
+echo "run black"
+black openapi tests ${BLACK_ARG}
+echo "run ruff"
+ruff openapi tests ${RUFF_ARG}
+#echo "run mypy"
+#mypy openapi
