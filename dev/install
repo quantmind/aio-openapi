@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 pip install -U pip poetry
-poetry install -E dev -E docs
+poetry install --with=docs --with=extras

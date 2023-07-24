@@ -35,10 +35,6 @@ lint: 			## run linters
 	poetry run ./dev/lint-code
 
 
-mypy:			## run mypy
-	@poetry run mypy openapi
-
-
 outdated:		## Show outdated packages
 	poetry show -o
 
@@ -65,10 +61,6 @@ test-lint:		## run linters checks
 
 test-docs: 		## run docs in CI
 	make docs
-
-
-upload-coverage:	## upload coverage
-	@poetry run coveralls
 
 
 publish:		## release to pypi and github tag
